@@ -1,0 +1,8 @@
+# Target directory
+target/
+
+# IDE directories
+.idea/
+
+# Lockfile
+Cargo.lock
