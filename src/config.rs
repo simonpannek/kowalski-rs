@@ -19,6 +19,7 @@ pub struct General {
 
 #[derive(Deserialize)]
 pub struct Command {
+    pub command_type: CommandType,
     pub description: String,
     pub module: Option<Module>,
     pub default_permission: bool,
@@ -26,8 +27,17 @@ pub struct Command {
     pub owner: Option<bool>,
 }
 
-/// Types of modules parsed by the config.
+/// Types of commands parsed by the config.
 #[derive(Deserialize)]
+pub enum CommandType {
+    Ping,
+    About,
+    Module,
+    Sql,
+}
+
+/// Types of modules parsed by the config.
+#[derive(Debug, Deserialize)]
 pub enum Module {
     Owner,
     Utility,

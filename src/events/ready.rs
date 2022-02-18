@@ -1,13 +1,12 @@
 use serenity::{
     client::Context,
     model::{
-        gateway::Ready,
+        gateway::{Activity, Ready},
         id::GuildId,
         interactions::application_command::{
             ApplicationCommand,
             ApplicationCommandPermissionType::{Role, User},
         },
-        prelude::Activity,
     },
 };
 use tracing::info;
@@ -16,7 +15,7 @@ use crate::{
     config::{Config, Module},
     database::{client::Database, types::ModuleStatus},
     strings::{
-        ERR_API_LOAD, ERR_CMD_CREATION, ERR_CMD_NOT_FOUND, ERR_CMD_PERMISSION, ERR_DATA_ACCESS,
+        ERR_API_LOAD, ERR_CMD_CREATION, ERR_CMD_NOT_FOUND, ERR_CMD_SET_PERMISSION, ERR_DATA_ACCESS,
         ERR_DB_QUERY, INFO_CMD_GLOBAL, INFO_CMD_MODULE, INFO_CONNECTED,
     },
 };
@@ -45,7 +44,7 @@ async fn setup_commands(ctx: &Context, rdy: Ready) {
     };
 
     // Create global commands
-    let commands = create_global_commands(&config, ctx).await;
+    let commands = create_global_commands(ctx, &config).await;
     // Set permissions of the global commands per guild
     for guild in rdy.guilds {
         add_permissions(guild.id(), &commands, &config, ctx).await;
@@ -53,11 +52,11 @@ async fn setup_commands(ctx: &Context, rdy: Ready) {
     info!("{}", INFO_CMD_GLOBAL);
 
     // Create module commands per guild
-    create_module_commands(&config, &database, ctx).await;
+    create_module_commands(ctx, &config, &database).await;
     info!("{}", INFO_CMD_MODULE);
 }
 
-async fn create_global_commands(config: &Config, ctx: &Context) -> Vec<ApplicationCommand> {
+async fn create_global_commands(ctx: &Context, config: &Config) -> Vec<ApplicationCommand> {
     // Get commands without a module
     let filtered = config
         .commands
@@ -80,7 +79,7 @@ async fn create_global_commands(config: &Config, ctx: &Context) -> Vec<Applicati
     .expect(ERR_CMD_CREATION)
 }
 
-async fn create_module_commands(config: &Config, database: &Database, ctx: &Context) {
+async fn create_module_commands(ctx: &Context, config: &Config, database: &Database) {
     let modules = database
         .client
         .query("SELECT * FROM modules", &[])
@@ -192,6 +191,6 @@ async fn add_permissions(
                 command_perms
             })
             .await
-            .expect(ERR_CMD_PERMISSION);
+            .expect(ERR_CMD_SET_PERMISSION);
     }
 }

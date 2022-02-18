@@ -7,20 +7,24 @@ owners = [158280426551640064]
 # Global
 # For the permissions field, use https://discordapi.com/permissions.html
 [commands.ping]
+command_type = "Ping"
 description = "Ping the bot."
 default_permission = true
 
 [commands.about]
+command_type = "About"
 description = "Display information about the bot."
 default_permission = true
 
 [commands.module]
+command_type = "Module"
 description = "Update the activated modules on this server."
 default_permission = false
 permission = "8"
 
 # Bot management
 [commands.sql]
+command_type = "Sql"
 description = "Execute a sql query."
 module = "Owner"
 default_permission = false
