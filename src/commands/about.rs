@@ -1,9 +1,7 @@
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
-use std::borrow::{Borrow, BorrowMut};
 
-use crate::utils::send_response_complex;
 use crate::{config::Command, error::ExecutionError, utils::send_response};
 
 pub async fn execute(

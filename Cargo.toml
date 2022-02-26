@@ -12,6 +12,10 @@ toml = "0.5.8"
 tracing = "0.1.30"
 tracing-subscriber = "0.3.8"
 
+[dependencies.linked-hash-map]
+version = "0.5.4"
+features = ["serde_impl"]
+
 [dependencies.serde]
 version = "1.0"
 features = ["derive"]
@@ -19,7 +23,7 @@ features = ["derive"]
 [dependencies.serenity]
 version = "0.10"
 default-features = false
-features = ["client", "gateway", "model", "rustls_backend", "unstable_discord_api"]
+features = ["client", "collector", "rustls_backend", "unstable_discord_api"]
 
 [dependencies.tokio]
 version = "1.0"

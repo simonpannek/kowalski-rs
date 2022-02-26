@@ -5,7 +5,7 @@ use tokio_postgres::types::private::BytesMut;
 use tokio_postgres::types::{accepts, to_sql_checked, FromSql, IsNull, ToSql, Type};
 
 /// The status of the modules in a guild. Describes which modules are currently enabled.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleStatus {
     pub owner: bool,
     pub utility: bool,
@@ -34,7 +34,7 @@ impl ToSql for ModuleStatus {
         ty: &Type,
         out: &mut BytesMut,
     ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        let mut bits = BitVec::with_capacity(8);
+        let mut bits = BitVec::from_elem(8, false);
 
         bits.set(0, self.owner);
         bits.set(1, self.utility);

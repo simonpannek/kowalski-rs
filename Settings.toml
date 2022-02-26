@@ -1,9 +1,10 @@
 [general]
 # The owners of the bot
 owners = [158280426551640064]
+# Time to wait for user interactions in seconds
+interaction_timeout = 60
 
 [commands]
-
 # Global
 # For the permissions field, use https://discordapi.com/permissions.html
 [commands.ping]
@@ -22,10 +23,27 @@ description = "Update the activated modules on this server."
 default_permission = false
 permission = "8"
 
+[commands.module.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["enable", "disable", "remove"]
+
+[commands.module.options.module]
+kind = "String"
+description = "The module to update."
+required = true
+choices = ["Owner", "Utility", "Reactions", "ReactionRoles"]
+
 # Bot management
 [commands.sql]
 command_type = "Sql"
-description = "Execute a sql query."
+description = "Execute a SQL query."
 module = "Owner"
 default_permission = false
 owner = true
+
+[commands.sql.options.query]
+kind = "String"
+description = "The SQL query to execute."
+required = true
