@@ -1,5 +1,7 @@
 use std::{env, error::Error, sync::Arc};
+use tokio::sync::RwLock;
 
+use crate::history::History;
 use crate::{
     config::Config, database::client::Database, events::handler::Handler, strings::ERR_ENV_NOT_SET,
 };
@@ -33,10 +35,12 @@ impl Client {
         {
             let mut data = client.data.write().await;
 
-            // Add config to database data
+            // Add config to data
             data.insert::<Config>(Arc::new(Config::new().await?));
-            // Add database to database data
+            // Add database to data
             data.insert::<Database>(Arc::new(Database::new().await?));
+            // Add query history to data
+            data.insert::<History>(Arc::new(RwLock::new(History::new())));
         }
 
         Ok(Client { client })

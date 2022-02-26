@@ -21,6 +21,8 @@ pub struct Config {
 pub struct General {
     pub owners: Vec<u64>,
     pub interaction_timeout: u64,
+    pub command_history_size: usize,
+    pub autocomplete_size: usize,
 }
 
 #[derive(Deserialize)]
@@ -63,6 +65,7 @@ pub struct CommandOption {
     pub options: Option<LinkedHashMap<String, CommandOption>>,
     pub min_value: Option<i32>,
     pub max_value: Option<i32>,
+    pub autocomplete: Option<bool>,
 }
 
 /// Types of options parsed by the config

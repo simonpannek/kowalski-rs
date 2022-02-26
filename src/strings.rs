@@ -6,9 +6,11 @@ pub const INFO_DB_CONNECTED: &str = "Database connection established.";
 pub const INFO_DB_SETUP: &str = "Database setup complete.";
 // Error messages
 pub const ERR_API_LOAD: &str = "Failed to request information from the REST API";
+pub const ERR_AUTOCOMPLETE: &str = "Failed to answer the autocomplete request";
 pub const ERR_CLIENT: &str = "Client error";
-pub const ERR_CMD_ARGS_LENGTH: &str = "Could not find required argument";
 pub const ERR_CMD_ARGS_INVALID: &str = "The argument provided is invalid";
+pub const ERR_CMD_ARGS_LENGTH: &str = "Could not find required argument";
+pub const ERR_CMD_ARGS_TYPE: &str = "The argument provided has an unexpected type";
 pub const ERR_CMD_CREATION: &str = "Failed to create bot commands";
 pub const ERR_CMD_EXECUTION: &str = "Failed to execute the command";
 pub const ERR_CMD_RESPONSE_INVALID: &str = "The response provided is invalid";

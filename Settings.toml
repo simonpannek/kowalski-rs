@@ -3,6 +3,10 @@
 owners = [158280426551640064]
 # Time to wait for user interactions in seconds
 interaction_timeout = 60
+# Maximum size of the command history for autocompletion per user and command
+command_history_size = 500
+# Maximum amount of autocomplete suggestions to send back to the user
+autocomplete_size = 10
 
 [commands]
 # Global
@@ -47,3 +51,4 @@ owner = true
 kind = "String"
 description = "The SQL query to execute."
 required = true
+autocomplete = true

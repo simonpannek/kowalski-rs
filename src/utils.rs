@@ -121,9 +121,7 @@ pub async fn edit_response(
     title: &str,
     content: &str,
 ) -> Result<(), ExecutionError> {
-    edit_response_complex(ctx, command, command_config, title, content, |embed| embed)
-        .await
-        .map(|_| {})
+    edit_response_complex(ctx, command, command_config, title, content, |embed| embed).await
 }
 
 /// Send a complex embed response, giving the title, content and a function further editing the embed.
@@ -158,7 +156,7 @@ async fn edit_response_complex(
     title: &str,
     content: &str,
     update: fn(&mut CreateEmbed) -> &mut CreateEmbed,
-) -> Result<Message, ExecutionError> {
+) -> Result<(), ExecutionError> {
     let mut embed = create_embed(title, content);
     embed.color(Colour::from((47, 49, 54)));
 
@@ -185,7 +183,7 @@ pub async fn send_failure(
 
     // If a response exists already, edit the existing message, otherwise, send a new one
     let result = match command.get_interaction_response(&ctx.http).await {
-        Ok(_) => edit_embed(ctx, command, embed).await.map(|_| {}),
+        Ok(_) => edit_embed(ctx, command, embed).await,
         Err(_) => send_embed(ctx, command, embed, CreateComponents::default()).await,
     };
 
@@ -221,7 +219,7 @@ async fn edit_embed(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     embed: CreateEmbed,
-) -> Result<Message, ExecutionError> {
+) -> Result<(), ExecutionError> {
     command
         .edit_original_interaction_response(&ctx.http, |response| {
             response
@@ -229,6 +227,7 @@ async fn edit_embed(
                 .add_embed(embed)
         })
         .await
+        .map(|_| {})
         .map_err(|why| ExecutionError::new(&format!("{}", why)))
 }
 
@@ -313,7 +312,8 @@ fn create_option(name: &str, option_config: &CommandOption) -> CreateApplication
         .name(name)
         .description(&option_config.description)
         .default_option(option_config.default.unwrap_or_default())
-        .required(option_config.required.unwrap_or_default());
+        .required(option_config.required.unwrap_or_default())
+        .set_autocomplete(option_config.autocomplete.unwrap_or_default());
 
     // Add options if there are any
     if let Some(choices) = &option_config.choices {

@@ -9,7 +9,7 @@ pub struct ExecutionError {
 impl ExecutionError {
     pub fn new(reason: &str) -> Self {
         ExecutionError {
-            reason: String::from(reason),
+            reason: reason.to_string(),
         }
     }
 }
