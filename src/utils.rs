@@ -8,7 +8,6 @@ use serenity::{
     },
     client::Context,
     model::{
-        channel::Message,
         id::GuildId,
         interactions::{
             application_command::{

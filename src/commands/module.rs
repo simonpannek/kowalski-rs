@@ -10,13 +10,12 @@ use serenity::{
     model::{id::GuildId, interactions::application_command::ApplicationCommandInteraction},
 };
 
-use crate::utils::create_module_command;
 use crate::{
     config::{Command, Config, Module},
     database::{client::Database, types::ModuleStatus},
     error::ExecutionError,
     strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_CMD_RESPONSE_INVALID, ERR_DATA_ACCESS},
-    utils::{edit_response, parse_arg, send_confirmation, send_response},
+    utils::{create_module_command, edit_response, parse_arg, send_confirmation, send_response},
 };
 
 enum Action {
@@ -194,7 +193,7 @@ async fn remove(
         command,
         command_config,
         &title,
-        "I removed all of the module data.",
+        "I have removed all of the module data.",
     )
     .await
 }
@@ -235,7 +234,7 @@ async fn update(
         command,
         command_config,
         &title,
-        "I updated the module.",
+        "I have updated the module.",
     )
     .await
 }

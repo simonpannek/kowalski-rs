@@ -1,15 +1,17 @@
+use std::borrow::Cow;
+
 use serenity::{
-    client::Context, model::interactions::application_command::ApplicationCommandInteraction,
+    client::Context, http::AttachmentType,
+    model::interactions::application_command::ApplicationCommandInteraction,
 };
 
-use crate::utils::edit_response;
 use crate::{
     config::{Command, Config},
-    database::client::Database,
+    database::{client::Database, types::TableResolved},
     error::ExecutionError,
     history::History,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::{parse_arg, send_response},
+    utils::{edit_response, parse_arg, send_response},
 };
 
 pub async fn execute(
@@ -47,8 +49,8 @@ pub async fn execute(
     .await?;
 
     // Execute SQL query
-    // TODO: Format result
     let result = database.client.query(query, &[]).await?;
+    let resolved = TableResolved::new(ctx, result).await;
 
     // Add query to history
     {
@@ -63,12 +65,26 @@ pub async fn execute(
         );
     }
 
+    let string = resolved.table(0, resolved.len()).to_string();
+
+    if !string.is_empty() {
+        let file = AttachmentType::Bytes {
+            data: Cow::from(string.as_bytes()),
+            filename: "result.txt".to_string(),
+        };
+
+        command
+            .channel_id
+            .send_message(&ctx.http, |message| message.add_file(file))
+            .await?;
+    }
+
     edit_response(
         ctx,
         command,
         command_config,
         &format!("`{}`", query),
-        &format!("{:?}", result),
+        "I have executed the SQL query.",
     )
     .await
 }

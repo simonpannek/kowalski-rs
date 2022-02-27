@@ -1,4 +1,4 @@
-use std::{cmp::max, collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use serenity::{model::id::UserId, prelude::TypeMapKey};
 use tokio::sync::RwLock;

@@ -1,13 +1,14 @@
-use serenity::builder::CreateAutocompleteResponse;
-use serenity::model::prelude::autocomplete::AutocompleteInteraction;
 use serenity::{
     client::Context,
-    model::interactions::{application_command::ApplicationCommandInteraction, Interaction},
+    model::interactions::{
+        application_command::ApplicationCommandInteraction, autocomplete::AutocompleteInteraction,
+        Interaction,
+    },
 };
 use tracing::error;
 
 use crate::history::History;
-use crate::strings::{ERR_AUTOCOMPLETE, ERR_CMD_ARGS_TYPE, ERR_USER_TITLE};
+use crate::strings::{ERR_AUTOCOMPLETE, ERR_USER_TITLE};
 use crate::{
     commands::*,
     config::{CommandType, Config},
