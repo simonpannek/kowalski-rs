@@ -14,8 +14,10 @@ use crate::{
     config::{Command, Config, Module},
     database::{client::Database, types::ModuleStatus},
     error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_CMD_RESPONSE_INVALID, ERR_DATA_ACCESS},
-    utils::{create_module_command, edit_response, parse_arg, send_confirmation, send_response},
+    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    utils::{
+        create_module_command, parse_arg, send_confirmation, send_response, InteractionResponse,
+    },
 };
 
 enum Action {
@@ -79,14 +81,30 @@ pub async fn execute(
 
     // Get guild status
     let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
-    let row = database
-        .client
-        .query_one(
-            "SELECT status FROM modules WHERE guild = $1::BIGINT",
-            &[&i64::from(guild)],
-        )
-        .await?;
-    let status: ModuleStatus = row.get(0);
+    let status: ModuleStatus = {
+        let row = database
+            .client
+            .query_opt(
+                "SELECT status FROM modules WHERE guild = $1::BIGINT",
+                &[&i64::from(guild)],
+            )
+            .await?;
+
+        match row {
+            Some(row) => row.get(0),
+            None => {
+                database
+                    .client
+                    .execute(
+                        "INSERT INTO modules VALUES ($1::BIGINT, B'00000000')",
+                        &[&i64::from(guild)],
+                    )
+                    .await?;
+
+                ModuleStatus::default()
+            }
+        }
+    };
 
     // Copy status to compare it to the old status later
     let mut status_new = status.clone();
@@ -106,7 +124,7 @@ pub async fn execute(
     match action {
         Action::Disable(true) => {
             // Check for the interaction response
-            let interaction = send_confirmation(
+            let response = send_confirmation(
                 ctx,
                 command,
                 command_config,
@@ -114,29 +132,22 @@ pub async fn execute(
                 This cannot be reversed, all data will be gone permanently!", module),
                 Duration::from_secs(config.general.interaction_timeout),
             )
-            .await?
-                .map(|interaction| interaction.data.custom_id.clone());
+            .await?;
 
-            match interaction {
-                Some(string) => match string.as_str() {
-                    "continue" => {
-                        remove(ctx, command, command_config, title, module, database).await
-                    }
-                    "abort" => {
-                        edit_response(
-                            ctx,
-                            command,
-                            command_config,
-                            "Aborted",
-                            &format!("I won't remove the data of the module '{:?}'.", module),
-                        )
-                        .await
-                    }
-                    other => Err(ExecutionError::new(&format!(
-                        "{}: {}",
-                        ERR_CMD_RESPONSE_INVALID, other
-                    ))),
-                },
+            match response {
+                Some(InteractionResponse::Continue) => {
+                    remove(ctx, command, command_config, title, module, database).await
+                }
+                Some(InteractionResponse::Abort) => {
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        title.as_str(),
+                        "Aborted the action.",
+                    )
+                    .await
+                }
                 None => Ok(()),
             }
         }
@@ -177,18 +188,9 @@ async fn remove(
     _module: Module,
     _database: Arc<Database>,
 ) -> Result<(), ExecutionError> {
-    edit_response(
-        ctx,
-        command,
-        command_config,
-        &title,
-        "Removing the module data...",
-    )
-    .await?;
-
     // TODO (Currently, we do not save any data anyway)
 
-    edit_response(
+    send_response(
         ctx,
         command,
         command_config,
@@ -208,15 +210,6 @@ async fn update(
     status: ModuleStatus,
     database: Arc<Database>,
 ) -> Result<(), ExecutionError> {
-    send_response(
-        ctx,
-        command,
-        command_config,
-        &title,
-        "Updating the module...",
-    )
-    .await?;
-
     // Update the guild commands
     create_module_command(ctx, config, guild, &status).await;
 
@@ -229,7 +222,7 @@ async fn update(
         )
         .await?;
 
-    edit_response(
+    send_response(
         ctx,
         command,
         command_config,

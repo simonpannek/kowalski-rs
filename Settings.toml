@@ -40,6 +40,19 @@ required = true
 choices = ["Owner", "Utility", "Reactions", "ReactionRoles"]
 
 # Bot management
+[commands.guild]
+command_type = "Guild"
+description = "Manage guilds created and managed by the bot."
+module = "Owner"
+default_permission = false
+owner = true
+
+[commands.guild.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["create", "list"]
+
 [commands.sql]
 command_type = "Sql"
 description = "Execute a SQL query."

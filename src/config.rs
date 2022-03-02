@@ -1,6 +1,5 @@
 use std::{collections::HashMap, error::Error, str::FromStr, sync::Arc};
 
-use crate::error::ExecutionError;
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
 use serenity::{
@@ -9,7 +8,10 @@ use serenity::{
 };
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::strings::{ERR_CMD_ARGS_INVALID, ERR_CONFIG_PARSE, ERR_CONFIG_READ};
+use crate::{
+    error::ExecutionError,
+    strings::{ERR_CMD_ARGS_INVALID, ERR_CONFIG_PARSE, ERR_CONFIG_READ},
+};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -42,6 +44,7 @@ pub enum CommandType {
     Ping,
     About,
     Module,
+    Guild,
     Sql,
 }
 

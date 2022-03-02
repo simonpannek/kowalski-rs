@@ -10,8 +10,8 @@ use crate::{
     database::{client::Database, types::TableResolved},
     error::ExecutionError,
     history::History,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::{edit_response, parse_arg, send_response},
+    strings::ERR_DATA_ACCESS,
+    utils::{parse_arg, parse_arg_name, send_response},
 };
 
 pub async fn execute(
@@ -33,20 +33,8 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse argument
-    let option_name = &options
-        .get(0)
-        .ok_or(ExecutionError::new(ERR_API_LOAD))?
-        .name;
+    let option_name = parse_arg_name(options, 0)?;
     let query = parse_arg(options, 0)?;
-
-    send_response(
-        ctx,
-        command,
-        command_config,
-        &format!("`{}`", query),
-        "Executing SQL query...",
-    )
-    .await?;
 
     // Execute SQL query
     let result = database.client.query(query, &[]).await?;
@@ -56,13 +44,7 @@ pub async fn execute(
     {
         let mut history = history_lock.write().await;
 
-        history.add_entry(
-            &config,
-            command.user.id,
-            &command.data.name,
-            option_name,
-            query,
-        );
+        history.add_entry(&config, command.user.id, option_name, query);
     }
 
     let string = resolved.table(0, resolved.len()).to_string();
@@ -79,7 +61,7 @@ pub async fn execute(
             .await?;
     }
 
-    edit_response(
+    send_response(
         ctx,
         command,
         command_config,

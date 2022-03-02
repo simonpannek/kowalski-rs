@@ -17,16 +17,9 @@ impl History {
         }
     }
 
-    pub fn add_entry(
-        &mut self,
-        config: &Config,
-        user: UserId,
-        command_name: &str,
-        option_name: &str,
-        entry: &str,
-    ) {
+    pub fn add_entry(&mut self, config: &Config, user: UserId, option_name: &str, entry: &str) {
         let entry = entry.trim().to_string();
-        let key = (u64::from(user), format!("{} {}", command_name, option_name));
+        let key = (u64::from(user), option_name.to_string());
 
         let vector = match self.map.get_mut(&key) {
             Some(vector) => vector,
@@ -61,8 +54,8 @@ impl History {
         }
     }
 
-    pub fn get_entries(&self, user: UserId, command_name: &str, option_name: &str) -> &[String] {
-        let key = (u64::from(user), format!("{} {}", command_name, option_name));
+    pub fn get_entries(&self, user: UserId, option_name: &str) -> &[String] {
+        let key = (u64::from(user), option_name.to_string());
 
         match self.map.get(&key) {
             Some(vector) => vector.as_slice(),

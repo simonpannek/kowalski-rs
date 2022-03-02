@@ -25,6 +25,7 @@ pub const ERR_DATA_ACCESS: &str = "Failed to access the global data";
 pub const ERR_DB_CONNECTION: &str = "Database connection error";
 pub const ERR_DB_QUERY: &str = "Failed to execute the database query";
 pub const ERR_ENV_NOT_SET: &str = "Environment variable not set";
+pub const ERR_MESSAGE_COMPONENT: &str = "Failed to answer the message component request";
 // User error messages
 pub const ERR_USER_TITLE: &str = "Looks like something really went wrong here :/";
 pub const ERR_USER_EXECUTION_FAILED: &str =

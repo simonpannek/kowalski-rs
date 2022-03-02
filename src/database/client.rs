@@ -35,6 +35,10 @@ impl Database {
                         guild       BIGINT PRIMARY KEY,
                         status      BIT(8) NOT NULL
                     );
+
+                    CREATE TABLE IF NOT EXISTS guilds (
+                        guild       BIGINT PRIMARY KEY
+                    );
                 ",
             )
             .await?;

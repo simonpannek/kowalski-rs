@@ -31,6 +31,17 @@ struct RowResolved {
     values: Vec<String>,
 }
 
+impl ModuleStatus {
+    pub fn default() -> Self {
+        ModuleStatus {
+            owner: false,
+            utility: false,
+            reactions: false,
+            reaction_roles: false,
+        }
+    }
+}
+
 impl<'a> FromSql<'a> for ModuleStatus {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         let bits: BitVec<u32> = FromSql::from_sql(ty, raw)?;
@@ -137,7 +148,7 @@ impl RowResolved {
                         UserId::from(value as u64)
                             .to_user(&ctx.http)
                             .await
-                            .map_or("unknown user".to_string(), |user| {
+                            .map_or(format!("unknown user ({})", value), |user| {
                                 format!("{}#{:04}", user.name, user.discriminator)
                             })
                     } else if column.name().starts_with("guild") {
@@ -145,7 +156,9 @@ impl RowResolved {
                         GuildId::from(value as u64)
                             .to_partial_guild(&ctx.http)
                             .await
-                            .map_or("unknown guild".to_string(), |guild| guild.name.to_string())
+                            .map_or(format!("unknown guild ({})", value), |guild| {
+                                guild.name.to_string()
+                            })
                     } else {
                         // Just return the number
                         value.to_string()

@@ -1,10 +1,10 @@
-use std::{sync::Arc, time::Duration};
+use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
 use serenity::{
     builder::{
-        CreateApplicationCommand, CreateApplicationCommandOption, CreateComponents, CreateEmbed,
+        CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
     },
     client::Context,
     model::{
@@ -15,13 +15,13 @@ use serenity::{
                 ApplicationCommandInteractionDataOption,
                 ApplicationCommandPermissionType::{Role, User},
             },
-            message_component::{ButtonStyle, MessageComponentInteraction},
+            message_component::ButtonStyle,
             InteractionResponseType::ChannelMessageWithSource,
         },
     },
     utils::Colour,
 };
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::config::{CommandOption, Config, Module, Value};
 use crate::database::types::ModuleStatus;
@@ -32,7 +32,92 @@ use crate::{
     strings::{ERR_CMD_ARGS_INVALID, ERR_CMD_ARGS_LENGTH, ERR_CMD_SEND_FAILURE},
 };
 
-/// Send a simple embed response, only giving the title and content.
+pub enum InteractionResponse {
+    Continue,
+    Abort,
+}
+
+impl FromStr for InteractionResponse {
+    type Err = ExecutionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "continue" => Ok(InteractionResponse::Continue),
+            "abort" => Ok(InteractionResponse::Abort),
+            _ => Err(ExecutionError::new(&format!(
+                "{}: {}",
+                ERR_CMD_ARGS_INVALID, s
+            ))),
+        }
+    }
+}
+
+/// Send a embed response, waiting for confirmation.
+pub async fn send_confirmation(
+    ctx: &Context,
+    command: &ApplicationCommandInteraction,
+    command_config: &Command,
+    content: &str,
+    timeout: Duration,
+) -> Result<Option<InteractionResponse>, ExecutionError> {
+    // Create the action row for the interaction
+    let mut row = CreateActionRow::default();
+    row.create_button(|button| {
+        button
+            .label("Abort")
+            .custom_id("abort")
+            .style(ButtonStyle::Secondary)
+    })
+    .create_button(|button| {
+        button
+            .label("Continue")
+            .custom_id("continue")
+            .style(ButtonStyle::Danger)
+    });
+
+    // Send the confirmation query
+    send_response_complex(
+        ctx,
+        command,
+        command_config,
+        "Confirmation",
+        content,
+        |embed| embed.color(Colour::GOLD),
+        vec![row],
+    )
+    .await?;
+
+    // Get the message
+    let message = command.get_interaction_response(&ctx.http).await?;
+    // Get the interaction response
+    let interaction = message
+        .await_component_interaction(&ctx)
+        .author_id(u64::from(command.user.id))
+        .timeout(timeout)
+        .await;
+
+    let response = match interaction {
+        Some(interaction) => Some(InteractionResponse::from_str(
+            interaction.data.custom_id.as_str(),
+        )?),
+        _ => {
+            send_response(
+                ctx,
+                command,
+                command_config,
+                "Timed out",
+                "You took too long to respond :(",
+            )
+            .await?;
+
+            None
+        }
+    };
+
+    Ok(response)
+}
+
+/// Edit a simple embed response, only giving the title and content.
 pub async fn send_response(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
@@ -47,115 +132,24 @@ pub async fn send_response(
         title,
         content,
         |embed| embed,
-        CreateComponents::default(),
+        Vec::new(),
     )
     .await
 }
 
-/// Send a embed response, waiting for confirmation.
-pub async fn send_confirmation(
-    ctx: &Context,
-    command: &ApplicationCommandInteraction,
-    command_config: &Command,
-    content: &str,
-    timeout: Duration,
-) -> Result<Option<Arc<MessageComponentInteraction>>, ExecutionError> {
-    // Create the components for the interaction
-    let mut components = CreateComponents::default();
-    components.create_action_row(|row| {
-        row.create_button(|button| {
-            button
-                .label("Abort")
-                .custom_id("abort")
-                .style(ButtonStyle::Secondary)
-        })
-        .create_button(|button| {
-            button
-                .label("Continue")
-                .custom_id("continue")
-                .style(ButtonStyle::Danger)
-        })
-    });
-
-    // Send the confirmation query
-    send_response_complex(
-        ctx,
-        command,
-        command_config,
-        "Confirmation",
-        content,
-        |embed| embed.color(Colour::GOLD),
-        components,
-    )
-    .await?;
-
-    // Get the message
-    let message = command.get_interaction_response(&ctx.http).await?;
-    // Get the interaction response
-    let interaction = message
-        .await_component_interaction(&ctx)
-        .author_id(u64::from(command.user.id))
-        .timeout(timeout)
-        .await;
-
-    if let None = interaction {
-        edit_response(
-            ctx,
-            command,
-            command_config,
-            "Timed out",
-            "You took too long to respond :(",
-        )
-        .await?;
-    }
-
-    Ok(interaction)
-}
-
-/// Edit a simple embed response, only giving the title and content.
-pub async fn edit_response(
-    ctx: &Context,
-    command: &ApplicationCommandInteraction,
-    command_config: &Command,
-    title: &str,
-    content: &str,
-) -> Result<(), ExecutionError> {
-    edit_response_complex(ctx, command, command_config, title, content, |embed| embed).await
-}
-
-/// Send a complex embed response, giving the title, content and a function further editing the embed.
-async fn send_response_complex(
-    ctx: &Context,
-    command: &ApplicationCommandInteraction,
-    command_config: &Command,
-    title: &str,
-    content: &str,
-    update: fn(&mut CreateEmbed) -> &mut CreateEmbed,
-    components: CreateComponents,
-) -> Result<(), ExecutionError> {
-    let mut embed = create_embed(title, content);
-    embed.color(Colour::from((47, 49, 54)));
-
-    // Add module to the footer if the command belongs to a module
-    if let Some(module) = &command_config.module {
-        embed.footer(|footer| footer.text(format!("Module: {:?}", module)));
-    }
-
-    // Apply changed by the given function
-    update(&mut embed);
-
-    send_embed(ctx, command, embed, components).await
-}
-
 /// Edit a embed response, giving the title, content and a function further editing the embed.
-async fn edit_response_complex(
+pub async fn send_response_complex<F>(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
     title: &str,
     content: &str,
-    update: fn(&mut CreateEmbed) -> &mut CreateEmbed,
-) -> Result<(), ExecutionError> {
+    update: F,
+    action_rows: Vec<CreateActionRow>,
+) -> Result<(), ExecutionError>
+where
+    F: Fn(&mut CreateEmbed) -> &mut CreateEmbed,
+{
     let mut embed = create_embed(title, content);
     embed.color(Colour::from((47, 49, 54)));
 
@@ -167,7 +161,7 @@ async fn edit_response_complex(
     // Apply changed by the given function
     update(&mut embed);
 
-    edit_embed(ctx, command, embed).await
+    edit_embed(ctx, command, embed, action_rows).await
 }
 
 /// Send a failure embed response, giving the title and content.
@@ -182,8 +176,8 @@ pub async fn send_failure(
 
     // If a response exists already, edit the existing message, otherwise, send a new one
     let result = match command.get_interaction_response(&ctx.http).await {
-        Ok(_) => edit_embed(ctx, command, embed).await,
-        Err(_) => send_embed(ctx, command, embed, CreateComponents::default()).await,
+        Ok(_) => edit_embed(ctx, command, embed, Vec::new()).await,
+        Err(_) => send_embed(ctx, command, embed, Vec::new()).await,
     };
 
     // If we have failed once already, we only log the error without notifying the user
@@ -202,13 +196,16 @@ async fn send_embed(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     embed: CreateEmbed,
-    components: CreateComponents,
+    action_rows: Vec<CreateActionRow>,
 ) -> Result<(), ExecutionError> {
     command
         .create_interaction_response(&ctx.http, |response| {
             response
                 .kind(ChannelMessageWithSource)
-                .interaction_response_data(|data| data.add_embed(embed).set_components(components))
+                .interaction_response_data(|data| {
+                    data.add_embed(embed)
+                        .components(|components| components.set_action_rows(action_rows))
+                })
         })
         .await
         .map_err(|why| ExecutionError::new(&format!("{}", why)))
@@ -218,11 +215,12 @@ async fn edit_embed(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     embed: CreateEmbed,
+    action_rows: Vec<CreateActionRow>,
 ) -> Result<(), ExecutionError> {
     command
         .edit_original_interaction_response(&ctx.http, |response| {
             response
-                .components(|components| components)
+                .components(|components| components.set_action_rows(action_rows))
                 .add_embed(embed)
         })
         .await
@@ -379,7 +377,7 @@ pub async fn add_permissions(
             None => None,
         };
 
-        guild
+        let result = guild
             .create_application_command_permission(&ctx.http, command.id, |command_perms| {
                 // Set owner execution only
                 if command_config.owner.unwrap_or_default() {
@@ -411,9 +409,26 @@ pub async fn add_permissions(
 
                 command_perms
             })
-            .await
-            .expect(ERR_CMD_SET_PERMISSION);
+            .await;
+
+        if let Err(why) = result {
+            warn!("{}: {:?}", ERR_CMD_SET_PERMISSION, why);
+        }
     }
+}
+
+/// Parse the name of a command argument given an index.
+pub fn parse_arg_name(
+    args: &[ApplicationCommandInteractionDataOption],
+    index: usize,
+) -> Result<&str, ExecutionError> {
+    let name = args
+        .get(index)
+        .ok_or(ExecutionError::new(ERR_CMD_ARGS_LENGTH))?
+        .name
+        .as_str();
+
+    Ok(name)
 }
 
 /// Parse a command argument given an index.

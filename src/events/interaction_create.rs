@@ -1,21 +1,22 @@
 use serenity::{
     client::Context,
     model::interactions::{
-        application_command::ApplicationCommandInteraction, autocomplete::AutocompleteInteraction,
-        Interaction,
+        application_command::{ApplicationCommandInteraction, ApplicationCommandOptionType},
+        autocomplete::AutocompleteInteraction,
+        message_component::MessageComponentInteraction,
+        Interaction, InteractionResponseType,
     },
 };
 use tracing::error;
 
-use crate::history::History;
-use crate::strings::{ERR_AUTOCOMPLETE, ERR_USER_TITLE};
 use crate::{
     commands::*,
     config::{CommandType, Config},
     error::ExecutionError,
+    history::History,
     strings::{
-        ERR_API_LOAD, ERR_CMD_EXECUTION, ERR_CMD_NOT_FOUND, ERR_CMD_PERMISSION, ERR_DATA_ACCESS,
-        ERR_USER_EXECUTION_FAILED,
+        ERR_API_LOAD, ERR_AUTOCOMPLETE, ERR_CMD_EXECUTION, ERR_CMD_NOT_FOUND, ERR_CMD_PERMISSION,
+        ERR_DATA_ACCESS, ERR_MESSAGE_COMPONENT, ERR_USER_EXECUTION_FAILED, ERR_USER_TITLE,
     },
     utils::send_failure,
 };
@@ -33,6 +34,11 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction) {
                 error!("{}: {:?}", ERR_AUTOCOMPLETE, why);
             }
         }
+        Interaction::MessageComponent(interaction) => {
+            if let Err(why) = answer_message_component(ctx, interaction).await {
+                error!("{}: {:?}", ERR_MESSAGE_COMPONENT, why);
+            }
+        }
         _ => {}
     }
 }
@@ -41,6 +47,13 @@ async fn execute_command(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
 ) -> Result<(), ExecutionError> {
+    // Add thinking modal
+    command
+        .create_interaction_response(&ctx.http, |response| {
+            response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
+        })
+        .await?;
+
     // Get config
     let config = {
         let data = ctx.data.read().await;
@@ -92,6 +105,7 @@ async fn execute_command(
         CommandType::Ping => ping::execute(ctx, command, command_config).await,
         CommandType::About => about::execute(ctx, command, command_config).await,
         CommandType::Module => module::execute(ctx, command, command_config).await,
+        CommandType::Guild => guilds::execute(ctx, command, command_config).await,
         CommandType::Sql => sql::execute(ctx, command, command_config).await,
     }
 }
@@ -100,8 +114,6 @@ async fn answer_autocomplete(
     ctx: &Context,
     autocomplete: &AutocompleteInteraction,
 ) -> Result<(), ExecutionError> {
-    // TODO: Add support for types other than string
-
     // Get read access to the history
     let (config, history_lock) = {
         let data = ctx.data.read().await;
@@ -112,15 +124,23 @@ async fn answer_autocomplete(
         (config, history_lock)
     };
 
-    // Get user, command and option name and the content written by the user
+    // Get user, option name and the content written by the user
     let user = autocomplete.user.id;
-    let command_name = &autocomplete.data.name;
     let (option_name, written) = {
-        let options = &autocomplete.data.options;
-        // We only care about the last option
-        let option = options
-            .get(options.len() - 1)
-            .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+        // Get the last option the user currently is typing
+        let option = {
+            let options = &autocomplete.data.options;
+            let mut last = options.last().ok_or(ExecutionError::new(ERR_API_LOAD))?;
+
+            while let ApplicationCommandOptionType::SubCommand = last.kind {
+                last = last
+                    .options
+                    .last()
+                    .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+            }
+
+            last
+        };
 
         let option_name = &option.name;
         let written = option
@@ -135,7 +155,7 @@ async fn answer_autocomplete(
         let history = history_lock.read().await;
 
         history
-            .get_entries(user, command_name, option_name)
+            .get_entries(user, option_name)
             .iter()
             .filter(|choice| {
                 choice
@@ -154,6 +174,18 @@ async fn answer_autocomplete(
             }
 
             response
+        })
+        .await
+        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+}
+
+async fn answer_message_component(
+    ctx: &Context,
+    message_component: MessageComponentInteraction,
+) -> Result<(), ExecutionError> {
+    message_component
+        .create_interaction_response(&ctx.http, |response| {
+            response.kind(InteractionResponseType::DeferredUpdateMessage)
         })
         .await
         .map_err(|why| ExecutionError::new(&format!("{}", why)))
