@@ -7,7 +7,7 @@ use serenity::{
 use crate::{
     config::Command,
     error::ExecutionError,
-    strings::ERR_API_LOAD,
+    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID},
     utils::{parse_arg, send_response},
 };
 
@@ -18,74 +18,102 @@ pub async fn execute(
 ) -> Result<(), ExecutionError> {
     let options = &command.data.options;
 
-    // Parse argument
+    // Parse first argument
     let count = parse_arg(options, 0)?;
-
-    // Get message to to start deleting from
-    let start = command.get_interaction_response(&ctx.http).await?;
-
-    // Get messages to delete
-    let messages = command
-        .channel_id
-        .messages(&ctx.http, |builder| builder.before(start.id).limit(count))
-        .await?;
-
-    let filtered: Vec<&Message> = messages
-        .iter()
-        .filter(|message| {
-            let age_weeks = Utc::now()
-                .signed_duration_since(message.timestamp)
-                .num_days();
-
-            age_weeks < 14
-        })
-        .collect();
 
     let title = format!("Delete {} messages", count);
 
-    match filtered.len() {
-        0 => {
-            send_response(
-                ctx,
-                command,
-                command_config,
-                &title,
-                "I couldn't find any messages to delete.",
-            )
-            .await
-        }
-        1 => {
-            // Get the single message
-            let message = filtered.get(0).ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    // Get message to to start deleting from
+    let start = if options.len() > 1 {
+        // Start deleting from the custom id given
+        let start: u64 = parse_arg::<String>(options, 1)?
+            .parse()
+            .map_err(|why| ExecutionError::new(&format!("{}: {}", ERR_CMD_ARGS_INVALID, why)))?;
 
-            // Delete the message
-            command
+        command.channel_id.message(&ctx.http, start).await
+    } else {
+        // Start deleting from the interaction response
+        command.get_interaction_response(&ctx.http).await
+    };
+
+    match start {
+        Ok(start) => {
+            // Get messages to delete
+            let messages = command
                 .channel_id
-                .delete_message(&ctx.http, message.id)
+                .messages(&ctx.http, |builder| builder.before(start.id).limit(count))
                 .await?;
 
-            send_response(
-                ctx,
-                command,
-                command_config,
-                &title,
-                "I have deleted one message.",
-            )
-            .await
-        }
-        count => {
-            // Delete the messages
-            command
-                .channel_id
-                .delete_messages(&ctx.http, filtered.iter())
-                .await?;
+            let filtered: Vec<&Message> = messages
+                .iter()
+                .filter(|message| {
+                    let age_weeks = Utc::now()
+                        .signed_duration_since(message.timestamp)
+                        .num_days();
 
+                    age_weeks < 14
+                })
+                .collect();
+
+            match filtered.len() {
+                0 => {
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        &title,
+                        "I couldn't find any messages to delete.",
+                    )
+                    .await
+                }
+                1 => {
+                    // Get the single message
+                    let message = filtered.get(0).ok_or(ExecutionError::new(ERR_API_LOAD))?;
+
+                    // Delete the message
+                    command
+                        .channel_id
+                        .delete_message(&ctx.http, message.id)
+                        .await?;
+
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        &title,
+                        "I have deleted one message.",
+                    )
+                    .await
+                }
+                count => {
+                    // Delete the messages
+                    command
+                        .channel_id
+                        .delete_messages(&ctx.http, filtered.iter())
+                        .await?;
+
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        &title,
+                        &format!(
+                            "I have deleted {} messages going back from [here]({}).",
+                            count,
+                            start.link()
+                        ),
+                    )
+                    .await
+                }
+            }
+        }
+        Err(_) => {
             send_response(
                 ctx,
                 command,
                 command_config,
                 &title,
-                &format!("I have deleted {} messages.", count),
+                "I couldn't find the message to start deleting from.",
             )
             .await
         }

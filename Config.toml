@@ -80,3 +80,8 @@ description = "The amount of messages to delete."
 required = true
 min_value = 1
 max_value = 100
+
+[commands.clear.options.before]
+kind = "String"
+description = "The message id from which to start deleting messages."
+min_value = 0
