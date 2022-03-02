@@ -65,3 +65,23 @@ kind = "String"
 description = "The SQL query to execute."
 required = true
 autocomplete = true
+
+# Utility
+[commands.clear]
+command_type = "Clear"
+description = "Clear a certain amount of recent messages."
+module = "Utility"
+default_permission = false
+permission = "8192"
+
+[commands.clear.options.count]
+kind = "Integer"
+description = "The amount of messages to delete."
+required = true
+min_value = 1
+max_value = 100
+
+[commands.clear.options.before]
+kind = "String"
+description = "The message id from which to start deleting messages."
+min_value = 0
