@@ -23,7 +23,7 @@ pub async fn execute(
 
     let title = format!("Delete {} messages", count);
 
-    // Get message to to start deleting from
+    // Get message to start deleting from
     let start = if options.len() > 1 {
         // Start deleting from the custom id given
         let start: u64 = parse_arg::<String>(options, 1)?

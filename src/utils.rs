@@ -2,6 +2,7 @@ use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
+use serenity::model::Permissions;
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -370,7 +371,10 @@ pub async fn add_permissions(
                     .await
                     .expect(ERR_API_LOAD)
                     .iter()
-                    .filter(|(_, role)| role.permissions.contains(permission))
+                    .filter(|(_, role)| {
+                        role.permissions.contains(Permissions::ADMINISTRATOR)
+                            || role.permissions.contains(permission)
+                    })
                     .map(|(&id, _)| u64::from(id))
                     .collect(),
             ),
