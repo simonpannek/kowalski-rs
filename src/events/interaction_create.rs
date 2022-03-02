@@ -107,6 +107,7 @@ async fn execute_command(
         CommandType::Module => module::execute(ctx, command, command_config).await,
         CommandType::Guild => guilds::execute(ctx, command, command_config).await,
         CommandType::Sql => sql::execute(ctx, command, command_config).await,
+        CommandType::Clear => clear::execute(ctx, command, command_config).await,
     }
 }
 
