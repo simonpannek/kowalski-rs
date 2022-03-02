@@ -96,7 +96,7 @@ pub enum Value {
 
 impl Config {
     pub async fn new() -> Result<Self, Box<dyn Error>> {
-        let path = "Settings.toml";
+        let path = "Config.toml";
 
         let mut toml = String::new();
         let mut file = File::open(path).await?;
