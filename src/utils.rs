@@ -2,7 +2,6 @@ use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
-use serenity::model::Permissions;
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -19,6 +18,7 @@ use serenity::{
             message_component::ButtonStyle,
             InteractionResponseType::ChannelMessageWithSource,
         },
+        Permissions,
     },
     utils::Colour,
 };
@@ -93,7 +93,7 @@ pub async fn send_confirmation(
     // Get the interaction response
     let interaction = message
         .await_component_interaction(&ctx)
-        .author_id(u64::from(command.user.id))
+        .author_id(u64::from(command.user.id.0))
         .timeout(timeout)
         .await;
 
