@@ -63,12 +63,6 @@ pub async fn execute(
     command: &ApplicationCommandInteraction,
     command_config: &Command,
 ) -> Result<(), ExecutionError> {
-    let options = &command.data.options;
-
-    // Parse arguments
-    let action = Action::from_str(parse_arg(options, 0)?)?;
-    let module = Module::from_str(parse_arg(options, 1)?)?;
-
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
@@ -78,6 +72,12 @@ pub async fn execute(
 
         (config, database)
     };
+
+    let options = &command.data.options;
+
+    // Parse arguments
+    let action = Action::from_str(parse_arg(options, 0)?)?;
+    let module = Module::from_str(parse_arg(options, 1)?)?;
 
     // Get guild status
     let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
@@ -139,14 +139,7 @@ pub async fn execute(
                     remove(ctx, command, command_config, title, module, database).await
                 }
                 Some(InteractionResponse::Abort) => {
-                    send_response(
-                        ctx,
-                        command,
-                        command_config,
-                        title.as_str(),
-                        "Aborted the action.",
-                    )
-                    .await
+                    send_response(ctx, command, command_config, &title, "Aborted the action.").await
                 }
                 None => Ok(()),
             }

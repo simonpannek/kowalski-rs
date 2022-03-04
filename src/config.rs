@@ -47,6 +47,7 @@ pub enum CommandType {
     Guild,
     Sql,
     Clear,
+    Emoji,
 }
 
 /// Types of modules parsed by the config.

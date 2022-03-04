@@ -140,34 +140,54 @@ impl RowResolved {
                         values.push(format!("{:?}", value));
                     }
                 },
+                &Type::BOOL => {
+                    let value: bool = row.get(i);
+
+                    values.push(format!("{:?}", value))
+                }
+                &Type::INT4 => {
+                    let value: i32 = row.get(i);
+
+                    values.push(value.to_string())
+                }
                 &Type::INT8 => {
-                    let value: i64 = row.get(i);
+                    let value: Option<i64> = row.get(i);
 
-                    let string = if column.name().starts_with("user") {
-                        // User column
-                        UserId::from(value as u64)
-                            .to_user(&ctx.http)
-                            .await
-                            .map_or(format!("unknown user ({})", value), |user| {
-                                format!("{}#{:04}", user.name, user.discriminator)
-                            })
-                    } else if column.name().starts_with("guild") {
-                        // Guild column
-                        GuildId::from(value as u64)
-                            .to_partial_guild(&ctx.http)
-                            .await
-                            .map_or(format!("unknown guild ({})", value), |guild| {
-                                guild.name.to_string()
-                            })
-                    } else {
-                        // Just return the number
-                        value.to_string()
-                    };
+                    match value {
+                        Some(value) => {
+                            let string = if column.name().starts_with("user") {
+                                // User column
+                                UserId::from(value as u64)
+                                    .to_user(&ctx.http)
+                                    .await
+                                    .map_or(format!("unknown user ({})", value), |user| {
+                                        format!("{}#{:04}", user.name, user.discriminator)
+                                    })
+                            } else if column.name().starts_with("guild") {
+                                // Guild column
+                                GuildId::from(value as u64)
+                                    .to_partial_guild(&ctx.http)
+                                    .await
+                                    .map_or(format!("unknown guild ({})", value), |guild| {
+                                        guild.name.to_string()
+                                    })
+                            } else {
+                                // Just return the number
+                                value.to_string()
+                            };
 
-                    values.push(string)
+                            values.push(string)
+                        }
+                        None => values.push("NULL".to_string()),
+                    }
                 }
                 &Type::TEXT => {
-                    values.push(row.get(i));
+                    let value: Option<String> = row.get(i);
+
+                    match value {
+                        Some(value) => values.push(value),
+                        None => values.push("NULL".to_string()),
+                    }
                 }
                 t => {
                     values.push(format!("unsupported type '{}'", t));

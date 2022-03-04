@@ -42,7 +42,7 @@ choices = ["Owner", "Utility", "Reactions", "ReactionRoles"]
 # Bot management
 [commands.guild]
 command_type = "Guild"
-description = "Manage guilds created and managed by the bot."
+description = "Manage guilds created by the bot."
 module = "Owner"
 default_permission = false
 owner = true
@@ -85,3 +85,21 @@ max_value = 100
 kind = "String"
 description = "The message id from which to start deleting messages."
 min_value = 0
+
+# Reactions
+[commands.emoji]
+command_type = "Emoji"
+description = "Manage which emojis should count as up- and downvotes."
+default_permission = false
+permission = "8"
+
+[commands.emoji.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["add upvote", "add downvote", "remove"]
+
+[commands.emoji.options.emoji]
+kind = "String"
+description = "The emoji to update."
+required = true
