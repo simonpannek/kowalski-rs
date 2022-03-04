@@ -109,6 +109,7 @@ async fn execute_command(
         CommandType::Sql => sql::execute(ctx, command, command_config).await,
         CommandType::Clear => clear::execute(ctx, command, command_config).await,
         CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
+        CommandType::Score => score::execute(ctx, command, command_config).await,
     }
 }
 

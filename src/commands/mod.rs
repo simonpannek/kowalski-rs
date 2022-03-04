@@ -4,4 +4,5 @@ pub mod emoji;
 pub mod guilds;
 pub mod module;
 pub mod ping;
+pub mod score;
 pub mod sql;

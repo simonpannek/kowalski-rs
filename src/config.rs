@@ -48,6 +48,7 @@ pub enum CommandType {
     Sql,
     Clear,
     Emoji,
+    Score,
 }
 
 /// Types of modules parsed by the config.
