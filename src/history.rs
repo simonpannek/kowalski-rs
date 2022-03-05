@@ -7,13 +7,13 @@ use crate::config::Config;
 
 /// History struct containing a map, mapping user ids and command names to the command history of the user.
 pub struct History {
-    map: HashMap<(u64, String), Vec<String>>,
+    histories: HashMap<(u64, String), Vec<String>>,
 }
 
 impl History {
     pub fn new() -> Self {
         History {
-            map: HashMap::new(),
+            histories: HashMap::new(),
         }
     }
 
@@ -21,12 +21,12 @@ impl History {
         let entry = entry.trim().to_string();
         let key = (u64::from(user), option_name.to_string());
 
-        let vector = match self.map.get_mut(&key) {
+        let vector = match self.histories.get_mut(&key) {
             Some(vector) => vector,
             None => {
                 // Insert a new vector
-                self.map.insert(key.clone(), Vec::new());
-                self.map.get_mut(&key).unwrap()
+                self.histories.insert(key.clone(), Vec::new());
+                self.histories.get_mut(&key).unwrap()
             }
         };
 
@@ -57,7 +57,7 @@ impl History {
     pub fn get_entries(&self, user: UserId, option_name: &str) -> &[String] {
         let key = (u64::from(user), option_name.to_string());
 
-        match self.map.get(&key) {
+        match self.histories.get(&key) {
             Some(vector) => vector.as_slice(),
             None => &[],
         }

@@ -1,6 +1,7 @@
 use std::{env, error::Error, sync::Arc};
 use tokio::sync::RwLock;
 
+use crate::cooldowns::Cooldowns;
 use crate::history::History;
 use crate::{
     config::Config, database::client::Database, events::handler::Handler, strings::ERR_ENV_NOT_SET,
@@ -41,6 +42,8 @@ impl Client {
             data.insert::<Database>(Arc::new(Database::new().await?));
             // Add query history to data
             data.insert::<History>(Arc::new(RwLock::new(History::new())));
+            // Add cooldowns to data
+            data.insert::<Cooldowns>(Arc::new(RwLock::new(Cooldowns::new())));
         }
 
         Ok(Client { client })

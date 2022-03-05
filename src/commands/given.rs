@@ -13,7 +13,7 @@ use crate::{
     database::client::Database,
     error::ExecutionError,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::{parse_arg, send_response, send_response_complex},
+    utils::{parse_arg, send_response_complex},
 };
 
 pub async fn execute(

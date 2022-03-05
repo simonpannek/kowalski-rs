@@ -6,7 +6,9 @@ use serenity::{
     },
 };
 
+use crate::cooldowns::Cooldowns;
 use crate::{
+    config::Config,
     database::client::Database,
     error::ExecutionError,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
@@ -14,10 +16,14 @@ use crate::{
 
 pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), ExecutionError> {
     // Get database
-    let database = {
+    let (config, database, cooldowns_lock) = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
+        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let cooldowns_lock = data.get::<Cooldowns>().expect(ERR_DATA_ACCESS).clone();
+
+        (config, database, cooldowns_lock)
     };
 
     // Check if the emoji is registered
@@ -42,19 +48,31 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                 return Ok(());
             }
 
-            // TODO: Check for cooldown
+            // Check for cooldown
+            let cooldown_active = {
+                let mut cooldowns = cooldowns_lock.write().await;
 
-            // Insert row
-            database
-                .client
-                .execute(
-                    "
+                cooldowns
+                    .check_cooldown(&config, &database, guild as u64, user_from as u64)
+                    .await?
+            };
+
+            if cooldown_active {
+                // Remove reaction
+                add_reaction.delete(&ctx.http).await?;
+            } else {
+                // Insert row
+                database
+                    .client
+                    .execute(
+                        "
                 INSERT INTO reactions
                 VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::INT, $6::BOOLEAN)
                 ",
-                    &[&guild, &user_from, &user_to, &message, &emoji, &true],
-                )
-                .await?;
+                        &[&guild, &user_from, &user_to, &message, &emoji, &true],
+                    )
+                    .await?;
+            }
         }
     }
 

@@ -7,6 +7,8 @@ interaction_timeout = 60
 command_history_size = 500
 # Maximum amount of autocomplete suggestions to send back to the user
 autocomplete_size = 10
+# Default cooldown for up-/downvotes in seconds
+default_cooldown = 30
 # Amount of users per leaderboard page
 leaderboard_size = 10
 # Titles for the leaderboard ranks
