@@ -50,6 +50,7 @@ pub enum CommandType {
     Sql,
     Clear,
     Emoji,
+    Given,
     Score,
     Top,
 }

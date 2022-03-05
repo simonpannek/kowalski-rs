@@ -14,7 +14,7 @@ leaderboard_titles = ["👑", "⚔️", "🗡️"]
 
 [commands]
 # Global
-# For the permissions field, use https://discordapi.com/permissions.html
+# For the permission field, use https://discordapi.com/permissions.html
 [commands.ping]
 command_type = "Ping"
 description = "Ping the bot."
@@ -108,6 +108,16 @@ choices = ["add upvote", "add downvote", "remove"]
 kind = "String"
 description = "The emoji to update."
 required = true
+
+[commands.given]
+command_type = "Given"
+description = "Display stats about the votes given to other users."
+module = "Reactions"
+default_permission = true
+
+[commands.given.options.user]
+kind = "User"
+description = "The user to query."
 
 [commands.score]
 command_type = "Score"
