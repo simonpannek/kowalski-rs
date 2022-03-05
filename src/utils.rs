@@ -299,7 +299,7 @@ pub async fn create_module_command(
         .await
         .expect(ERR_CMD_CREATION);
 
-    add_permissions(guild, &commands, &config, ctx).await;
+    add_permissions(ctx, &config, guild, &commands).await;
 }
 
 fn create_option(name: &str, option_config: &CommandOption) -> CreateApplicationCommandOption {
@@ -346,10 +346,10 @@ fn create_option(name: &str, option_config: &CommandOption) -> CreateApplication
 
 /// Add permissions for a command.
 pub async fn add_permissions(
+    ctx: &Context,
+    config: &Config,
     guild: GuildId,
     commands: &Vec<ApplicationCommand>,
-    config: &Config,
-    ctx: &Context,
 ) {
     // Get the partial guild to get the owner information later
     let partial_guild = guild.to_partial_guild(&ctx.http).await.expect(ERR_API_LOAD);

@@ -288,7 +288,6 @@ async fn show_guild(
     });
 
     let guild = ctx.cache.guild(partial_guild.clone()).await;
-    println!("{:?}", ctx.cache.guilds().await);
 
     // Send response
     send_response_complex(

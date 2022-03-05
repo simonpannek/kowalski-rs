@@ -25,6 +25,8 @@ pub struct General {
     pub interaction_timeout: u64,
     pub command_history_size: usize,
     pub autocomplete_size: usize,
+    pub leaderboard_size: usize,
+    pub leaderboard_titles: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -49,6 +51,7 @@ pub enum CommandType {
     Clear,
     Emoji,
     Score,
+    Top,
 }
 
 /// Types of modules parsed by the config.

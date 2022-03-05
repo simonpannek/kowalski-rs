@@ -7,6 +7,10 @@ interaction_timeout = 60
 command_history_size = 500
 # Maximum amount of autocomplete suggestions to send back to the user
 autocomplete_size = 10
+# Amount of users per leaderboard page
+leaderboard_size = 10
+# Titles for the leaderboard ranks
+leaderboard_titles = ["👑", "⚔️", "🗡️"]
 
 [commands]
 # Global
@@ -114,3 +118,9 @@ default_permission = true
 [commands.score.options.user]
 kind = "User"
 description = "The user to query."
+
+[commands.top]
+command_type = "Top"
+description = "Display the users with the highest scores."
+module = "Reactions"
+default_permission = true

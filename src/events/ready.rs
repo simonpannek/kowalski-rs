@@ -45,7 +45,7 @@ async fn setup_commands(ctx: &Context, rdy: Ready) {
     let commands = create_global_commands(ctx, &config).await;
     // Set permissions of the global commands per guild
     for guild in rdy.guilds {
-        add_permissions(guild.id(), &commands, &config, ctx).await;
+        add_permissions(ctx, &config, guild.id(), &commands).await;
     }
     info!("{}", INFO_CMD_GLOBAL);
 

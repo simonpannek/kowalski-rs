@@ -6,3 +6,4 @@ pub mod module;
 pub mod ping;
 pub mod score;
 pub mod sql;
+pub mod top;
