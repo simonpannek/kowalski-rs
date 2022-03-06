@@ -3,11 +3,12 @@ use std::{
     str::FromStr,
 };
 
-use serenity::{prelude::Mentionable,
+use serenity::{
     client::Context,
     model::interactions::application_command::{
         ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Role,
     },
+    prelude::Mentionable,
 };
 
 use crate::{
@@ -76,8 +77,6 @@ pub async fn execute(
     let role_id = i64::from(role.id);
 
     let title = format!("{} level-up role for {}", action, role.name);
-
-    // TODO: Update user roles after change?
 
     match action {
         Action::Add => {
