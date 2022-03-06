@@ -26,7 +26,7 @@ pub async fn execute(
 
     let options = &command.data.options;
 
-    // Parse arguments
+    // Parse first argument
     let role = match parse_arg_resolved(options, 0)? {
         Role(role) => Ok(role),
         _ => Err(ExecutionError::new(ERR_API_LOAD)),
@@ -39,7 +39,7 @@ pub async fn execute(
     let title = format!("Set cooldown for {}", role.name);
 
     if options.len() > 1 {
-        // Set new cooldown
+        // Parse second argument
         let cooldown: i64 = parse_arg(options, 1)?;
 
         // Insert or update entry

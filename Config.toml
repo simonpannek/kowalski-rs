@@ -138,6 +138,29 @@ default_permission = true
 kind = "User"
 description = "The user to query."
 
+[commands.levelup]
+command_type = "LevelUp"
+description = "Define the different levels assigned by the bot on a certain score."
+module = "Score"
+default_permission = false
+permission = "8"
+
+[commands.levelup.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["add", "remove"]
+
+[commands.levelup.options.role]
+kind = "Role"
+description = "The role to update."
+required = true
+
+[commands.levelup.options.score]
+kind = "Integer"
+description = "The required score for the role."
+required = true
+
 [commands.score]
 command_type = "Score"
 description = "Display the score of a user."

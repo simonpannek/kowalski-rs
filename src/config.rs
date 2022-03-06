@@ -53,6 +53,7 @@ pub enum CommandType {
     Cooldown,
     Emoji,
     Given,
+    LevelUp,
     Score,
     Top,
 }
