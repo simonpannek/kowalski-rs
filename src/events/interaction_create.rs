@@ -111,6 +111,7 @@ async fn execute_command(
         CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
         CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
         CommandType::Given => given::execute(ctx, command, command_config).await,
+        CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
         CommandType::Score => score::execute(ctx, command, command_config).await,
         CommandType::Top => top::execute(ctx, command, command_config).await,
     }

@@ -2,13 +2,14 @@ use serenity::{
     client::Context,
     model::{
         channel::{Reaction, ReactionType},
-        id::{ChannelId, MessageId},
+        guild::Member,
+        id::{ChannelId, MessageId, RoleId},
     },
 };
 
-use crate::cooldowns::Cooldowns;
 use crate::{
     config::Config,
+    cooldowns::Cooldowns,
     database::client::Database,
     error::ExecutionError,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
@@ -30,6 +31,12 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
     if let Some(emoji) = get_emoji_id(&add_reaction.emoji, &database).await? {
         // Get reaction data
         let (guild, user_from, user_to, message) = get_reaction_data(ctx, &add_reaction).await?;
+
+        // Self reactions do not count
+        if user_from == user_to {
+            return Ok(());
+        }
+
         // Check whether the emoji is a reaction emoji counted as a up-/downvote
         if database
             .client
@@ -43,11 +50,6 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
             .await?
             .is_some()
         {
-            // Self reactions do not count
-            if user_from == user_to {
-                return Ok(());
-            }
-
             // Check for cooldown
             let cooldown_active = {
                 let mut cooldowns = cooldowns_lock.write().await;
@@ -82,6 +84,19 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                         &[&guild, &user_from, &user_to, &message, &emoji, &true],
                     )
                     .await?;
+
+                // Get guild
+                let guild = {
+                    let channel = add_reaction.channel_id.to_channel(&ctx.http).await?;
+                    channel
+                        .guild()
+                        .map(|channel| channel.guild_id)
+                        .ok_or(ExecutionError::new(ERR_API_LOAD))?
+                };
+
+                // Update the roles of the user
+                let mut member = guild.member(&ctx, user_to as u64).await?;
+                update_roles(&ctx, &database, &mut member).await?;
             }
         }
     }
@@ -118,6 +133,19 @@ pub async fn reaction_remove(
                 &[&guild, &user_from, &user_to, &message, &emoji],
             )
             .await?;
+
+        // Get guild
+        let guild = {
+            let channel = removed_reaction.channel_id.to_channel(&ctx.http).await?;
+            channel
+                .guild()
+                .map(|channel| channel.guild_id)
+                .ok_or(ExecutionError::new(ERR_API_LOAD))?
+        };
+
+        // Update the roles of the user
+        let mut member = guild.member(&ctx, user_to as u64).await?;
+        update_roles(&ctx, &database, &mut member).await?;
     }
 
     Ok(())
@@ -153,6 +181,13 @@ pub async fn reaction_remove_all(
                 &[&i64::from(guild), &i64::from(removed_from_message_id)],
             )
             .await?;
+
+        // Update the roles of the user
+        let message = channel_id
+            .message(&ctx.http, removed_from_message_id)
+            .await?;
+        let mut member = guild.member(&ctx, message.author.id).await?;
+        update_roles(&ctx, &database, &mut member).await?;
     }
 
     Ok(())
@@ -197,4 +232,97 @@ async fn get_reaction_data(
     let message = i64::from(reaction.message_id);
 
     Ok((guild, user_from, user_to, message))
+}
+
+async fn update_roles(
+    ctx: &Context,
+    database: &Database,
+    member: &mut Member,
+) -> Result<(), ExecutionError> {
+    // Never update roles of bots
+    if member.user.bot {
+        return Ok(());
+    }
+
+    // Get the score of the user
+    let score = {
+        let row = database
+            .client
+            .query_one(
+                "
+        SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END)
+        FROM reactions r
+        INNER JOIN score_emojis re ON r.guild = re.guild AND r.emoji = re.emoji
+        WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
+        ",
+                &[&i64::from(member.guild_id), &i64::from(member.user.id)],
+            )
+            .await?;
+
+        row.get::<_, Option<i64>>(0).unwrap_or_default()
+    };
+
+    // Get all roles handled by the level-up system
+    let handled: Vec<_> = {
+        let rows = database
+            .client
+            .query(
+                "SELECT DISTINCT role FROM score_roles WHERE guild = $1::BIGINT",
+                &[&i64::from(member.guild_id)],
+            )
+            .await?;
+
+        rows.iter()
+            .map(|row| RoleId(row.get::<_, i64>(0) as u64))
+            .collect()
+    };
+    // Get all roles the user should currently have
+    let current: Vec<_> = {
+        let rows = database
+            .client
+            .query(
+                "
+            SELECT role FROM score_roles
+            WHERE guild = $1::BIGINT AND score = (
+                SELECT score FROM score_roles
+                WHERE guild = $1::BIGINT AND score <= $2::BIGINT
+                ORDER BY score DESC
+                LIMIT 1
+            )
+            ",
+                &[&i64::from(member.guild_id), &score],
+            )
+            .await?;
+
+        rows.iter()
+            .map(|row| RoleId(row.get::<_, i64>(0) as u64))
+            .collect()
+    };
+
+    // Current roles of the user
+    let roles = &member.roles;
+
+    // Filter roles the user should have but doesn't
+    let add: Vec<_> = current
+        .iter()
+        .filter(|role| !roles.contains(role))
+        .copied()
+        .collect();
+    // Filter roles the user shouldn't have but does
+    let remove: Vec<_> = roles
+        .iter()
+        .filter(|role| handled.contains(role) && !current.contains(role))
+        .copied()
+        .collect();
+
+    // Add new roles
+    if !add.is_empty() {
+        member.add_roles(&ctx.http, &add[..]).await?;
+    }
+    // Remove old roles
+    if !remove.is_empty() {
+        member.remove_roles(&ctx.http, &remove[..]).await?;
+    }
+
+    Ok(())
 }

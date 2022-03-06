@@ -4,6 +4,7 @@ pub mod cooldown;
 pub mod emoji;
 pub mod given;
 pub mod guilds;
+pub mod levelup;
 pub mod module;
 pub mod ping;
 pub mod score;
