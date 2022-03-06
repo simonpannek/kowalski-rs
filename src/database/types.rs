@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Debug};
 use bit_vec::BitVec;
 use serenity::{
     client::Context,
-    model::id::{GuildId, UserId},
+    model::id::{GuildId, RoleId, UserId},
 };
 use tabled::{builder::Builder, Style, Table};
 use tokio_postgres::{
@@ -16,7 +16,7 @@ use tokio_postgres::{
 pub struct ModuleStatus {
     pub owner: bool,
     pub utility: bool,
-    pub reactions: bool,
+    pub score: bool,
     pub reaction_roles: bool,
 }
 
@@ -36,7 +36,7 @@ impl ModuleStatus {
         ModuleStatus {
             owner: false,
             utility: false,
-            reactions: false,
+            score: false,
             reaction_roles: false,
         }
     }
@@ -49,7 +49,7 @@ impl<'a> FromSql<'a> for ModuleStatus {
         Ok(ModuleStatus {
             owner: bits.get(0).unwrap_or_default(),
             utility: bits.get(1).unwrap_or_default(),
-            reactions: bits.get(2).unwrap_or_default(),
+            score: bits.get(2).unwrap_or_default(),
             reaction_roles: bits.get(3).unwrap_or_default(),
         })
     }
@@ -67,7 +67,7 @@ impl ToSql for ModuleStatus {
 
         bits.set(0, self.owner);
         bits.set(1, self.utility);
-        bits.set(2, self.reactions);
+        bits.set(2, self.score);
         bits.set(3, self.reaction_roles);
 
         bits.to_sql(ty, out)
@@ -140,34 +140,60 @@ impl RowResolved {
                         values.push(format!("{:?}", value));
                     }
                 },
+                &Type::BOOL => {
+                    let value: bool = row.get(i);
+
+                    values.push(format!("{:?}", value))
+                }
+                &Type::INT4 => {
+                    let value: i32 = row.get(i);
+
+                    values.push(value.to_string())
+                }
                 &Type::INT8 => {
-                    let value: i64 = row.get(i);
+                    let value: Option<i64> = row.get(i);
 
-                    let string = if column.name().starts_with("user") {
-                        // User column
-                        UserId::from(value as u64)
-                            .to_user(&ctx.http)
-                            .await
-                            .map_or(format!("unknown user ({})", value), |user| {
-                                format!("{}#{:04}", user.name, user.discriminator)
-                            })
-                    } else if column.name().starts_with("guild") {
-                        // Guild column
-                        GuildId::from(value as u64)
-                            .to_partial_guild(&ctx.http)
-                            .await
-                            .map_or(format!("unknown guild ({})", value), |guild| {
-                                guild.name.to_string()
-                            })
-                    } else {
-                        // Just return the number
-                        value.to_string()
-                    };
+                    match value {
+                        Some(value) => {
+                            let string = if column.name().starts_with("user") {
+                                // Guild column
+                                UserId::from(value as u64)
+                                    .to_user(&ctx.http)
+                                    .await
+                                    .map_or(format!("unknown user ({})", value), |user| {
+                                        format!("{}#{:04}", user.name, user.discriminator)
+                                    })
+                            } else if column.name().starts_with("guild") {
+                                // Guild column
+                                GuildId::from(value as u64)
+                                    .to_partial_guild(&ctx.http)
+                                    .await
+                                    .map_or(format!("unknown guild ({})", value), |guild| {
+                                        guild.name
+                                    })
+                            } else if column.name().starts_with("role") {
+                                // Guild column
+                                RoleId::from(value as u64)
+                                    .to_role_cached(&ctx.cache)
+                                    .await
+                                    .map_or(format!("unknown role ({})", value), |role| role.name)
+                            } else {
+                                // Just return the number
+                                value.to_string()
+                            };
 
-                    values.push(string)
+                            values.push(string)
+                        }
+                        None => values.push("NULL".to_string()),
+                    }
                 }
                 &Type::TEXT => {
-                    values.push(row.get(i));
+                    let value: Option<String> = row.get(i);
+
+                    match value {
+                        Some(value) => values.push(value),
+                        None => values.push("NULL".to_string()),
+                    }
                 }
                 t => {
                     values.push(format!("unsupported type '{}'", t));

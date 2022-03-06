@@ -1,10 +1,14 @@
+use serenity::model::channel::ReactionType;
 use std::{env, error::Error, sync::Arc};
 
 use serenity::prelude::TypeMapKey;
 use tokio_postgres::{Client, NoTls};
 use tracing::{error, info};
 
-use crate::strings::{ERR_DB_CONNECTION, ERR_ENV_NOT_SET, INFO_DB_CONNECTED, INFO_DB_SETUP};
+use crate::{
+    error::ExecutionError,
+    strings::{ERR_DB_CONNECTION, ERR_ENV_NOT_SET, INFO_DB_CONNECTED, INFO_DB_SETUP},
+};
 
 /// The database client.
 pub struct Database {
@@ -32,12 +36,48 @@ impl Database {
             .batch_execute(
                 "
                     CREATE TABLE IF NOT EXISTS modules (
-                        guild       BIGINT PRIMARY KEY,
-                        status      BIT(8) NOT NULL
+                        guild           BIGINT PRIMARY KEY,
+                        status          BIT(8) NOT NULL
+                    );
+
+                    CREATE TABLE IF NOT EXISTS emojis (
+                        id              SERIAL PRIMARY KEY,
+                        unicode         TEXT,
+                        emoji_guild     BIGINT,
+                        CONSTRAINT unicode_or_guild
+                            CHECK ((unicode IS NULL) != (emoji_guild IS NULL))
+                    );
+
+                    CREATE TABLE IF NOT EXISTS score_cooldowns (
+                        guild           BIGINT,
+                        role            BIGINT,
+                        cooldown        BIGINT NOT NULL,
+                        PRIMARY KEY (guild, role)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS score_emojis (
+                        guild           BIGINT,
+                        emoji           INT,
+                        upvote          BOOLEAN NOT NULL,
+                        PRIMARY KEY (guild, emoji),
+                        CONSTRAINT fk_emojis
+                            FOREIGN KEY (emoji) REFERENCES emojis(id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS reactions (
+                        guild           BIGINT,
+                        user_from       BIGINT,
+                        user_to         BIGINT,
+                        message         BIGINT,
+                        emoji           INT,
+                        native          BOOLEAN NOT NULL DEFAULT true,
+                        PRIMARY KEY (guild, user_from, user_to, message, emoji),
+                        CONSTRAINT fk_emojis
+                            FOREIGN KEY (emoji) REFERENCES emojis(id)
                     );
 
                     CREATE TABLE IF NOT EXISTS guilds (
-                        guild       BIGINT PRIMARY KEY
+                        guild           BIGINT PRIMARY KEY
                     );
                 ",
             )
@@ -46,6 +86,61 @@ impl Database {
         info!("{}", INFO_DB_SETUP);
 
         Ok(Database { client })
+    }
+
+    /// Gets the id of an emoji given the reaction type.
+    ///
+    /// Note: If the emoji is not registered before, it will create a new row
+    pub async fn get_emoji(&self, emoji: &ReactionType) -> Result<i32, ExecutionError> {
+        let row = match emoji {
+            ReactionType::Custom { id, .. } => {
+                self.client
+                    .query_one(
+                        "
+                        WITH id_row AS (
+                            SELECT id FROM emojis
+                            WHERE emoji_guild = $1::BIGINT
+                        ), new_row AS (
+                            INSERT INTO emojis (emoji_guild)
+                            SELECT $1::BIGINT
+                            WHERE NOT EXISTS (SELECT * FROM id_row)
+                            RETURNING id
+                        )
+
+                        SELECT * FROM id_row
+                        UNION ALL
+                        SELECT * FROM new_row
+                        ",
+                        &[&i64::from(*id)],
+                    )
+                    .await?
+            }
+            ReactionType::Unicode(string) => {
+                self.client
+                    .query_one(
+                        "
+                        WITH id_row AS (
+                            SELECT id FROM emojis
+                            WHERE unicode = $1::TEXT
+                        ), new_row AS (
+                            INSERT INTO emojis (unicode)
+                            SELECT $1::TEXT
+                            WHERE NOT EXISTS (SELECT * FROM id_row)
+                            RETURNING id
+                        )
+
+                        SELECT * FROM id_row
+                        UNION ALL
+                        SELECT * FROM new_row
+                        ",
+                        &[string],
+                    )
+                    .await?
+            }
+            _ => unreachable!(),
+        };
+
+        Ok(row.get(0))
     }
 }
 

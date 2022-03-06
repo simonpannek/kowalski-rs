@@ -1,7 +1,8 @@
-use crate::strings::ERR_DB_QUERY;
 use std::fmt::{Debug, Display, Formatter, Result};
 
-/// Custom error type when execution something like a command.
+use crate::strings::ERR_DB_QUERY;
+
+/// Custom error type when executing something like a command.
 pub struct ExecutionError {
     reason: String,
 }

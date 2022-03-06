@@ -2,7 +2,7 @@ use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
-use serenity::model::Permissions;
+use serenity::model::prelude::application_command::ApplicationCommandInteractionDataOptionValue;
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -19,6 +19,7 @@ use serenity::{
             message_component::ButtonStyle,
             InteractionResponseType::ChannelMessageWithSource,
         },
+        Permissions,
     },
     utils::Colour,
 };
@@ -93,7 +94,7 @@ pub async fn send_confirmation(
     // Get the interaction response
     let interaction = message
         .await_component_interaction(&ctx)
-        .author_id(u64::from(command.user.id))
+        .author_id(u64::from(command.user.id.0))
         .timeout(timeout)
         .await;
 
@@ -280,7 +281,7 @@ pub async fn create_module_command(
             Some(module) => match module {
                 Module::Owner => status.owner,
                 Module::Utility => status.utility,
-                Module::Reactions => status.reactions,
+                Module::Score => status.score,
                 Module::ReactionRoles => status.reaction_roles,
             },
             None => false,
@@ -299,7 +300,7 @@ pub async fn create_module_command(
         .await
         .expect(ERR_CMD_CREATION);
 
-    add_permissions(guild, &commands, &config, ctx).await;
+    add_permissions(ctx, &config, guild, &commands).await;
 }
 
 fn create_option(name: &str, option_config: &CommandOption) -> CreateApplicationCommandOption {
@@ -346,10 +347,10 @@ fn create_option(name: &str, option_config: &CommandOption) -> CreateApplication
 
 /// Add permissions for a command.
 pub async fn add_permissions(
+    ctx: &Context,
+    config: &Config,
     guild: GuildId,
     commands: &Vec<ApplicationCommand>,
-    config: &Config,
-    ctx: &Context,
 ) {
     // Get the partial guild to get the owner information later
     let partial_guild = guild.to_partial_guild(&ctx.http).await.expect(ERR_API_LOAD);
@@ -451,4 +452,16 @@ where
         .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))?;
 
     Deserialize::deserialize(value).map_err(|why| ExecutionError::new(&format!("{}", why)))
+}
+
+/// Parse a command argument given an index and resolve it.
+pub fn parse_arg_resolved(
+    args: &[ApplicationCommandInteractionDataOption],
+    index: usize,
+) -> Result<&ApplicationCommandInteractionDataOptionValue, ExecutionError> {
+    args.get(index)
+        .ok_or(ExecutionError::new(ERR_CMD_ARGS_LENGTH))?
+        .resolved
+        .as_ref()
+        .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))
 }

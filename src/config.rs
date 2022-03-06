@@ -25,6 +25,9 @@ pub struct General {
     pub interaction_timeout: u64,
     pub command_history_size: usize,
     pub autocomplete_size: usize,
+    pub default_cooldown: i64,
+    pub leaderboard_size: usize,
+    pub leaderboard_titles: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -47,6 +50,11 @@ pub enum CommandType {
     Guild,
     Sql,
     Clear,
+    Cooldown,
+    Emoji,
+    Given,
+    Score,
+    Top,
 }
 
 /// Types of modules parsed by the config.
@@ -54,7 +62,7 @@ pub enum CommandType {
 pub enum Module {
     Owner,
     Utility,
-    Reactions,
+    Score,
     ReactionRoles,
 }
 
@@ -121,7 +129,7 @@ impl FromStr for Module {
         match s {
             "Owner" => Ok(Module::Owner),
             "Utility" => Ok(Module::Utility),
-            "Reactions" => Ok(Module::Reactions),
+            "Score" => Ok(Module::Score),
             "ReactionRoles" => Ok(Module::ReactionRoles),
             _ => Err(ExecutionError::new(&format!(
                 "{}: {}",

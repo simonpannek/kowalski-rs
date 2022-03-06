@@ -288,7 +288,6 @@ async fn show_guild(
     });
 
     let guild = ctx.cache.guild(partial_guild.clone()).await;
-    println!("{:?}", ctx.cache.guilds().await);
 
     // Send response
     send_response_complex(
@@ -423,7 +422,7 @@ async fn guild_action(
                                 ctx,
                                 command,
                                 command_config,
-                                title.as_str(),
+                                &title,
                                 &format!("You are now an admin of guild '{}'.", guild.name),
                             )
                             .await
@@ -433,7 +432,7 @@ async fn guild_action(
                                 ctx,
                                 command,
                                 command_config,
-                                title.as_str(),
+                                &title,
                                 &format!(
                                     "I couldn't give you admin permissions. Are you currently user of the server?",
                                 ),
@@ -464,7 +463,7 @@ async fn guild_action(
                                 ctx,
                                 command,
                                 command_config,
-                                title.as_str(),
+                                &title,
                                 &format!("You are not an admin of guild '{}' anymore.", guild.name),
                             )
                             .await
@@ -474,7 +473,7 @@ async fn guild_action(
                                 ctx,
                                 command,
                                 command_config,
-                                title.as_str(),
+                                &title,
                                 &format!(
                                     "I couldn't remove your admin permissions. Are you currently user of the server?",
                                 ),
@@ -503,7 +502,7 @@ async fn guild_action(
                             ctx,
                             command,
                             command_config,
-                            title.as_str(),
+                            &title,
                             &format!("You are now the owner of guild '{}'.", guild.name),
                         )
                         .await
@@ -512,7 +511,7 @@ async fn guild_action(
                             ctx,
                             command,
                             command_config,
-                            title.as_str(),
+                            &title,
                             &format!(
                                 "I couldn't transfer ownership to you. Are you currently user of the server?",
                             ),
@@ -536,7 +535,7 @@ async fn guild_action(
                         ctx,
                         command,
                         command_config,
-                        title.as_str(),
+                        &title,
                         &format!("I have removed guild '{}'.", guild.name),
                     )
                     .await
@@ -545,14 +544,7 @@ async fn guild_action(
             }
         }
         Some(InteractionResponse::Abort) => {
-            send_response(
-                ctx,
-                command,
-                command_config,
-                title.as_str(),
-                "Aborted the action.",
-            )
-            .await
+            send_response(ctx, command, command_config, &title, "Aborted the action.").await
         }
         None => Ok(()),
     }
