@@ -48,7 +48,14 @@ impl Database {
                             CHECK ((unicode IS NULL) != (emoji_guild IS NULL))
                     );
 
-                    CREATE TABLE IF NOT EXISTS reaction_emojis (
+                    CREATE TABLE IF NOT EXISTS score_cooldowns (
+                        guild           BIGINT,
+                        role            BIGINT,
+                        cooldown        BIGINT NOT NULL,
+                        PRIMARY KEY (guild, role)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS score_emojis (
                         guild           BIGINT,
                         emoji           INT,
                         upvote          BOOLEAN NOT NULL,

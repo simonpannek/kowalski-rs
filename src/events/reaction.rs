@@ -35,7 +35,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
             .client
             .query_opt(
                 "
-        SELECT * FROM reaction_emojis
+        SELECT * FROM score_emojis
         WHERE guild = $1::BIGINT AND emoji = $2::INT
         ",
                 &[&guild, &emoji],
@@ -52,8 +52,18 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
             let cooldown_active = {
                 let mut cooldowns = cooldowns_lock.write().await;
 
+                // Get role ids of user
+                let roles: Vec<_> = add_reaction
+                    .member
+                    .as_ref()
+                    .ok_or(ExecutionError::new(ERR_API_LOAD))?
+                    .roles
+                    .iter()
+                    .map(|&role| u64::from(role))
+                    .collect();
+
                 cooldowns
-                    .check_cooldown(&config, &database, guild as u64, user_from as u64)
+                    .check_cooldown(&config, &database, guild as u64, user_from as u64, &roles)
                     .await?
             };
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{cmp::min, collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Duration, Utc};
 use serenity::prelude::TypeMapKey;
@@ -30,6 +30,7 @@ impl Cooldowns {
         database: &Database,
         guild: u64,
         user: u64,
+        roles: &Vec<u64>,
     ) -> Result<bool, ExecutionError> {
         // Get or create guild cooldowns
         let guild_cooldowns = match self.guilds.get_mut(&guild) {
@@ -52,8 +53,31 @@ impl Cooldowns {
 
         // Add new cooldown if none is active
         if !active {
-            // TODO: Fetch custom cooldowns from database
-            let cooldown_end = { Utc::now() + Duration::seconds(config.general.default_cooldown) };
+            let cooldown_end = {
+                let mut cooldown = config.general.default_cooldown;
+
+                for role in roles {
+                    let row = database
+                        .client
+                        .query_opt(
+                            "
+                        SELECT cooldown FROM score_cooldowns
+                        WHERE guild = $1::BIGINT AND role = $2::BIGINT
+                        ",
+                            &[&(guild as i64), &(*role as i64)],
+                        )
+                        .await?;
+
+                    if let Some(row) = row {
+                        let role_cooldown = row.get(0);
+                        cooldown = min(cooldown, role_cooldown);
+                    }
+                }
+
+                println!("{}", cooldown);
+
+                Utc::now() + Duration::seconds(cooldown)
+            };
 
             guild_cooldowns.cooldowns.insert(user, cooldown_end);
         }

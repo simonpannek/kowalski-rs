@@ -118,7 +118,7 @@ pub async fn execute(
                         .client
                         .execute(
                             "
-                    INSERT INTO reaction_emojis
+                    INSERT INTO score_emojis
                     VALUES ($1::BIGINT, $2::INT, $3::BOOLEAN)
                     ",
                             &[&i64::from(guild), &emoji_id, &upvote],
@@ -162,7 +162,7 @@ pub async fn execute(
                             database
                                 .client
                                 .execute(
-                                    "DELETE FROM reaction_emojis WHERE emoji = $1::INT",
+                                    "DELETE FROM score_emojis WHERE emoji = $1::INT",
                                     &[&emoji_id],
                                 )
                                 .await?;

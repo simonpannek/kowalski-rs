@@ -71,7 +71,7 @@ pub async fn execute(
             COUNT(*) FILTER (WHERE upvote) upvotes,
             COUNT(*) FILTER (WHERE NOT upvote) downvotes
         FROM reactions r
-        INNER JOIN reaction_emojis re ON r.emoji = re.emoji
+        INNER JOIN score_emojis re ON r.emoji = re.emoji
         WHERE r.guild = $1::BIGINT
         GROUP BY user_to
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
