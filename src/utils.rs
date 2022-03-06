@@ -280,7 +280,7 @@ pub async fn create_module_command(
             Some(module) => match module {
                 Module::Owner => status.owner,
                 Module::Utility => status.utility,
-                Module::Reactions => status.reactions,
+                Module::Score => status.score,
                 Module::ReactionRoles => status.reaction_roles,
             },
             None => false,

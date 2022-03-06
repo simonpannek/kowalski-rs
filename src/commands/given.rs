@@ -143,7 +143,7 @@ pub async fn execute(
         &ctx,
         &command,
         command_config,
-        &format!("Reactions given out by {}", user.name),
+        &format!("Score given out by {}", user.name),
         &format!(
             "The user {} has given out a total score of **{}** [+{}, -{}].",
             user_id.mention(),

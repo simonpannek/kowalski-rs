@@ -114,7 +114,7 @@ pub async fn execute(
     match module {
         Module::Owner => status_new.owner = enable,
         Module::Utility => status_new.utility = enable,
-        Module::Reactions => status_new.reactions = enable,
+        Module::Score => status_new.score = enable,
         Module::ReactionRoles => status_new.reaction_roles = enable,
     };
 

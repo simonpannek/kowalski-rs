@@ -143,7 +143,7 @@ pub async fn execute(
         &ctx,
         &command,
         command_config,
-        &format!("Reactions of {}", user.name),
+        &format!("Score of {}", user.name),
         &format!(
             "The user {} currently has a score of **{}** [+{}, -{}].",
             user_id.mention(),

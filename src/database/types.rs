@@ -16,7 +16,7 @@ use tokio_postgres::{
 pub struct ModuleStatus {
     pub owner: bool,
     pub utility: bool,
-    pub reactions: bool,
+    pub score: bool,
     pub reaction_roles: bool,
 }
 
@@ -36,7 +36,7 @@ impl ModuleStatus {
         ModuleStatus {
             owner: false,
             utility: false,
-            reactions: false,
+            score: false,
             reaction_roles: false,
         }
     }
@@ -49,7 +49,7 @@ impl<'a> FromSql<'a> for ModuleStatus {
         Ok(ModuleStatus {
             owner: bits.get(0).unwrap_or_default(),
             utility: bits.get(1).unwrap_or_default(),
-            reactions: bits.get(2).unwrap_or_default(),
+            score: bits.get(2).unwrap_or_default(),
             reaction_roles: bits.get(3).unwrap_or_default(),
         })
     }
@@ -67,7 +67,7 @@ impl ToSql for ModuleStatus {
 
         bits.set(0, self.owner);
         bits.set(1, self.utility);
-        bits.set(2, self.reactions);
+        bits.set(2, self.score);
         bits.set(3, self.reaction_roles);
 
         bits.to_sql(ty, out)

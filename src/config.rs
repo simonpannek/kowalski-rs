@@ -61,7 +61,7 @@ pub enum CommandType {
 pub enum Module {
     Owner,
     Utility,
-    Reactions,
+    Score,
     ReactionRoles,
 }
 
@@ -128,7 +128,7 @@ impl FromStr for Module {
         match s {
             "Owner" => Ok(Module::Owner),
             "Utility" => Ok(Module::Utility),
-            "Reactions" => Ok(Module::Reactions),
+            "Score" => Ok(Module::Score),
             "ReactionRoles" => Ok(Module::ReactionRoles),
             _ => Err(ExecutionError::new(&format!(
                 "{}: {}",

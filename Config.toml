@@ -43,7 +43,7 @@ choices = ["enable", "disable", "remove"]
 kind = "String"
 description = "The module to update."
 required = true
-choices = ["Owner", "Utility", "Reactions", "ReactionRoles"]
+choices = ["Owner", "Utility", "Score", "ReactionRoles"]
 
 # Bot management
 [commands.guild]
@@ -92,11 +92,11 @@ kind = "String"
 description = "The message id from which to start deleting messages."
 min_value = 0
 
-# Reactions
+# Score
 [commands.emoji]
 command_type = "Emoji"
 description = "Manage which emojis should count as up- and downvotes."
-module = "Reactions"
+module = "Score"
 default_permission = false
 permission = "8"
 
@@ -114,7 +114,7 @@ required = true
 [commands.given]
 command_type = "Given"
 description = "Display stats about the votes given to other users."
-module = "Reactions"
+module = "Score"
 default_permission = true
 
 [commands.given.options.user]
@@ -124,7 +124,7 @@ description = "The user to query."
 [commands.score]
 command_type = "Score"
 description = "Display the score of a user."
-module = "Reactions"
+module = "Score"
 default_permission = true
 
 [commands.score.options.user]
@@ -134,5 +134,5 @@ description = "The user to query."
 [commands.top]
 command_type = "Top"
 description = "Display the users with the highest scores."
-module = "Reactions"
+module = "Score"
 default_permission = true
