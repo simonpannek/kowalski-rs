@@ -1,5 +1,6 @@
 pub mod about;
 pub mod clear;
+pub mod cooldown;
 pub mod emoji;
 pub mod given;
 pub mod guilds;

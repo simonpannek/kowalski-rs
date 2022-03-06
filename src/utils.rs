@@ -2,6 +2,7 @@ use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
+use serenity::model::prelude::application_command::ApplicationCommandInteractionDataOptionValue;
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -451,4 +452,16 @@ where
         .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))?;
 
     Deserialize::deserialize(value).map_err(|why| ExecutionError::new(&format!("{}", why)))
+}
+
+/// Parse a command argument given an index and resolve it.
+pub fn parse_arg_resolved(
+    args: &[ApplicationCommandInteractionDataOption],
+    index: usize,
+) -> Result<&ApplicationCommandInteractionDataOptionValue, ExecutionError> {
+    args.get(index)
+        .ok_or(ExecutionError::new(ERR_CMD_ARGS_LENGTH))?
+        .resolved
+        .as_ref()
+        .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))
 }

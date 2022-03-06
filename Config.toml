@@ -93,6 +93,23 @@ description = "The message id from which to start deleting messages."
 min_value = 0
 
 # Score
+[commands.cooldown]
+command_type = "Cooldown"
+description = "Define a custom reaction cooldown for certain roles."
+module = "Score"
+default_permission = false
+permission = "8"
+
+[commands.cooldown.options.role]
+kind = "Role"
+description = "The role to update."
+required = true
+
+[commands.cooldown.options.cooldown]
+kind = "Integer"
+description = "The cooldown in seconds (reset the cooldown if no cooldown is given)."
+min_value = 0
+
 [commands.emoji]
 command_type = "Emoji"
 description = "Manage which emojis should count as up- and downvotes."

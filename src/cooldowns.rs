@@ -74,8 +74,6 @@ impl Cooldowns {
                     }
                 }
 
-                println!("{}", cooldown);
-
                 Utc::now() + Duration::seconds(cooldown)
             };
 

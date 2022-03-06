@@ -50,6 +50,7 @@ pub enum CommandType {
     Guild,
     Sql,
     Clear,
+    Cooldown,
     Emoji,
     Given,
     Score,

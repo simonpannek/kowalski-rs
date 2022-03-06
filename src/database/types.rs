@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Debug};
 use bit_vec::BitVec;
 use serenity::{
     client::Context,
-    model::id::{GuildId, UserId},
+    model::id::{GuildId, RoleId, UserId},
 };
 use tabled::{builder::Builder, Style, Table};
 use tokio_postgres::{
@@ -156,7 +156,7 @@ impl RowResolved {
                     match value {
                         Some(value) => {
                             let string = if column.name().starts_with("user") {
-                                // User column
+                                // Guild column
                                 UserId::from(value as u64)
                                     .to_user(&ctx.http)
                                     .await
@@ -169,8 +169,14 @@ impl RowResolved {
                                     .to_partial_guild(&ctx.http)
                                     .await
                                     .map_or(format!("unknown guild ({})", value), |guild| {
-                                        guild.name.to_string()
+                                        guild.name
                                     })
+                            } else if column.name().starts_with("role") {
+                                // Guild column
+                                RoleId::from(value as u64)
+                                    .to_role_cached(&ctx.cache)
+                                    .await
+                                    .map_or(format!("unknown role ({})", value), |role| role.name)
                             } else {
                                 // Just return the number
                                 value.to_string()

@@ -3,17 +3,20 @@ use serenity::{
     model::{
         channel::ReactionType,
         id::{EmojiId, UserId},
-        interactions::application_command::ApplicationCommandInteraction,
+        interactions::application_command::{
+            ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::User,
+        },
     },
     prelude::Mentionable,
 };
 
+use crate::utils::parse_arg_resolved;
 use crate::{
     config::Command,
     database::client::Database,
     error::ExecutionError,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::{parse_arg, send_response_complex},
+    utils::send_response_complex,
 };
 
 pub async fn execute(
@@ -31,18 +34,17 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse argument (use command user as fallback)
-    let user_id = if !options.is_empty() {
-        let user = parse_arg::<String>(options, 0)?
-            .parse()
-            .map_err(|why| ExecutionError::new(&format!("{}: {}", ERR_API_LOAD, why)))?;
-        UserId(user)
+    let user = if !options.is_empty() {
+        match parse_arg_resolved(options, 0)? {
+            User(user, ..) => Ok(user),
+            _ => Err(ExecutionError::new(ERR_API_LOAD)),
+        }?
     } else {
-        command.user.id
+        &command.user
     };
 
-    // Get guild and user
+    // Get guild
     let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
-    let user = user_id.to_user(&ctx.http).await?;
 
     // Analyze reactions from the user
     let (upvotes, downvotes) = {
@@ -57,7 +59,7 @@ pub async fn execute(
         INNER JOIN score_emojis re ON r.guild = re.guild AND r.emoji = re.emoji
         WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT
         ",
-                &[&i64::from(guild), &i64::from(user_id)],
+                &[&i64::from(guild), &i64::from(user.id)],
             )
             .await?;
 
@@ -78,7 +80,7 @@ pub async fn execute(
         GROUP BY emoji, unicode, emoji_guild
         ORDER BY count DESC
         ",
-                &[&i64::from(guild), &i64::from(user_id)],
+                &[&i64::from(guild), &i64::from(user.id)],
             )
             .await?;
 
@@ -124,7 +126,7 @@ pub async fn execute(
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
         LIMIT 5
         ",
-                &[&i64::from(guild), &i64::from(user_id)],
+                &[&i64::from(guild), &i64::from(user.id)],
             )
             .await?;
 
@@ -146,7 +148,7 @@ pub async fn execute(
         &format!("Score given out by {}", user.name),
         &format!(
             "The user {} has given out a total score of **{}** [+{}, -{}].",
-            user_id.mention(),
+            user.mention(),
             score,
             upvotes,
             downvotes
