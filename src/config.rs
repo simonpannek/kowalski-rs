@@ -56,6 +56,7 @@ pub enum CommandType {
     LevelUp,
     Score,
     Top,
+    ReactionRole,
 }
 
 /// Types of modules parsed by the config.

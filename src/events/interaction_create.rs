@@ -114,6 +114,7 @@ async fn execute_command(
         CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
         CommandType::Score => score::execute(ctx, command, command_config).await,
         CommandType::Top => top::execute(ctx, command, command_config).await,
+        CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
     }
 }
 

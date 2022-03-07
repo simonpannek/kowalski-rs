@@ -83,6 +83,19 @@ impl Database {
                             FOREIGN KEY (emoji) REFERENCES emojis(id)
                     );
 
+                    CREATE TABLE IF NOT EXISTS reaction_roles (
+                        guild           BIGINT,
+                        message         BIGINT,
+                        emoji           INT,
+                        role            BIGINT,
+                        slots           INT,
+                        PRIMARY KEY (guild, message, emoji, role),
+                        CONSTRAINT fk_emojis
+                            FOREIGN KEY (emoji) REFERENCES emojis(id),
+                        CONSTRAINT unsigned_limit
+                            CHECK (slots >= 0)
+                    );
+
                     CREATE TABLE IF NOT EXISTS guilds (
                         guild           BIGINT PRIMARY KEY
                     );
