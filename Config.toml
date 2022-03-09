@@ -70,11 +70,13 @@ owner = true
 kind = "String"
 description = "The title of the embed."
 required = true
+autocomplete = true
 
 [commands.say.options.content]
 kind = "String"
 description = "The content of the embed."
 required = true
+autocomplete = true
 
 [commands.sql]
 command_type = "Sql"
