@@ -8,6 +8,7 @@ pub mod levelup;
 pub mod module;
 pub mod ping;
 pub mod reactionrole;
+pub mod say;
 pub mod score;
 pub mod sql;
 pub mod top;

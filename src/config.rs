@@ -48,6 +48,7 @@ pub enum CommandType {
     About,
     Module,
     Guild,
+    Say,
     Sql,
     Clear,
     Cooldown,
