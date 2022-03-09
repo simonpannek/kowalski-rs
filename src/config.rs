@@ -54,6 +54,7 @@ pub enum CommandType {
     Emoji,
     Given,
     LevelUp,
+    Rank,
     Score,
     Top,
     ReactionRole,

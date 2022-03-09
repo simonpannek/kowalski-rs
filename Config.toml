@@ -160,6 +160,16 @@ kind = "Integer"
 description = "The required score for the role."
 required = true
 
+[commands.rank]
+command_type = "Rank"
+description = "Display the rank of a user."
+module = "Score"
+default_permission = true
+
+[commands.rank.options.user]
+kind = "User"
+description = "The user to query."
+
 [commands.score]
 command_type = "Score"
 description = "Display the score of a user."

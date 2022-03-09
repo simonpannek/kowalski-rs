@@ -7,6 +7,7 @@ pub mod guilds;
 pub mod levelup;
 pub mod module;
 pub mod ping;
+pub mod rank;
 pub mod reactionrole;
 pub mod score;
 pub mod sql;
