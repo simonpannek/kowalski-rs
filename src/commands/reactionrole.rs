@@ -185,12 +185,18 @@ pub async fn execute(
                                 }
                             }
 
+                            // React to the message
+                            let message = reaction.message(&ctx.http).await?;
+                            message.react(&ctx.http, reaction.emoji.clone()).await?;
+                            // Remove the reaction of the user
+                            reaction.delete(&ctx.http).await?;
+
                             let content = format!(
                                 "I will assign the role {} to users which react with {} [here]({}).
                                 There are {} role-slots available.",
                                 role.mention(),
                                 &reaction.emoji.to_string(),
-                                &reaction.message(&ctx.http).await?.link(),
+                                &message.link(),
                                 slots.map_or("unlimited".to_string(), |num| num.to_string())
                             );
 
@@ -209,13 +215,17 @@ pub async fn execute(
                                 )
                                 .await?;
 
+                            // Remove the reactions of the message
+                            let message = reaction.message(&ctx.http).await?;
+                            message
+                                .delete_reaction_emoji(&ctx.http, reaction.emoji.clone())
+                                .await?;
+
                             let content = format!(
                                 "I will no longer assign the role {} to users which react with {} [here]({}).",
                                 role.mention(),
                                 &reaction.emoji.to_string(),
-                                &reaction
-                                    .message(&ctx.http)
-                                    .await?
+                                &message
                                     .link()
                             );
 

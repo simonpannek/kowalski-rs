@@ -92,7 +92,7 @@ impl Database {
                         PRIMARY KEY (guild, message, emoji, role),
                         CONSTRAINT fk_emojis
                             FOREIGN KEY (emoji) REFERENCES emojis(id),
-                        CONSTRAINT unsigned_limit
+                        CONSTRAINT unsigned_slots
                             CHECK (slots >= 0)
                     );
 
