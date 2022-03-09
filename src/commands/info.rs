@@ -1,17 +1,21 @@
 use std::str::FromStr;
 
 use serenity::{
-    client::Context, model::interactions::application_command::ApplicationCommandInteraction,
+    client::Context,
+    model::{
+        channel::ReactionType,
+        id::{EmojiId, MessageId, RoleId},
+        interactions::application_command::ApplicationCommandInteraction,
+    },
+    prelude::Mentionable,
 };
 
-use crate::utils::send_response_complex;
 use crate::{
-    config::Config,
     config::{Command, Module},
     database::{client::Database, types::ModuleStatus},
     error::ExecutionError,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::{parse_arg, send_response},
+    utils::{parse_arg, send_response_complex},
 };
 
 pub async fn execute(
@@ -20,13 +24,10 @@ pub async fn execute(
     command_config: &Command,
 ) -> Result<(), ExecutionError> {
     // Get config and database
-    let (config, database) = {
+    let database = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, database)
+        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
     };
 
     let options = &command.data.options;
@@ -67,13 +68,219 @@ pub async fn execute(
         case, the bot will only assign the reaction-role to users as long as there are slots available.",
     };
 
+    let fields = {
+        let mut fields = Vec::new();
+
+        let enabled = match module {
+            Module::Owner => status.owner,
+            Module::Utility => status.utility,
+            Module::Score => status.score,
+            Module::ReactionRoles => status.reaction_roles,
+        };
+
+        if enabled {
+            fields.push((
+                "Module status".to_string(),
+                format!(
+                    "The module {:?} is currently enabled on this server.",
+                    module
+                ),
+                false,
+            ));
+
+            match module {
+                Module::Score => {
+                    // Get up and downvotes
+                    let (upvotes, downvotes) = {
+                        let rows = database
+                            .client
+                            .query(
+                                "
+                                SELECT unicode, emoji_guild, upvote FROM score_emojis se
+                                INNER JOIN emojis e ON se.emoji = e.id
+                                WHERE guild = $1::BIGINT
+                                ",
+                                &[&i64::from(guild)],
+                            )
+                            .await?;
+
+                        let mut upvotes = Vec::new();
+                        let mut downvotes = Vec::new();
+
+                        for row in rows {
+                            let unicode: Option<String> = row.get(0);
+                            let emoji_guild: Option<i64> = row.get(1);
+                            let upvote: bool = row.get(2);
+
+                            let emoji = match (unicode, emoji_guild) {
+                                (Some(string), _) => ReactionType::Unicode(string),
+                                (_, Some(id)) => {
+                                    let emoji = guild.emoji(&ctx.http, EmojiId(id as u64)).await?;
+
+                                    ReactionType::Custom {
+                                        animated: emoji.animated,
+                                        id: emoji.id,
+                                        name: Some(emoji.name),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            };
+
+                            if upvote {
+                                upvotes.push(emoji);
+                            } else {
+                                downvotes.push(emoji);
+                            }
+                        }
+
+                        (upvotes, downvotes)
+                    };
+
+                    // TODO: Handle empty content
+                    fields.push((
+                        "Upvotes".to_string(),
+                        upvotes
+                            .iter()
+                            .map(|emoji| emoji.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                        true,
+                    ));
+                    fields.push((
+                        "Downvotes".to_string(),
+                        downvotes
+                            .iter()
+                            .map(|emoji| emoji.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                            .to_string(),
+                        true,
+                    ));
+
+                    // Get roles
+                    let roles: Vec<_> = {
+                        let rows = database
+                            .client
+                            .query(
+                                "
+                                SELECT role, score FROM score_roles
+                                WHERE guild = $1::BIGINT
+                                ORDER BY score
+                                ",
+                                &[&i64::from(guild)],
+                            )
+                            .await?;
+
+                        rows.iter()
+                            .map(|row| (RoleId(row.get::<_, i64>(0) as u64), row.get::<_, i64>(1)))
+                            .collect()
+                    };
+
+                    // TODO: Handle empty content
+                    fields.push((
+                        "Level-up roles".to_string(),
+                        roles
+                            .iter()
+                            .map(|(role, score)| format!("{} **(>= {})**", role.mention(), score))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        false,
+                    ));
+                }
+                Module::ReactionRoles => {
+                    // Get roles
+                    let roles = {
+                        let rows = database
+                            .client
+                            .query(
+                                "
+                                SELECT message, unicode, emoji_guild, role, slots FROM reaction_roles rr
+                                INNER JOIN emojis e ON emoji = id
+                                WHERE guild = $1::BIGINT
+                                ",
+                                &[&i64::from(guild)],
+                            )
+                            .await?;
+
+                        let mut roles = Vec::new();
+
+                        for row in rows {
+                            let message = MessageId(row.get::<_, i64>(0) as u64);
+                            let unicode: Option<String> = row.get(1);
+                            let emoji_guild: Option<i64> = row.get(2);
+                            let emoji = match (unicode, emoji_guild) {
+                                (Some(string), _) => ReactionType::Unicode(string),
+                                (_, Some(id)) => {
+                                    let emoji = guild.emoji(&ctx.http, EmojiId(id as u64)).await?;
+
+                                    ReactionType::Custom {
+                                        animated: emoji.animated,
+                                        id: emoji.id,
+                                        name: Some(emoji.name),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            };
+                            let role = RoleId(row.get::<_, i64>(3) as u64);
+                            let slots: Option<i32> = row.get(4);
+
+                            roles.push((message, emoji, role, slots));
+                        }
+
+                        roles
+                    };
+
+                    // TODO: Handle empty content
+                    // TODO: Add link to message
+                    fields.push((
+                        "Reaction-roles".to_string(),
+                        roles
+                            .iter()
+                            .map(|(_message, emoji, role, slots)| {
+                                let mut content = format!(
+                                    "{} when reacting with {}",
+                                    role.mention(),
+                                    emoji.to_string()
+                                );
+
+                                if let Some(slots) = slots {
+                                    content.push_str(&format!(
+                                        " (There are currently {} slots available)",
+                                        slots
+                                    ));
+                                }
+
+                                content
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        false,
+                    ));
+                }
+                _ => {}
+            }
+        } else {
+            fields.push((
+                "Module status".to_string(),
+                format!(
+                    "The module {:?} is currently disabled on this server.
+                    I won't display any additional information.",
+                    module
+                ),
+                false,
+            ));
+        }
+
+        fields
+    };
+
     send_response_complex(
         &ctx,
         &command,
         command_config,
         &format!("Information about module '{:?}'", module),
         content,
-        |embed| embed,
+        |embed| embed.fields(fields.clone()),
         Vec::new(),
     )
     .await
