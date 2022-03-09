@@ -90,7 +90,6 @@ max_value = 100
 [commands.clear.options.before]
 kind = "String"
 description = "The message id from which to start deleting messages."
-min_value = 0
 
 # Score
 [commands.cooldown]
@@ -140,7 +139,7 @@ description = "The user to query."
 
 [commands.levelup]
 command_type = "LevelUp"
-description = "Define the different levels assigned by the bot on a certain score."
+description = "Manage the roles assigned by the bot on a certain score."
 module = "Score"
 default_permission = false
 permission = "8"
@@ -176,3 +175,27 @@ command_type = "Top"
 description = "Display the users with the highest scores."
 module = "Score"
 default_permission = true
+
+# Reaction Roles
+[commands.reactionrole]
+command_type = "ReactionRole"
+description = "Manage the roles assigned when a user reacts on a certain message."
+module = "ReactionRoles"
+default_permission = false
+permission = "8"
+
+[commands.reactionrole.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["add", "remove"]
+
+[commands.reactionrole.options.role]
+kind = "Role"
+description = "The role to assign."
+required = true
+
+[commands.reactionrole.options.slots]
+kind = "Integer"
+description = "The maximum number of users which can hold the reaction-role at the same time."
+min_value = 0

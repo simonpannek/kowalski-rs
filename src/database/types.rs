@@ -146,9 +146,9 @@ impl RowResolved {
                     values.push(format!("{:?}", value))
                 }
                 &Type::INT4 => {
-                    let value: i32 = row.get(i);
+                    let value: Option<i32> = row.get(i);
 
-                    values.push(value.to_string())
+                    values.push(value.map_or("NULL".to_string(), |num| num.to_string()));
                 }
                 &Type::INT8 => {
                     let value: Option<i64> = row.get(i);

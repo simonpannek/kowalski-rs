@@ -37,19 +37,100 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
             return Ok(());
         }
 
-        // Check whether the emoji is a reaction emoji counted as a up-/downvote
-        if database
-            .client
-            .query_opt(
-                "
-        SELECT * FROM score_emojis
-        WHERE guild = $1::BIGINT AND emoji = $2::INT
-        ",
-                &[&guild, &emoji],
-            )
-            .await?
-            .is_some()
-        {
+        // Get the reaction-roles to assign
+        let reaction_roles: Vec<_> = {
+            let rows = database
+                .client
+                .query(
+                    "
+                    SELECT role, slots FROM reaction_roles
+                    WHERE guild = $1::BIGINT AND message = $2::BIGINT AND emoji = $3::INT
+                    ",
+                    &[&guild, &message, &emoji],
+                )
+                .await?;
+
+            rows.iter()
+                .map(|row| {
+                    (
+                        RoleId(row.get::<_, i64>(0) as u64),
+                        row.get::<_, Option<i32>>(1),
+                    )
+                })
+                .collect()
+        };
+        // Whether the emoji should count as a up-/downvote
+        let levelup = reaction_roles.is_empty()
+            && database
+                .client
+                .query_opt(
+                    "
+                    SELECT * FROM score_emojis
+                    WHERE guild = $1::BIGINT AND emoji = $2::INT
+                    ",
+                    &[&guild, &emoji],
+                )
+                .await?
+                .is_some();
+
+        if !reaction_roles.is_empty() {
+            // Get guild
+            let guild_id = {
+                let channel = add_reaction.channel_id.to_channel(&ctx.http).await?;
+                channel
+                    .guild()
+                    .map(|channel| channel.guild_id)
+                    .ok_or(ExecutionError::new(ERR_API_LOAD))?
+            };
+            // Get the member
+            let mut member = guild_id.member(&ctx, user_from as u64).await?;
+
+            // Never give roles to bots
+            if member.user.bot {
+                return Ok(());
+            }
+
+            // Remove the reaction
+            add_reaction.delete(&ctx.http).await?;
+
+            for (role, slots) in reaction_roles {
+                if member.roles.contains(&role) {
+                    // Increment slots
+                    database
+                        .client
+                        .execute(
+                            "
+                        UPDATE reaction_roles SET slots = slots + 1
+                        WHERE guild = $1::BIGINT AND message = $2::BIGINT
+                            AND emoji = $3::INT AND slots IS NOT NULL
+                        ",
+                            &[&guild, &message, &emoji],
+                        )
+                        .await?;
+
+                    // Remove role from user
+                    member.remove_role(&ctx.http, role).await?;
+                } else {
+                    if !matches!(slots, Some(0)) {
+                        // Decrement slots
+                        database
+                            .client
+                            .execute(
+                                "
+                    UPDATE reaction_roles SET slots = slots - 1
+                    WHERE guild = $1::BIGINT AND message = $2::BIGINT
+                        AND emoji = $3::INT AND slots IS NOT NULL
+                    ",
+                                &[&guild, &message, &emoji],
+                            )
+                            .await?;
+
+                        // Add role to user
+                        member.add_role(&ctx.http, role).await?;
+                    }
+                }
+            }
+        } else if levelup {
             // Check for cooldown
             let cooldown_active = {
                 let mut cooldowns = cooldowns_lock.write().await;
