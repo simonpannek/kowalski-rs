@@ -333,7 +333,7 @@ async fn update_roles(
                 "
         SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END)
         FROM reactions r
-        INNER JOIN score_emojis re ON r.guild = re.guild AND r.emoji = re.emoji
+        INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
                 &[&i64::from(member.guild_id), &i64::from(member.user.id)],

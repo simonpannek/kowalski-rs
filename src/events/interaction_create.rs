@@ -102,9 +102,10 @@ async fn execute_command(
 
     // Execute the command
     match command_config.command_type {
-        CommandType::Ping => ping::execute(ctx, command, command_config).await,
         CommandType::About => about::execute(ctx, command, command_config).await,
+        CommandType::Info => info::execute(ctx, command, command_config).await,
         CommandType::Module => module::execute(ctx, command, command_config).await,
+        CommandType::Ping => ping::execute(ctx, command, command_config).await,
         CommandType::Guild => guilds::execute(ctx, command, command_config).await,
         CommandType::Say => say::execute(ctx, command, command_config).await,
         CommandType::Sql => sql::execute(ctx, command, command_config).await,

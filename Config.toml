@@ -17,15 +17,21 @@ leaderboard_titles = ["👑", "⚔️", "🗡️"]
 [commands]
 # Global
 # For the permission field, use https://discordapi.com/permissions.html
-[commands.ping]
-command_type = "Ping"
-description = "Ping the bot."
-default_permission = true
-
 [commands.about]
 command_type = "About"
 description = "Display information about the bot."
 default_permission = true
+
+[commands.info]
+command_type = "Info"
+description = "Display information about certain modules."
+default_permission = true
+
+[commands.info.options.module]
+kind = "String"
+description = "The module to query."
+required = true
+choices = ["Owner", "Utility", "Score", "ReactionRoles"]
 
 [commands.module]
 command_type = "Module"
@@ -44,6 +50,11 @@ kind = "String"
 description = "The module to update."
 required = true
 choices = ["Owner", "Utility", "Score", "ReactionRoles"]
+
+[commands.ping]
+command_type = "Ping"
+description = "Ping the bot."
+default_permission = true
 
 # Bot management
 [commands.guild]

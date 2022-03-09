@@ -1,8 +1,9 @@
-use serenity::{prelude::Mentionable,
+use serenity::{
     client::Context,
     model::interactions::application_command::{
         ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::User,
     },
+    prelude::Mentionable,
 };
 
 use crate::{
@@ -50,7 +51,7 @@ pub async fn execute(
                         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
                     ) rank
                 FROM reactions r
-                INNER JOIN score_emojis re ON r.emoji = re.emoji
+                INNER JOIN score_emojis se ON r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT
                 GROUP BY user_to
             ) AS ranks

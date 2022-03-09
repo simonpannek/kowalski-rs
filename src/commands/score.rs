@@ -55,7 +55,7 @@ pub async fn execute(
             SUM(CASE WHEN upvote THEN 1 END) upvotes,
             SUM(CASE WHEN NOT upvote THEN 1 END) downvotes
         FROM reactions r
-        INNER JOIN score_emojis re ON r.guild = re.guild AND r.emoji = re.emoji
+        INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
                 &[&i64::from(guild), &i64::from(user.id)],
@@ -119,7 +119,7 @@ pub async fn execute(
             COUNT(*) FILTER (WHERE upvote) upvotes,
             COUNT(*) FILTER (WHERE NOT upvote) downvotes
         FROM reactions r
-        INNER JOIN score_emojis re ON r.guild = re.guild AND r.emoji = re.emoji
+        INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         GROUP BY user_from
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
