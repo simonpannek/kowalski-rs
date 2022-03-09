@@ -136,26 +136,27 @@ pub async fn execute(
                         (upvotes, downvotes)
                     };
 
-                    // TODO: Handle empty content
-                    fields.push((
-                        "Upvotes".to_string(),
-                        upvotes
-                            .iter()
-                            .map(|emoji| emoji.to_string())
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                        true,
-                    ));
-                    fields.push((
-                        "Downvotes".to_string(),
-                        downvotes
-                            .iter()
-                            .map(|emoji| emoji.to_string())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                            .to_string(),
-                        true,
-                    ));
+                    let mut upvotes = upvotes
+                        .iter()
+                        .map(|emoji| emoji.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    if upvotes.is_empty() {
+                        upvotes = "Not available".to_string();
+                    }
+
+                    let mut downvotes = downvotes
+                        .iter()
+                        .map(|emoji| emoji.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                        .to_string();
+                    if downvotes.is_empty() {
+                        downvotes = "Not available".to_string();
+                    }
+
+                    fields.push(("Upvotes".to_string(), upvotes, true));
+                    fields.push(("Downvotes".to_string(), downvotes, true));
 
                     // Get roles
                     let roles: Vec<_> = {
@@ -176,16 +177,16 @@ pub async fn execute(
                             .collect()
                     };
 
-                    // TODO: Handle empty content
-                    fields.push((
-                        "Level-up roles".to_string(),
-                        roles
-                            .iter()
-                            .map(|(role, score)| format!("{} **(>= {})**", role.mention(), score))
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                        false,
-                    ));
+                    let mut roles = roles
+                        .iter()
+                        .map(|(role, score)| format!("{} **(>= {})**", role.mention(), score))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    if roles.is_empty() {
+                        roles = "Not available".to_string();
+                    }
+
+                    fields.push(("Level-up roles".to_string(), roles, false));
                 }
                 Module::ReactionRoles => {
                     // Get roles
@@ -230,32 +231,32 @@ pub async fn execute(
                         roles
                     };
 
-                    // TODO: Handle empty content
+                    let mut roles = roles
+                        .iter()
+                        .map(|(_message, emoji, role, slots)| {
+                            let mut content = format!(
+                                "{} when reacting with {}",
+                                role.mention(),
+                                emoji.to_string()
+                            );
+
+                            if let Some(slots) = slots {
+                                content.push_str(&format!(
+                                    " (There are currently {} slots available)",
+                                    slots
+                                ));
+                            }
+
+                            content
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    if roles.is_empty() {
+                        roles = "Not available".to_string();
+                    }
+
                     // TODO: Add link to message
-                    fields.push((
-                        "Reaction-roles".to_string(),
-                        roles
-                            .iter()
-                            .map(|(_message, emoji, role, slots)| {
-                                let mut content = format!(
-                                    "{} when reacting with {}",
-                                    role.mention(),
-                                    emoji.to_string()
-                                );
-
-                                if let Some(slots) = slots {
-                                    content.push_str(&format!(
-                                        " (There are currently {} slots available)",
-                                        slots
-                                    ));
-                                }
-
-                                content
-                            })
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                        false,
-                    ));
+                    fields.push(("Reaction-roles".to_string(), roles, false));
                 }
                 _ => {}
             }
