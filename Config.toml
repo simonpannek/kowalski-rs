@@ -122,6 +122,23 @@ kind = "String"
 description = "The message id from which to start deleting messages."
 
 # Score
+[commands.moderate]
+command_type = "Moderate"
+description = "Automatically pin/delete messages based on their votes."
+module = "Score"
+default_permission = false
+permission = "8"
+
+[commands.moderate.options.moderation]
+kind = "String"
+description = "What to do to the message after reaching the score."
+required = true
+choices = ["pin", "delete"]
+
+[commands.moderate.options.score]
+kind = "Integer"
+description = "The score to reach (disable the moderation if no score is given)."
+
 [commands.cooldown]
 command_type = "Cooldown"
 description = "Define a custom reaction cooldown for certain roles."

@@ -1,7 +1,7 @@
-use serenity::prelude::Mentionable;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
     model::interactions::application_command::ApplicationCommandInteractionDataOptionValue::Role,
+    prelude::Mentionable,
 };
 
 use crate::{
