@@ -74,7 +74,7 @@ pub async fn execute(
         INNER JOIN score_emojis re ON r.emoji = re.emoji
         WHERE r.guild = $1::BIGINT
         GROUP BY user_to
-        ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
+        ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
         ",
                 &[&i64::from(guild)],
             )
