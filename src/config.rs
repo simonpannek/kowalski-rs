@@ -44,9 +44,10 @@ pub struct Command {
 /// Types of commands parsed by the config.
 #[derive(Deserialize)]
 pub enum CommandType {
-    Ping,
     About,
+    Info,
     Module,
+    Ping,
     Guild,
     Say,
     Sql,
