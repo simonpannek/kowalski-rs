@@ -2,6 +2,7 @@ use std::{env, error::Error, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::cooldowns::Cooldowns;
+use crate::credits::Credits;
 use crate::history::History;
 use crate::{
     config::Config, database::client::Database, events::handler::Handler, strings::ERR_ENV_NOT_SET,
@@ -40,10 +41,12 @@ impl Client {
             data.insert::<Config>(Arc::new(Config::new().await?));
             // Add database to data
             data.insert::<Database>(Arc::new(Database::new().await?));
-            // Add query history to data
-            data.insert::<History>(Arc::new(RwLock::new(History::new())));
             // Add cooldowns to data
             data.insert::<Cooldowns>(Arc::new(RwLock::new(Cooldowns::new())));
+            // Add credits to data
+            data.insert::<Credits>(Arc::new(RwLock::new(Credits::new())));
+            // Add query history to data
+            data.insert::<History>(Arc::new(RwLock::new(History::new())));
         }
 
         Ok(Client { client })

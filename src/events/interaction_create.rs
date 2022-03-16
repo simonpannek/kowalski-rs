@@ -12,6 +12,7 @@ use tracing::error;
 use crate::{
     commands::*,
     config::{CommandType, Config},
+    credits::Credits,
     error::ExecutionError,
     history::History,
     strings::{
@@ -54,11 +55,14 @@ async fn execute_command(
         })
         .await?;
 
-    // Get config
-    let config = {
+    // Get config and credits
+    let (config, credits_lock) = {
         let data = ctx.data.read().await;
 
-        data.get::<Config>().expect(ERR_DATA_ACCESS).clone()
+        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
+        let credits_lock = data.get::<Credits>().expect(ERR_DATA_ACCESS).clone();
+
+        (config, credits_lock)
     };
 
     // Get command name
@@ -99,6 +103,13 @@ async fn execute_command(
             return Err(ExecutionError::new(ERR_CMD_PERMISSION));
         }
     }
+
+    // Add command costs to user credits
+    let _cooldown = {
+        let mut credits = credits_lock.write().await;
+
+        credits.add_credits(&config, command.user.id.0, command_config.cost.unwrap_or(1))
+    };
 
     // Execute the command
     match command_config.command_type {

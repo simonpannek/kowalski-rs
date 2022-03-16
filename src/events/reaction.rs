@@ -1,9 +1,9 @@
 use serenity::{
     client::Context,
     model::{
-        channel::{Reaction, ReactionType, Message},
+        channel::{Message, Reaction, ReactionType},
         guild::Member,
-        id::{ChannelId, MessageId, RoleId, GuildId},
+        id::{ChannelId, GuildId, MessageId, RoleId},
     },
 };
 

@@ -6,10 +6,12 @@ use tokio::sync::RwLock;
 
 use crate::{config::Config, database::client::Database, error::ExecutionError};
 
+/// Cooldown struct containing a map, mapping guild ids to the cooldowns of the guild.
 pub struct Cooldowns {
     guilds: HashMap<u64, GuildCooldowns>,
 }
 
+/// GuildCooldowns struct containing a map, mapping user ids to the cooldowns of the command.
 struct GuildCooldowns {
     cooldowns: HashMap<u64, DateTime<Utc>>,
 }
