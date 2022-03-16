@@ -1,11 +1,9 @@
-use serenity::model::channel::Message;
-use serenity::model::id::GuildId;
 use serenity::{
     client::Context,
     model::{
-        channel::{Reaction, ReactionType},
+        channel::{Reaction, ReactionType, Message},
         guild::Member,
-        id::{ChannelId, MessageId, RoleId},
+        id::{ChannelId, MessageId, RoleId, GuildId},
     },
 };
 
