@@ -5,7 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::config::Config;
 
-/// History struct containing a map, mapping user ids and command names to the command history of the user.
+/// History struct containing a map, mapping user ids and option names to the command history of the user.
 pub struct History {
     histories: HashMap<(u64, String), Vec<String>>,
 }

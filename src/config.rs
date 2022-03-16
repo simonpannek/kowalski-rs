@@ -28,6 +28,7 @@ pub struct General {
     pub default_cooldown: i64,
     pub leaderboard_size: usize,
     pub leaderboard_titles: Vec<String>,
+    pub credits_margin: i64,
 }
 
 #[derive(Deserialize)]
@@ -39,6 +40,7 @@ pub struct Command {
     pub permission: Option<Permissions>,
     pub owner: Option<bool>,
     pub options: Option<LinkedHashMap<String, CommandOption>>,
+    pub cost: Option<i64>,
 }
 
 /// Types of commands parsed by the config.

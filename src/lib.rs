@@ -2,6 +2,7 @@ pub mod client;
 pub mod commands;
 pub mod config;
 pub mod cooldowns;
+pub mod credits;
 pub mod database;
 pub mod error;
 pub mod events;

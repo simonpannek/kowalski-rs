@@ -13,6 +13,8 @@ default_cooldown = 30
 leaderboard_size = 10
 # Titles for the leaderboard ranks
 leaderboard_titles = ["👑", "⚔️", "🗡️"]
+# The maximum amount of credits a user can have (each command has a certain cost, one credit expires every second)
+credits_margin = 50
 
 [commands]
 # Global
@@ -38,6 +40,7 @@ command_type = "Module"
 description = "Update the activated modules on this server."
 default_permission = false
 permission = "8"
+cost = 10
 
 [commands.module.options.action]
 kind = "String"
@@ -95,6 +98,7 @@ description = "Execute a SQL query."
 module = "Owner"
 default_permission = false
 owner = true
+cost = 5
 
 [commands.sql.options.query]
 kind = "String"
@@ -109,6 +113,7 @@ description = "Clear a certain amount of recent messages."
 module = "Utility"
 default_permission = false
 permission = "8192"
+cost = 10
 
 [commands.clear.options.count]
 kind = "Integer"
