@@ -13,6 +13,8 @@ default_cooldown = 30
 leaderboard_size = 10
 # Titles for the leaderboard ranks
 leaderboard_titles = ["👑", "⚔️", "🗡️"]
+# The maximum amount of credits a user can have (each command has a certain cost, one credit expires every second)
+credits_margin = 100
 
 [commands]
 # Global
