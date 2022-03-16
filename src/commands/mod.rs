@@ -6,6 +6,7 @@ pub mod given;
 pub mod guilds;
 pub mod info;
 pub mod levelup;
+pub mod moderate;
 pub mod module;
 pub mod ping;
 pub mod rank;

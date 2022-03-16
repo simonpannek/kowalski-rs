@@ -48,6 +48,16 @@ impl Database {
                             CHECK ((unicode IS NULL) != (emoji_guild IS NULL))
                     );
 
+                    CREATE TABLE IF NOT EXISTS score_auto_delete (
+                        guild           BIGINT PRIMARY KEY,
+                        score           BIGINT NOT NULL
+                    );
+
+                    CREATE TABLE IF NOT EXISTS score_auto_pin (
+                        guild           BIGINT PRIMARY KEY,
+                        score           BIGINT NOT NULL
+                    );
+
                     CREATE TABLE IF NOT EXISTS score_cooldowns (
                         guild           BIGINT,
                         role            BIGINT,
