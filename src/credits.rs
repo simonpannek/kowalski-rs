@@ -1,4 +1,8 @@
-use std::{cmp::max, collections::HashMap, sync::Arc};
+use std::{
+    cmp::{max, min},
+    collections::HashMap,
+    sync::Arc,
+};
 
 use chrono::Utc;
 use serenity::prelude::TypeMapKey;
@@ -29,7 +33,10 @@ impl Credits {
             .credits
             .entry(user)
             .and_modify(|current| {
-                *current = max(lower_bound, *current) + credits;
+                // Make sure the credits do not exceed the threshold too far
+                let start_value = min(*current, lower_bound + config.general.credits_margin);
+                // Update current
+                *current = max(lower_bound, start_value) + credits;
             })
             .or_insert(lower_bound + credits);
 
