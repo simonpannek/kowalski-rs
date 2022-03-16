@@ -51,7 +51,7 @@ pub async fn execute(
                         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
                     ) rank
                 FROM reactions r
-                INNER JOIN score_emojis se ON r.emoji = se.emoji
+                INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT
                 GROUP BY user_to
             ) AS ranks

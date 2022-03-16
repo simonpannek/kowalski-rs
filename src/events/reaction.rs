@@ -1,3 +1,5 @@
+use serenity::model::channel::Message;
+use serenity::model::id::GuildId;
 use serenity::{
     client::Context,
     model::{
@@ -178,6 +180,10 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                 // Update the roles of the user
                 let mut member = guild.member(&ctx, user_to as u64).await?;
                 update_roles(&ctx, &database, &mut member).await?;
+
+                // Auto moderate the message if necessary
+                let message = add_reaction.message(&ctx.http).await?;
+                auto_moderate(&ctx, &database, guild, message).await?;
             }
         }
     }
@@ -227,6 +233,10 @@ pub async fn reaction_remove(
         // Update the roles of the user
         let mut member = guild.member(&ctx, user_to as u64).await?;
         update_roles(&ctx, &database, &mut member).await?;
+
+        // Auto moderate the message if necessary
+        let message = removed_reaction.message(&ctx.http).await?;
+        auto_moderate(&ctx, &database, guild, message).await?;
     }
 
     Ok(())
@@ -269,6 +279,11 @@ pub async fn reaction_remove_all(
             .await?;
         let mut member = guild.member(&ctx, message.author.id).await?;
         update_roles(&ctx, &database, &mut member).await?;
+
+        let message = channel_id
+            .message(&ctx.http, removed_from_message_id)
+            .await?;
+        auto_moderate(&ctx, &database, guild, message).await?;
     }
 
     Ok(())
@@ -331,7 +346,7 @@ async fn update_roles(
             .client
             .query_one(
                 "
-        SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END)
+        SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) score
         FROM reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
@@ -403,6 +418,89 @@ async fn update_roles(
     // Remove old roles
     if !remove.is_empty() {
         member.remove_roles(&ctx.http, &remove[..]).await?;
+    }
+
+    Ok(())
+}
+
+async fn auto_moderate(
+    ctx: &Context,
+    database: &Database,
+    guild: GuildId,
+    message: Message,
+) -> Result<(), ExecutionError> {
+    // Get scores of auto-pin and auto-delete
+    let pin_score = {
+        let row = database
+            .client
+            .query_opt(
+                "
+        SELECT score FROM score_auto_pin
+        WHERE guild = $1::BIGINT
+        ",
+                &[&i64::from(guild)],
+            )
+            .await?;
+
+        row.map(|row| row.get::<_, i64>(0))
+    };
+    let delete_score = {
+        let row = database
+            .client
+            .query_opt(
+                "
+        SELECT score FROM score_auto_delete
+        WHERE guild = $1::BIGINT
+        ",
+                &[&i64::from(guild)],
+            )
+            .await?;
+
+        row.map(|row| row.get::<_, i64>(0))
+    };
+
+    // Check whether auto moderation is enabled
+    if pin_score.is_some() || delete_score.is_some() {
+        // Get score of the message
+        let score = {
+            let row = database
+                .client
+                .query_one(
+                    "
+                SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) FROM reactions r
+                INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
+                WHERE r.guild = $1::BIGINT AND message = $2::BIGINT
+                ",
+                    &[&i64::from(guild), &i64::from(message.id)],
+                )
+                .await?;
+
+            row.get::<_, Option<i64>>(0).unwrap_or_default()
+        };
+
+        // Check whether message should get pinned
+        if !message.pinned {
+            if let Some(pin_score) = pin_score {
+                // Check whether scores share the same sign
+                if (score >= 0) == (pin_score >= 0) {
+                    if score.abs() >= pin_score.abs() {
+                        // Pin the message
+                        message.pin(&ctx.http).await?;
+                    }
+                }
+            }
+        }
+
+        // Check whether message should get deleted
+        if let Some(delete_score) = delete_score {
+            // Check whether scores share the same sign
+            if (score >= 0) == (delete_score >= 0) {
+                if score.abs() >= delete_score.abs() {
+                    // Delete the message
+                    message.delete(&ctx.http).await?;
+                }
+            }
+        }
     }
 
     Ok(())
