@@ -105,31 +105,43 @@ async fn execute_command(
     }
 
     // Add command costs to user credits
-    let _cooldown = {
+    let cooldown = {
         let mut credits = credits_lock.write().await;
 
         credits.add_credits(&config, command.user.id.0, command_config.cost.unwrap_or(1))
     };
 
-    // Execute the command
-    match command_config.command_type {
-        CommandType::About => about::execute(ctx, command, command_config).await,
-        CommandType::Info => info::execute(ctx, command, command_config).await,
-        CommandType::Module => module::execute(ctx, command, command_config).await,
-        CommandType::Ping => ping::execute(ctx, command, command_config).await,
-        CommandType::Guild => guilds::execute(ctx, command, command_config).await,
-        CommandType::Say => say::execute(ctx, command, command_config).await,
-        CommandType::Sql => sql::execute(ctx, command, command_config).await,
-        CommandType::Clear => clear::execute(ctx, command, command_config).await,
-        CommandType::Moderate => moderate::execute(ctx, command, command_config).await,
-        CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
-        CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
-        CommandType::Given => given::execute(ctx, command, command_config).await,
-        CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
-        CommandType::Score => score::execute(ctx, command, command_config).await,
-        CommandType::Rank => rank::execute(ctx, command, command_config).await,
-        CommandType::Top => top::execute(ctx, command, command_config).await,
-        CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
+    // Check for cooldown
+    if cooldown {
+        send_failure(
+            &ctx,
+            &command,
+            "Cooldown",
+            "Woah, easy there! Please wait for the cooldown to expire.",
+        )
+        .await;
+        Ok(())
+    } else {
+        // Execute the command
+        match command_config.command_type {
+            CommandType::About => about::execute(ctx, command, command_config).await,
+            CommandType::Info => info::execute(ctx, command, command_config).await,
+            CommandType::Module => module::execute(ctx, command, command_config).await,
+            CommandType::Ping => ping::execute(ctx, command, command_config).await,
+            CommandType::Guild => guilds::execute(ctx, command, command_config).await,
+            CommandType::Say => say::execute(ctx, command, command_config).await,
+            CommandType::Sql => sql::execute(ctx, command, command_config).await,
+            CommandType::Clear => clear::execute(ctx, command, command_config).await,
+            CommandType::Moderate => moderate::execute(ctx, command, command_config).await,
+            CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
+            CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
+            CommandType::Given => given::execute(ctx, command, command_config).await,
+            CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
+            CommandType::Score => score::execute(ctx, command, command_config).await,
+            CommandType::Rank => rank::execute(ctx, command, command_config).await,
+            CommandType::Top => top::execute(ctx, command, command_config).await,
+            CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
+        }
     }
 }
 

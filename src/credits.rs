@@ -33,8 +33,6 @@ impl Credits {
             })
             .or_insert(lower_bound + credits);
 
-        println!("{}", *user_credits - lower_bound);
-
         *user_credits >= lower_bound + config.general.credits_margin
     }
 }
