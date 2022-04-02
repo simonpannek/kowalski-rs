@@ -133,7 +133,7 @@ async fn execute_command(
             CommandType::Sql => sql::execute(ctx, command, command_config).await,
             CommandType::Clear => clear::execute(ctx, command, command_config).await,
             CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
-            CommandType::Drop => drop::execute(ctx, command, command_config).await,
+            CommandType::Drops => drops::execute(ctx, command, command_config).await,
             CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
             CommandType::Given => given::execute(ctx, command, command_config).await,
             CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,

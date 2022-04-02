@@ -3,7 +3,10 @@ use std::{collections::HashMap, error::Error, str::FromStr, sync::Arc};
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
 use serenity::{
-    model::{interactions::application_command::ApplicationCommandOptionType, Permissions},
+    model::{
+        channel::ChannelType, interactions::application_command::ApplicationCommandOptionType,
+        Permissions,
+    },
     prelude::TypeMapKey,
 };
 use tokio::{fs::File, io::AsyncReadExt};
@@ -55,7 +58,7 @@ pub enum CommandType {
     Sql,
     Clear,
     Cooldown,
-    Drop,
+    Drops,
     Emoji,
     Given,
     LevelUp,
@@ -84,6 +87,7 @@ pub struct CommandOption {
     pub required: Option<bool>,
     pub choices: Option<Vec<Value>>,
     pub options: Option<LinkedHashMap<String, CommandOption>>,
+    pub channel_types: Option<Vec<Channel>>,
     pub min_value: Option<i32>,
     pub max_value: Option<i32>,
     pub autocomplete: Option<bool>,
@@ -102,6 +106,22 @@ pub enum OptionType {
     Role,
     Mentionable,
     Number,
+}
+
+/// Types of options parsed by the config
+#[derive(Clone, Copy, Deserialize)]
+pub enum Channel {
+    Text,
+    Private,
+    Voice,
+    Category,
+    News,
+    Store,
+    NewsThread,
+    PublicThread,
+    PrivateThread,
+    Stage,
+    Unknown,
 }
 
 /// A struct either representing a string or an int.
@@ -161,6 +181,24 @@ impl Into<ApplicationCommandOptionType> for OptionType {
             OptionType::Role => ApplicationCommandOptionType::Role,
             OptionType::Mentionable => ApplicationCommandOptionType::Mentionable,
             OptionType::Number => ApplicationCommandOptionType::Number,
+        }
+    }
+}
+
+impl Into<ChannelType> for Channel {
+    fn into(self) -> ChannelType {
+        match self {
+            Channel::Text => ChannelType::Text,
+            Channel::Private => ChannelType::Private,
+            Channel::Voice => ChannelType::Voice,
+            Channel::Category => ChannelType::Category,
+            Channel::News => ChannelType::News,
+            Channel::Store => ChannelType::Store,
+            Channel::NewsThread => ChannelType::NewsThread,
+            Channel::PublicThread => ChannelType::PublicThread,
+            Channel::PrivateThread => ChannelType::PrivateThread,
+            Channel::Stage => ChannelType::Stage,
+            Channel::Unknown => ChannelType::Unknown,
         }
     }
 }

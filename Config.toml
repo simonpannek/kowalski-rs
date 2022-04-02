@@ -144,23 +144,24 @@ kind = "Integer"
 description = "The cooldown in seconds (reset the cooldown if no cooldown is given)."
 min_value = 0
 
-[commands.drop]
-command_type = "Drop"
+[commands.drops]
+command_type = "Drops"
 description = "Set channels into which reactions should get dropped into when a user leaves the guild."
 module = "Score"
 default_permission = false
 permission = "8"
 
-[commands.drop.options.action]
+[commands.drops.options.action]
 kind = "String"
 description = "What to do."
 required = true
-choices = ["add", "remove", "remove all"]
+choices = ["add", "remove"]
 
-[commands.drop.options.channel]
+[commands.drops.options.channel]
 kind = "Channel"
 description = "The channel to update."
 required = true
+channel_types = ["Text"]
 
 [commands.emoji]
 command_type = "Emoji"

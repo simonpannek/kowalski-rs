@@ -2,6 +2,7 @@ use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
+use serenity::model::channel::ChannelType;
 use serenity::model::prelude::application_command::ApplicationCommandInteractionDataOptionValue;
 use serenity::{
     builder::{
@@ -322,6 +323,16 @@ fn create_option(name: &str, option_config: &CommandOption) -> CreateApplication
                 Value::String(string) => option.add_string_choice(string, string),
             };
         }
+    }
+
+    // Add channel types if there are any
+    if let Some(channel_types) = &option_config.channel_types {
+        let channel_types = channel_types
+            .iter()
+            .map(|&channel_type| channel_type.into())
+            .collect::<Vec<ChannelType>>();
+
+        option.channel_types(&channel_types);
     }
 
     // Add min value if it is set

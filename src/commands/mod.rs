@@ -1,6 +1,7 @@
 pub mod about;
 pub mod clear;
 pub mod cooldown;
+pub mod drops;
 pub mod emoji;
 pub mod given;
 pub mod guilds;
@@ -15,4 +16,3 @@ pub mod say;
 pub mod score;
 pub mod sql;
 pub mod top;
-pub mod drop;

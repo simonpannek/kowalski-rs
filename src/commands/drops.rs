@@ -3,6 +3,8 @@ use std::{
     str::FromStr,
 };
 
+use serenity::model::id::ChannelId;
+use serenity::prelude::Mentionable;
 use serenity::{
     client::Context,
     model::interactions::application_command::{
@@ -41,7 +43,6 @@ impl FromStr for Action {
         match s {
             "add" => Ok(Action::Add),
             "remove" => Ok(Action::Remove),
-            "remove all" => Ok(Action::RemoveAll),
             _ => Err(ExecutionError::new(&format!(
                 "{}: {}",
                 ERR_CMD_ARGS_INVALID, s
@@ -66,18 +67,84 @@ pub async fn execute(
 
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?)?;
-    let channel = match parse_arg_resolved(options, 1)? {
+    let partial_channel = match parse_arg_resolved(options, 1)? {
         Channel(channel) => Ok(channel),
         _ => Err(ExecutionError::new(ERR_API_LOAD)),
     }?;
+    let channel = {
+        let id = ChannelId::from(partial_channel.id);
+        id.to_channel(&ctx.http).await?
+    };
 
-    // Get channel id
-    let channel_id = i64::from(channel.id);
+    // Get guild and channel ids
+    let guild_id = i64::from(command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
+    let channel_id = i64::from(partial_channel.id);
 
-    let title = format!("{} drops for channel {}", action, channel.name);
+    let title = format!("{} drops for channel {}", action, partial_channel.name);
 
-    println!("{}", action);
-    println!("{:?}", channel);
+    match action {
+        Action::Add => {
+            database
+                .client
+                .execute(
+                    "
+            INSERT INTO score_drops
+            VALUES ($1::BIGINT, $2::BIGINT)
+            ",
+                    &[&guild_id, &channel_id],
+                )
+                .await?;
 
-    send_response(&ctx, &command, command_config, "Pong!", "I am listening 🐧").await
+            send_response(
+                &ctx,
+                &command,
+                command_config,
+                &title,
+                &format!(
+                    "Reactions now might drop into channel {} when a user leaves the guild.",
+                    channel.mention()
+                ),
+            )
+            .await
+        }
+        Action::Remove => {
+            let modified = database
+                .client
+                .execute(
+                    "
+            DELETE FROM score_drops
+            WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+            ",
+                    &[&guild_id, &channel_id],
+                )
+                .await?;
+
+            if modified == 0 {
+                send_response(
+                    &ctx,
+                    &command,
+                    command_config,
+                    &title,
+                    &format!(
+                        "Drops where not activated for channel {}.
+                        I didn't remove anything.",
+                        channel.mention()
+                    ),
+                )
+                .await
+            } else {
+                send_response(
+                    &ctx,
+                    &command,
+                    command_config,
+                    &title,
+                    &format!(
+                        "Reactions will no longer drop into channel {} when a user leaves the guild.",
+                        channel.mention()
+                    ),
+                )
+                    .await
+            }
+        }
+    }
 }
