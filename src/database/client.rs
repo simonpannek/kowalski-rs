@@ -65,6 +65,12 @@ impl Database {
                         PRIMARY KEY (guild, role)
                     );
 
+                    CREATE TABLE IF NOT EXISTS score_drops (
+                        guild           BIGINT,
+                        channel         BIGINT,
+                        PRIMARY KEY (guild, channel)
+                    );
+
                     CREATE TABLE IF NOT EXISTS score_emojis (
                         guild           BIGINT,
                         emoji           INT,

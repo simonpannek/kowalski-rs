@@ -15,3 +15,4 @@ pub mod say;
 pub mod score;
 pub mod sql;
 pub mod top;
+pub mod drop;
