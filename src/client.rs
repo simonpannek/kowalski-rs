@@ -1,11 +1,10 @@
+use serenity::client::bridge::gateway::GatewayIntents;
 use std::{env, error::Error, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::cooldowns::Cooldowns;
-use crate::credits::Credits;
-use crate::history::History;
 use crate::{
-    config::Config, database::client::Database, events::handler::Handler, strings::ERR_ENV_NOT_SET,
+    config::Config, cooldowns::Cooldowns, credits::Credits, database::client::Database,
+    events::handler::Handler, history::History, strings::ERR_ENV_NOT_SET,
 };
 
 /// The bot client.
@@ -31,6 +30,11 @@ impl Client {
         // Build the database
         let client = serenity::Client::builder(token)
             .event_handler(Handler)
+            .intents(
+                GatewayIntents::GUILD_MEMBERS
+                    | GatewayIntents::GUILD_MESSAGES
+                    | GatewayIntents::GUILD_MESSAGE_REACTIONS,
+            )
             .application_id(id)
             .await?;
 

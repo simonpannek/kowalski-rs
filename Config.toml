@@ -15,6 +15,8 @@ leaderboard_size = 10
 leaderboard_titles = ["👑", "⚔️", "🗡️"]
 # The maximum amount of credits a user can have (each command has a certain cost, one credit expires every second)
 credits_margin = 50
+# Time to wait for a user to pick up dropped reactions
+pickup_timeout = 300
 
 [commands]
 # Global
@@ -37,7 +39,7 @@ choices = ["Owner", "Utility", "Score", "ReactionRoles"]
 
 [commands.module]
 command_type = "Module"
-description = "Update the activated modules on this server."
+description = "Update the activated modules on this guild."
 default_permission = false
 permission = "8"
 cost = 10
@@ -127,23 +129,6 @@ kind = "String"
 description = "The message id from which to start deleting messages."
 
 # Score
-[commands.moderate]
-command_type = "Moderate"
-description = "Automatically pin/delete messages based on their votes."
-module = "Score"
-default_permission = false
-permission = "8"
-
-[commands.moderate.options.moderation]
-kind = "String"
-description = "What to do to the message after reaching the score."
-required = true
-choices = ["pin", "delete"]
-
-[commands.moderate.options.score]
-kind = "Integer"
-description = "The score to reach (disable the moderation if no score is given)."
-
 [commands.cooldown]
 command_type = "Cooldown"
 description = "Define a custom reaction cooldown for certain roles."
@@ -160,6 +145,25 @@ required = true
 kind = "Integer"
 description = "The cooldown in seconds (reset the cooldown if no cooldown is given)."
 min_value = 0
+
+[commands.drops]
+command_type = "Drops"
+description = "Set channels into which reactions should get dropped into when a user leaves the guild."
+module = "Score"
+default_permission = false
+permission = "8"
+
+[commands.drops.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["add", "remove"]
+
+[commands.drops.options.channel]
+kind = "Channel"
+description = "The channel to update."
+required = true
+channel_types = ["Text"]
 
 [commands.emoji]
 command_type = "Emoji"
@@ -211,6 +215,23 @@ required = true
 kind = "Integer"
 description = "The required score for the role."
 required = true
+
+[commands.moderate]
+command_type = "Moderate"
+description = "Automatically pin/delete messages based on their votes."
+module = "Score"
+default_permission = false
+permission = "8"
+
+[commands.moderate.options.moderation]
+kind = "String"
+description = "What to do to the message after reaching the score."
+required = true
+choices = ["pin", "delete"]
+
+[commands.moderate.options.score]
+kind = "Integer"
+description = "The score to reach (disable the moderation if no score is given)."
 
 [commands.rank]
 command_type = "Rank"

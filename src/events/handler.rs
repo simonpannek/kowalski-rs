@@ -4,25 +4,40 @@ use serenity::{
     model::{
         channel::Reaction,
         gateway::Ready,
-        id::{ChannelId, MessageId},
+        guild::Member,
+        id::{ChannelId, GuildId, MessageId},
         interactions::Interaction,
+        user::User,
     },
 };
 use tracing::error;
 
 use crate::{
     events::{
+        guild_member_removal::guild_member_removal,
         interaction_create::interaction_create,
         reaction::{reaction_add, reaction_remove, reaction_remove_all},
         ready::ready,
     },
-    strings::ERR_REACTION,
+    strings::{ERR_MEMBER_REMOVAL, ERR_REACTION},
 };
 
 pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    async fn guild_member_removal(
+        &self,
+        ctx: Context,
+        guild_id: GuildId,
+        user: User,
+        member_data: Option<Member>,
+    ) {
+        if let Err(why) = guild_member_removal(&ctx, guild_id, user, member_data).await {
+            error!("{}: {:?}", ERR_MEMBER_REMOVAL, why);
+        }
+    }
+
     async fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
         if let Err(why) = reaction_add(&ctx, add_reaction).await {
             error!("{}: {:?}", ERR_REACTION, why);
