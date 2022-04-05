@@ -1,10 +1,6 @@
-use serenity::builder::CreateActionRow;
-use serenity::model::interactions::application_command::ApplicationCommandInteraction;
-use serenity::model::interactions::message_component::ButtonStyle;
-use serenity::prelude::Mentionable;
-use serenity::{
-    client::Context,
-    model::{
+use serenity::{prelude::Mentionable,
+    client::Context,builder::CreateActionRow,
+    model::{interactions::message_component::ButtonStyle,
         guild::Member,
         id::{ChannelId, GuildId},
         user::User,
@@ -13,11 +9,8 @@ use serenity::{
 use std::time::Duration;
 
 use crate::{
-    config::Config,
-    database::client::Database,
-    error::ExecutionError,
-    strings::ERR_DATA_ACCESS,
-    utils::{create_embed, send_response_complex},
+    config::Config, database::client::Database, error::ExecutionError, strings::ERR_DATA_ACCESS,
+    utils::create_embed,
 };
 
 pub async fn guild_member_removal(
@@ -36,8 +29,8 @@ pub async fn guild_member_removal(
         (config, database)
     };
 
-    // Get possible channels to send scores into
-    let channels = {
+    // Select a random channel to send the message to
+    let channel = {
         let row = database
             .client
             .query_opt(
@@ -56,71 +49,127 @@ pub async fn guild_member_removal(
         channel
     };
 
-    if let Some(channel) = channels {
-        // Get the score of the user
-        let score = {
-            let row = database
-                .client
-                .query_one(
-                    "
+    match channel {
+        Some(channel) => {
+            // Get the score of the user
+            let score = {
+                let row = database
+                    .client
+                    .query_one(
+                        "
         SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) score
         FROM reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
+                        &[&i64::from(guild_id), &i64::from(user.id)],
+                    )
+                    .await?;
+
+                row.get::<_, Option<i64>>(0).unwrap_or_default()
+            };
+
+            let title = format!("User {} has dropped a score of {}", user.name, score);
+
+            // Create action row
+            let mut row = CreateActionRow::default();
+            row.create_button(|button| {
+                button
+                    .label("Pick up the score")
+                    .custom_id("pick up")
+                    .style(ButtonStyle::Primary)
+            });
+
+            // Create embed
+            let embed = create_embed(
+                &title,
+                &format!(
+                    "Click the button to pick up the score of the user {}!",
+                    user.mention()
+                ),
+            );
+
+            // Send embed
+            let mut message = channel
+                .send_message(&ctx.http, |message| {
+                    message
+                        .set_embeds(vec![embed])
+                        .components(|components| components.set_action_rows(vec![row]))
+                })
+                .await?;
+
+            let interaction = message
+                .await_component_interaction(&ctx.shard)
+                .timeout(Duration::from_secs(config.general.pickup_timeout))
+                .await;
+
+            let embed = match interaction {
+                Some(interaction) => {
+                    // Move the reactions to the other user
+                    database
+                        .client
+                        .execute(
+                            "
+                UPDATE reactions
+                SET user_to = $3::BIGINT, native = false
+                WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
+                ",
+                            &[
+                                &i64::from(guild_id),
+                                &i64::from(user.id),
+                                &i64::from(interaction.user.id),
+                            ],
+                        )
+                        .await?;
+
+                    create_embed(
+                        &title,
+                        &format!(
+                            "The user {} has picked up the score of {}!",
+                            interaction.user.mention(),
+                            user.mention()
+                        ),
+                    )
+                }
+                None => {
+                    // Delete the reactions on timeout
+                    database
+                        .client
+                        .execute(
+                            "
+        DELETE FROM reactions
+        WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
+        ",
+                            &[&i64::from(guild_id), &i64::from(user.id)],
+                        )
+                        .await?;
+
+                    create_embed(&title, "No one has picked up the reactions in time :(")
+                }
+            };
+
+            message
+                .edit(&ctx.http, |message| {
+                    message
+                        .components(|components| components.set_action_rows(vec![]))
+                        .set_embeds(vec![embed])
+                })
+                .await?;
+        }
+        None => {
+            // If drops are disabled, just delete the reactions
+            database
+                .client
+                .execute(
+                    "
+        DELETE FROM reactions
+        WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
+        ",
                     &[&i64::from(guild_id), &i64::from(user.id)],
                 )
                 .await?;
-
-            row.get::<_, Option<i64>>(0).unwrap_or_default()
-        };
-
-        let title = format!("User {} has dropped a score of {}", user.name, score);
-
-        // Create action row
-        let mut row = CreateActionRow::default();
-        row.create_button(|button| {
-            button
-                .label("Pick up the score")
-                .custom_id("pick up")
-                .style(ButtonStyle::Primary)
-        });
-
-        // Create embed
-        let embed = create_embed(
-            &title,
-            &format!(
-                "Click the button to pick up the score of the user {}!",
-                user.mention()
-            ),
-        );
-
-        // Send embed
-        let mut message = channel
-            .send_message(&ctx.http, |message| {
-                message
-                    .set_embeds(vec![embed])
-                    .components(|components| components.set_action_rows(vec![row]))
-            })
-            .await?;
-
-        let interaction = message
-            .await_component_interaction(&ctx.shard)
-            .timeout(Duration::from_secs(config.general.pickup_timeout))
-            .await;
-
-        let embed = match interaction {
-            Some(interaction) => todo!(),
-            None => create_embed(&title, "No one has picked up the reactions in time :("),
-        };
-
-        message
-            .edit(&ctx.http, |message| {
-                message
-                    .components(|components| components.set_action_rows(vec![]))
-                    .set_embeds(vec![embed])
-            })
-            .await?;
+        }
     }
+
     Ok(())
 }

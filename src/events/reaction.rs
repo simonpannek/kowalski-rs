@@ -203,38 +203,56 @@ pub async fn reaction_remove(
     // Check if the emoji is registered
     if let Some(emoji) = get_emoji_id(&removed_reaction.emoji, &database).await? {
         // Get reaction data
-        let (guild, user_from, user_to, message) =
-            get_reaction_data(ctx, &removed_reaction).await?;
+        let (guild, user_from, _, message) = get_reaction_data(ctx, &removed_reaction).await?;
 
-        // Delete possible reaction emoji
-        database
-            .client
-            .execute(
-                "
-        DELETE FROM reactions
-        WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND user_to = $3::BIGINT
-            AND message = $4::BIGINT AND emoji = $5::INT
-        ",
-                &[&guild, &user_from, &user_to, &message, &emoji],
-            )
-            .await?;
+        // Get user of which the reaction was removed
+        let user_to = {
+            let row = database
+                .client
+                .query_opt(
+                    "
+            SELECT user_to FROM reactions
+            WHERE guild = $1::BIGINT AND user_from = $2::BIGINT
+                AND message = $3::BIGINT AND emoji = $4::INT
+            ",
+                    &[&guild, &user_from, &message, &emoji],
+                )
+                .await?;
 
-        // Get guild
-        let guild = {
-            let channel = removed_reaction.channel_id.to_channel(&ctx.http).await?;
-            channel
-                .guild()
-                .map(|channel| channel.guild_id)
-                .ok_or(ExecutionError::new(ERR_API_LOAD))?
+            row.map(|row| row.get::<_, i64>(0))
         };
 
-        // Update the roles of the user
-        let mut member = guild.member(&ctx, user_to as u64).await?;
-        update_roles(&ctx, &database, &mut member).await?;
+        if let Some(user_to) = user_to {
+            // Delete possible reaction emoji
+            database
+                .client
+                .execute(
+                    "
+        DELETE FROM reactions
+        WHERE guild = $1::BIGINT AND user_from = $2::BIGINT
+            AND message = $3::BIGINT AND emoji = $4::INT
+        ",
+                    &[&guild, &user_from, &message, &emoji],
+                )
+                .await?;
 
-        // Auto moderate the message if necessary
-        let message = removed_reaction.message(&ctx.http).await?;
-        auto_moderate(&ctx, &database, guild, message).await?;
+            // Get guild
+            let guild = {
+                let channel = removed_reaction.channel_id.to_channel(&ctx.http).await?;
+                channel
+                    .guild()
+                    .map(|channel| channel.guild_id)
+                    .ok_or(ExecutionError::new(ERR_API_LOAD))?
+            };
+
+            // Update the roles of the user
+            let mut member = guild.member(&ctx, user_to as u64).await?;
+            update_roles(&ctx, &database, &mut member).await?;
+
+            // Auto moderate the message if necessary
+            let message = removed_reaction.message(&ctx.http).await?;
+            auto_moderate(&ctx, &database, guild, message).await?;
+        }
     }
 
     Ok(())
@@ -265,7 +283,7 @@ pub async fn reaction_remove_all(
             .execute(
                 "
         DELETE FROM reactions
-        WHERE guild = $1::BIGINT AND message = $2::INT
+        WHERE guild = $1::BIGINT AND message = $2::BIGINT
         ",
                 &[&i64::from(guild), &i64::from(removed_from_message_id)],
             )
