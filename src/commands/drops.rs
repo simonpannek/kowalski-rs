@@ -3,13 +3,15 @@ use std::{
     str::FromStr,
 };
 
-use serenity::model::id::ChannelId;
-use serenity::prelude::Mentionable;
 use serenity::{
     client::Context,
-    model::interactions::application_command::{
-        ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
+    model::{
+        id::ChannelId,
+        interactions::application_command::{
+            ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
+        },
     },
+    prelude::Mentionable,
 };
 
 use crate::{

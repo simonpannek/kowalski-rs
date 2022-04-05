@@ -32,6 +32,7 @@ pub struct General {
     pub leaderboard_size: usize,
     pub leaderboard_titles: Vec<String>,
     pub credits_margin: i64,
+    pub pickup_timeout: u64,
 }
 
 #[derive(Deserialize)]

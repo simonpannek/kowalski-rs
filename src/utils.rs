@@ -2,14 +2,13 @@ use std::{str::FromStr, time::Duration};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
-use serenity::model::channel::ChannelType;
-use serenity::model::prelude::application_command::ApplicationCommandInteractionDataOptionValue;
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
     },
     client::Context,
     model::{
+        channel::ChannelType,
         id::GuildId,
         interactions::{
             application_command::{
@@ -20,17 +19,17 @@ use serenity::{
             message_component::ButtonStyle,
             InteractionResponseType::ChannelMessageWithSource,
         },
+        prelude::application_command::ApplicationCommandInteractionDataOptionValue,
         Permissions,
     },
     utils::Colour,
 };
 use tracing::{error, warn};
 
-use crate::config::{CommandOption, Config, Module, Value};
-use crate::database::types::ModuleStatus;
 use crate::strings::{ERR_API_LOAD, ERR_CMD_CREATION, ERR_CMD_NOT_FOUND, ERR_CMD_SET_PERMISSION};
 use crate::{
-    config::Command,
+    config::{Command, CommandOption, Config, Module, Value},
+    database::types::ModuleStatus,
     error::ExecutionError,
     strings::{ERR_CMD_ARGS_INVALID, ERR_CMD_ARGS_LENGTH, ERR_CMD_SEND_FAILURE},
 };
@@ -189,7 +188,7 @@ pub async fn send_failure(
     }
 }
 
-fn create_embed(title: &str, content: &str) -> CreateEmbed {
+pub fn create_embed(title: &str, content: &str) -> CreateEmbed {
     let mut embed = CreateEmbed::default();
     embed.title(title).description(content);
     embed
