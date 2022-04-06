@@ -18,7 +18,7 @@ credits_margin = 50
 # Time to wait for a user to pick up dropped reactions
 pickup_timeout = 300
 # Maximum amount of messages to feed into the NLP model
-nlp_max_messages = 100
+nlp_max_messages = 30
 
 [commands]
 # Global
@@ -291,4 +291,4 @@ command_type = "Tldr"
 description = "Display a short summary of the last messages."
 module = "Analyze"
 default_permission = true
-cost = 5
+cost = 20

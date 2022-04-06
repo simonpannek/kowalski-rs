@@ -1,4 +1,3 @@
-use rust_bert::pipelines::summarization::SummarizationModel;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
@@ -6,6 +5,7 @@ use serenity::{
 use crate::{
     config::{Command, Config},
     error::ExecutionError,
+    model::Model,
     strings::{ERR_DATA_ACCESS, ERR_MODEL_RUN},
     utils::send_response,
 };
@@ -15,11 +15,14 @@ pub async fn execute(
     command: &ApplicationCommandInteraction,
     command_config: &Command,
 ) -> Result<(), ExecutionError> {
-    // Get config
-    let config = {
+    // Get config and model
+    let (config, model) = {
         let data = ctx.data.read().await;
 
-        data.get::<Config>().expect(ERR_DATA_ACCESS).clone()
+        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
+        let model = data.get::<Model>().expect(ERR_DATA_ACCESS).clone();
+
+        (config, model)
     };
 
     // Get messages to analyze
@@ -33,14 +36,33 @@ pub async fn execute(
     let messages = messages
         .iter()
         .filter(|message| !message.content.is_empty())
-        .map(|message| format!("{}: {}", message.author.name, message.content))
+        .map(|message| {
+            format!(
+                "{}: \"{}\"",
+                message.author.name,
+                message.content.replace('"', "").replace('#', "")
+            )
+        })
         .fold(String::new(), |acc, mut string| {
             string.push('\n');
             string.push_str(&acc);
             string
         });
 
-    let model = SummarizationModel::new(Default::default())?;
+    let result = tokio::task::spawn_blocking(move || {
+        let model = model.summarization.lock().expect(ERR_MODEL_RUN);
 
-    send_response(&ctx, &command, command_config, "Pong!", "I am listening 🐧").await
+        model.summarize(&vec![messages])
+    })
+    .await
+    .map_err(|why| ExecutionError::new(&format!("{}", why)))?;
+
+    send_response(
+        &ctx,
+        &command,
+        command_config,
+        "Tl;dr",
+        result.get(0).ok_or(ExecutionError::new(ERR_MODEL_RUN))?,
+    )
+    .await
 }
