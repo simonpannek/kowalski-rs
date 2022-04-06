@@ -120,6 +120,7 @@ async fn execute_command(
             "Woah, easy there! Please wait for the cooldown to expire.",
         )
         .await;
+
         Ok(())
     } else {
         // Execute the command
@@ -135,6 +136,7 @@ async fn execute_command(
             CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
             CommandType::Drops => drops::execute(ctx, command, command_config).await,
             CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
+            CommandType::Gift => gift::execute(ctx, command, command_config).await,
             CommandType::Given => given::execute(ctx, command, command_config).await,
             CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
             CommandType::Moderate => moderate::execute(ctx, command, command_config).await,

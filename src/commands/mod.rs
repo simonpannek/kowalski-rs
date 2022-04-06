@@ -3,6 +3,7 @@ pub mod clear;
 pub mod cooldown;
 pub mod drops;
 pub mod emoji;
+pub mod gift;
 pub mod given;
 pub mod guilds;
 pub mod info;
