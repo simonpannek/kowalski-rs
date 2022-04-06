@@ -183,6 +183,23 @@ kind = "String"
 description = "The emoji to update."
 required = true
 
+[commands.gift]
+command_type = "Gift"
+description = "Send a certain amount of your reactions to another user."
+module = "Score"
+default_permission = true
+
+[commands.gift.options.user]
+kind = "User"
+description = "The user to send reactions to."
+required = true
+
+[commands.gift.options.score]
+kind = "Integer"
+description = "The amount of reactions to gift."
+required = true
+min_value = 1
+
 [commands.given]
 command_type = "Given"
 description = "Display stats about the votes given to other users."

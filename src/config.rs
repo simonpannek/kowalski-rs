@@ -61,6 +61,7 @@ pub enum CommandType {
     Cooldown,
     Drops,
     Emoji,
+    Gift,
     Given,
     LevelUp,
     Moderate,
