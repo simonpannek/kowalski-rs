@@ -66,6 +66,8 @@ pub async fn execute(
         role binds an emoji and a message to a set of roles. When an user react to this message, the \
         bot will assign the defined set of roles to them. You can also limit a reaction-role. In this \
         case, the bot will only assign the reaction-role to users as long as there are slots available.",
+        Module::Analyze => "The analyze module provides commands to analyze previous messages written \
+        in a specific channel.",
     };
 
     let fields = {
@@ -76,6 +78,7 @@ pub async fn execute(
             Module::Utility => status.utility,
             Module::Score => status.score,
             Module::ReactionRoles => status.reaction_roles,
+            Module::Analyze => status.analyze,
         };
 
         if enabled {

@@ -116,6 +116,7 @@ pub async fn execute(
         Module::Utility => status_new.utility = enable,
         Module::Score => status_new.score = enable,
         Module::ReactionRoles => status_new.reaction_roles = enable,
+        Module::Analyze => status_new.analyze = enable,
     };
 
     // Get title of the embed

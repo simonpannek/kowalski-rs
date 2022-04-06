@@ -77,6 +77,7 @@ pub enum Module {
     Utility,
     Score,
     ReactionRoles,
+    Analyze,
 }
 
 /// An option of a command.
