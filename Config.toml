@@ -17,6 +17,8 @@ leaderboard_titles = ["👑", "⚔️", "🗡️"]
 credits_margin = 50
 # Time to wait for a user to pick up dropped reactions
 pickup_timeout = 300
+# Maximum amount of messages to feed into the NLP model
+nlp_max_messages = 100
 
 [commands]
 # Global
@@ -284,3 +286,9 @@ description = "The maximum number of users which can hold the reaction-role at t
 min_value = 0
 
 # Analyze
+[commands.tldr]
+command_type = "Tldr"
+description = "Display a short summary of the last messages."
+module = "Analyze"
+default_permission = true
+cost = 5
