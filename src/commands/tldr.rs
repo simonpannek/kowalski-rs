@@ -38,9 +38,9 @@ pub async fn execute(
         .filter(|message| !message.content.is_empty())
         .map(|message| {
             format!(
-                "{}: \"{}\"",
+                "{}: {}",
                 message.author.name,
-                message.content.replace('"', "").replace('#', "")
+                message.content.replace(':', "")
             )
         })
         .fold(String::new(), |acc, mut string| {
