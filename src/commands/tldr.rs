@@ -1,6 +1,8 @@
+use itertools::Itertools;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
+use std::ops::Div;
 
 use crate::{
     config::{Command, Config},
@@ -35,34 +37,32 @@ pub async fn execute(
 
     let messages = messages
         .iter()
+        .rev()
         .filter(|message| !message.content.is_empty())
-        .map(|message| {
-            format!(
-                "{}: {}",
-                message.author.name,
-                message.content.replace(':', "")
-            )
+        .enumerate()
+        .group_by(|(i, _)| i.div(config.general.nlp_group_size))
+        .into_iter()
+        .map(|(_, messages)| {
+            messages
+                .map(|(_, message)| {
+                    format!(
+                        "{}: {}",
+                        message.author.name,
+                        message.content.replace(':', "")
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
         })
-        .fold(String::new(), |acc, mut string| {
-            string.push('\n');
-            string.push_str(&acc);
-            string
-        });
+        .collect::<Vec<_>>();
 
     let result = tokio::task::spawn_blocking(move || {
         let model = model.summarization.lock().expect(ERR_MODEL_RUN);
 
-        model.summarize(&vec![messages])
+        model.summarize(&messages)
     })
     .await
     .map_err(|why| ExecutionError::new(&format!("{}", why)))?;
 
-    send_response(
-        &ctx,
-        &command,
-        command_config,
-        "Tl;dr",
-        result.get(0).ok_or(ExecutionError::new(ERR_MODEL_RUN))?,
-    )
-    .await
+    send_response(&ctx, &command, command_config, "Tl;dr", &result.join("\n")).await
 }

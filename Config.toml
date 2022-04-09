@@ -18,7 +18,9 @@ credits_margin = 50
 # Time to wait for a user to pick up dropped reactions
 pickup_timeout = 300
 # Maximum amount of messages to feed into the NLP model
-nlp_max_messages = 30
+nlp_max_messages = 90
+# Size of collections messages should get grouped into before being fed into the NLP model
+nlp_group_size = 30
 
 [commands]
 # Global
