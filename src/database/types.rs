@@ -18,6 +18,7 @@ pub struct ModuleStatus {
     pub utility: bool,
     pub score: bool,
     pub reaction_roles: bool,
+    pub analyze: bool,
 }
 
 /// A table with all fields resolved to a String.
@@ -38,6 +39,7 @@ impl ModuleStatus {
             utility: false,
             score: false,
             reaction_roles: false,
+            analyze: false,
         }
     }
 }
@@ -51,6 +53,7 @@ impl<'a> FromSql<'a> for ModuleStatus {
             utility: bits.get(1).unwrap_or_default(),
             score: bits.get(2).unwrap_or_default(),
             reaction_roles: bits.get(3).unwrap_or_default(),
+            analyze: bits.get(4).unwrap_or_default(),
         })
     }
 
@@ -69,6 +72,7 @@ impl ToSql for ModuleStatus {
         bits.set(1, self.utility);
         bits.set(2, self.score);
         bits.set(3, self.reaction_roles);
+        bits.set(4, self.analyze);
 
         bits.to_sql(ty, out)
     }

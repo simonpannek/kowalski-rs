@@ -17,6 +17,12 @@ leaderboard_titles = ["👑", "⚔️", "🗡️"]
 credits_margin = 50
 # Time to wait for a user to pick up dropped reactions
 pickup_timeout = 300
+# Maximum number of characters per message the NLP model should look at
+nlp_max_message_length = 1500
+# Maximum amount of messages to feed into the NLP model
+nlp_max_messages = 60
+# Size of collections messages should get grouped into before being fed into the NLP model
+nlp_group_size = 20
 
 [commands]
 # Global
@@ -35,7 +41,7 @@ default_permission = true
 kind = "String"
 description = "The module to query."
 required = true
-choices = ["Owner", "Utility", "Score", "ReactionRoles"]
+choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
 
 [commands.module]
 command_type = "Module"
@@ -54,7 +60,7 @@ choices = ["enable", "disable", "remove"]
 kind = "String"
 description = "The module to update."
 required = true
-choices = ["Owner", "Utility", "Score", "ReactionRoles"]
+choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
 
 [commands.ping]
 command_type = "Ping"
@@ -299,3 +305,11 @@ required = true
 kind = "Integer"
 description = "The maximum number of users which can hold the reaction-role at the same time."
 min_value = 0
+
+# Analyze
+[commands.tldr]
+command_type = "Tldr"
+description = "Display a short summary of the last messages."
+module = "Analyze"
+default_permission = true
+cost = 20

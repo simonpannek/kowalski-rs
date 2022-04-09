@@ -1,6 +1,7 @@
 pub mod about;
 pub mod clear;
 pub mod cooldown;
+pub mod disabled;
 pub mod drops;
 pub mod emoji;
 pub mod gift;
@@ -16,4 +17,6 @@ pub mod reactionrole;
 pub mod say;
 pub mod score;
 pub mod sql;
+#[cfg(feature = "nlp-model")]
+pub mod tldr;
 pub mod top;

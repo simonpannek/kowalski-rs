@@ -2,6 +2,8 @@ use serenity::client::bridge::gateway::GatewayIntents;
 use std::{env, error::Error, sync::Arc};
 use tokio::sync::RwLock;
 
+#[cfg(feature = "nlp-model")]
+use crate::model::Model;
 use crate::{
     config::Config, cooldowns::Cooldowns, credits::Credits, database::client::Database,
     events::handler::Handler, history::History, strings::ERR_ENV_NOT_SET,
@@ -51,6 +53,9 @@ impl Client {
             data.insert::<Credits>(Arc::new(RwLock::new(Credits::new())));
             // Add query history to data
             data.insert::<History>(Arc::new(RwLock::new(History::new())));
+            #[cfg(feature = "nlp-model")]
+            // Add nlp model to data
+            data.insert::<Model>(Arc::new(Model::new().await?));
         }
 
         Ok(Client { client })

@@ -283,6 +283,7 @@ pub async fn create_module_command(
                 Module::Utility => status.utility,
                 Module::Score => status.score,
                 Module::ReactionRoles => status.reaction_roles,
+                Module::Analyze => status.analyze,
             },
             None => false,
         });

@@ -15,7 +15,8 @@ pub async fn execute(
         command_config,
         "About Kowalski",
         "[Kowalski](https://github.com/simonpannek/kowalski-rs) is a small discord bot \
-        including some utility commands, reaction-roles and a level up system using reactions.
+        including some utility commands, reaction-roles, a level-up system using reactions and \
+        message analysis using NLP models.
 
         **Author:**
         The bot is currently being developed by me, [Simon Pannek](https://pannek.dev) :)

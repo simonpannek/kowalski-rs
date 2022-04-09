@@ -33,6 +33,13 @@ impl Display for ExecutionError {
     }
 }
 
+#[cfg(feature = "nlp-model")]
+impl From<rust_bert::RustBertError> for ExecutionError {
+    fn from(e: rust_bert::RustBertError) -> Self {
+        ExecutionError::new(&format!("{:?}", e))
+    }
+}
+
 impl From<serenity::Error> for ExecutionError {
     fn from(e: serenity::Error) -> Self {
         ExecutionError::new(&format!("{}", e))

@@ -33,6 +33,9 @@ pub struct General {
     pub leaderboard_titles: Vec<String>,
     pub credits_margin: i64,
     pub pickup_timeout: u64,
+    pub nlp_max_message_length: usize,
+    pub nlp_max_messages: u64,
+    pub nlp_group_size: usize,
 }
 
 #[derive(Deserialize)]
@@ -69,6 +72,7 @@ pub enum CommandType {
     Score,
     Top,
     ReactionRole,
+    Tldr,
 }
 
 /// Types of modules parsed by the config.
@@ -78,6 +82,7 @@ pub enum Module {
     Utility,
     Score,
     ReactionRoles,
+    Analyze,
 }
 
 /// An option of a command.
@@ -162,6 +167,7 @@ impl FromStr for Module {
             "Utility" => Ok(Module::Utility),
             "Score" => Ok(Module::Score),
             "ReactionRoles" => Ok(Module::ReactionRoles),
+            "Analyze" => Ok(Module::Analyze),
             _ => Err(ExecutionError::new(&format!(
                 "{}: {}",
                 ERR_CMD_ARGS_INVALID, s
