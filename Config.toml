@@ -17,6 +17,8 @@ leaderboard_titles = ["👑", "⚔️", "🗡️"]
 credits_margin = 50
 # Time to wait for a user to pick up dropped reactions
 pickup_timeout = 300
+# Maximum number of characters per message the NLP model should look at
+nlp_max_message_length = 1500
 # Maximum amount of messages to feed into the NLP model
 nlp_max_messages = 60
 # Size of collections messages should get grouped into before being fed into the NLP model

@@ -33,6 +33,7 @@ pub struct General {
     pub leaderboard_titles: Vec<String>,
     pub credits_margin: i64,
     pub pickup_timeout: u64,
+    pub nlp_max_message_length: usize,
     pub nlp_max_messages: u64,
     pub nlp_group_size: usize,
 }

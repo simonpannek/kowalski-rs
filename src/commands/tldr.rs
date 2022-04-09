@@ -51,7 +51,12 @@ pub async fn execute(
                     format!(
                         "{}: {}",
                         message.author.name,
-                        message.content.replace(':', "")
+                        message
+                            .content
+                            .chars()
+                            .filter(|&char| char != ':')
+                            .take(config.general.nlp_max_message_length)
+                            .join("")
                     )
                 })
                 .collect::<Vec<_>>()
