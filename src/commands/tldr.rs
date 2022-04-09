@@ -1,4 +1,4 @@
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
@@ -10,7 +10,7 @@ use crate::{
     error::ExecutionError,
     model::Model,
     strings::ERR_DATA_ACCESS,
-    utils::{send_response, get_relevant_messages},
+    utils::{get_relevant_messages, send_response},
 };
 
 pub async fn execute(
@@ -28,7 +28,7 @@ pub async fn execute(
         (config, model)
     };
 
-    let messages = get_relevant_messages(ctx, &config, command.channel_id).await?;
+    let messages = get_relevant_messages(ctx, &config, command.channel_id, None).await?;
 
     let mut summarization = String::new();
 

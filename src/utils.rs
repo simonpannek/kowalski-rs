@@ -3,7 +3,6 @@ use std::{ops::Div, str::FromStr, time::Duration};
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
-use serenity::model::id::ChannelId;
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -11,7 +10,7 @@ use serenity::{
     client::Context,
     model::{
         channel::ChannelType,
-        id::GuildId,
+        id::{ChannelId, GuildId, UserId},
         interactions::{
             application_command::{
                 ApplicationCommand, ApplicationCommandInteraction,
@@ -487,6 +486,7 @@ pub async fn get_relevant_messages(
     ctx: &Context,
     config: &Config,
     channel_id: ChannelId,
+    user_id: Option<UserId>,
 ) -> Result<Vec<String>, ExecutionError> {
     // Get messages to analyze
     let messages = channel_id
@@ -499,6 +499,10 @@ pub async fn get_relevant_messages(
         .iter()
         .rev()
         .filter(|message| !message.content.is_empty())
+        .filter(|message| match user_id {
+            Some(user_id) => message.author.id == user_id,
+            None => true,
+        })
         .enumerate()
         .group_by(|(i, _)| i.div(config.general.nlp_group_size))
         .into_iter()

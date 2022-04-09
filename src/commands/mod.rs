@@ -11,6 +11,8 @@ pub mod info;
 pub mod levelup;
 pub mod moderate;
 pub mod module;
+#[cfg(feature = "nlp-model")]
+pub mod mood;
 pub mod ping;
 pub mod rank;
 pub mod reactionrole;
