@@ -1,14 +1,17 @@
+use std::ops::Div;
+use std::sync::Arc;
+
 use itertools::Itertools;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
-use std::ops::Div;
+use tokio::task::JoinError;
 
 use crate::{
     config::{Command, Config},
     error::ExecutionError,
     model::Model,
-    strings::{ERR_DATA_ACCESS, ERR_MODEL_RUN},
+    strings::ERR_DATA_ACCESS,
     utils::send_response,
 };
 
@@ -56,13 +59,37 @@ pub async fn execute(
         })
         .collect::<Vec<_>>();
 
-    let result = tokio::task::spawn_blocking(move || {
-        let model = model.summarization.lock().expect(ERR_MODEL_RUN);
+    let mut summarization = String::new();
 
-        model.summarize(&messages)
+    for message in messages {
+        let result = analyze(model.clone(), message)
+            .await
+            .map_err(|why| ExecutionError::new(&format!("{}", why)))?
+            .first()
+            .cloned()
+            .unwrap_or_default();
+
+        summarization.push_str(&result);
+        summarization.push('\n');
+
+        send_response(
+            &ctx,
+            &command,
+            command_config,
+            "Tl;dr",
+            &format!("{}...", summarization),
+        )
+        .await?;
+    }
+
+    send_response(&ctx, &command, command_config, "Tl;dr", &summarization).await
+}
+
+async fn analyze(model: Arc<Model>, message: String) -> Result<Vec<String>, JoinError> {
+    tokio::task::spawn_blocking(move || {
+        let model = model.summarization.lock().expect(ERR_DATA_ACCESS);
+
+        model.summarize(&vec![message])
     })
     .await
-    .map_err(|why| ExecutionError::new(&format!("{}", why)))?;
-
-    send_response(&ctx, &command, command_config, "Tl;dr", &result.join("\n")).await
 }

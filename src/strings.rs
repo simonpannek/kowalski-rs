@@ -28,7 +28,6 @@ pub const ERR_ENV_NOT_SET: &str = "Environment variable not set";
 pub const ERR_MEMBER_REMOVAL: &str = "Failed to handle the member removal event";
 pub const ERR_MESSAGE_COMPONENT: &str = "Failed to answer the message component request";
 pub const ERR_MODEL_CREATE: &str = "Failed to create the model";
-pub const ERR_MODEL_RUN: &str = "Failed to run the model";
 pub const ERR_REACTION: &str = "Failed to handle the reaction event";
 // User error messages
 pub const ERR_USER_TITLE: &str = "Looks like something really went wrong here :/";
