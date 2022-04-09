@@ -1,5 +1,4 @@
-use std::ops::Div;
-use std::sync::Arc;
+use std::{sync::Arc, ops::Div};
 
 use itertools::Itertools;
 use serenity::{
