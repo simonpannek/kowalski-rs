@@ -1,5 +1,6 @@
-use std::{sync::Arc};
+use std::{ops::Div, sync::Arc};
 
+use itertools::Itertools;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
@@ -10,7 +11,7 @@ use crate::{
     error::ExecutionError,
     model::Model,
     strings::ERR_DATA_ACCESS,
-    utils::{send_response, get_relevant_messages},
+    utils::send_response,
 };
 
 pub async fn execute(
@@ -28,7 +29,39 @@ pub async fn execute(
         (config, model)
     };
 
-    let messages = get_relevant_messages(ctx, &config, command.channel_id).await?;
+    // Get messages to analyze
+    let messages = command
+        .channel_id
+        .messages(&ctx.http, |builder| {
+            builder.limit(config.general.nlp_max_messages)
+        })
+        .await?;
+
+    let messages = messages
+        .iter()
+        .rev()
+        .filter(|message| !message.content.is_empty())
+        .enumerate()
+        .group_by(|(i, _)| i.div(config.general.nlp_group_size))
+        .into_iter()
+        .map(|(_, messages)| {
+            messages
+                .map(|(_, message)| {
+                    format!(
+                        "{}: {}",
+                        message.author.name,
+                        message
+                            .content
+                            .chars()
+                            .filter(|&char| char != ':')
+                            .take(config.general.nlp_max_message_length)
+                            .join("")
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .collect::<Vec<_>>();
 
     let mut summarization = String::new();
 
