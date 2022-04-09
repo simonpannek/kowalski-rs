@@ -1,7 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use rust_bert::{
-    pipelines::summarization::{SummarizationConfig, SummarizationModel},
+    pipelines::{
+        sentiment::{SentimentConfig, SentimentModel},
+        summarization::{SummarizationConfig, SummarizationModel},
+    },
     RustBertError,
 };
 use serenity::prelude::TypeMapKey;
@@ -10,6 +13,7 @@ use crate::strings::ERR_MODEL_CREATE;
 
 pub struct Model {
     pub summarization: Mutex<SummarizationModel>,
+    pub sentiment: Mutex<SentimentModel>,
 }
 
 impl Model {
@@ -23,6 +27,7 @@ impl Model {
         tokio::task::spawn_blocking(move || {
             Ok(Model {
                 summarization: Mutex::new(SummarizationModel::new(summarization_config)?),
+                sentiment: Mutex::new(SentimentModel::new(SentimentConfig::default())?),
             })
         })
         .await
