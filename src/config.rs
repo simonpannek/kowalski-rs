@@ -72,6 +72,7 @@ pub enum CommandType {
     Score,
     Top,
     ReactionRole,
+    Mood,
     Tldr,
 }
 

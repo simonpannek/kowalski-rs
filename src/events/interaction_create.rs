@@ -145,6 +145,8 @@ async fn execute_command(
             CommandType::Top => top::execute(ctx, command, command_config).await,
             CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
             #[cfg(feature = "nlp-model")]
+            CommandType::Mood => mood::execute(ctx, command, command_config).await,
+            #[cfg(feature = "nlp-model")]
             CommandType::Tldr => tldr::execute(ctx, command, command_config).await,
             #[cfg(not(feature = "nlp-model"))]
             _ => disabled::execute(ctx, command, command_config).await,

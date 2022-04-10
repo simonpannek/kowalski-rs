@@ -307,9 +307,20 @@ description = "The maximum number of users which can hold the reaction-role at t
 min_value = 0
 
 # Analyze
+[commands.mood]
+command_type = "Mood"
+description = "Analyze the general mood in the chat or the mood of a certain user."
+module = "Analyze"
+default_permission = true
+cost = 20
+
+[commands.mood.options.user]
+kind = "User"
+description = "The user to query."
+
 [commands.tldr]
 command_type = "Tldr"
 description = "Display a short summary of the last messages."
 module = "Analyze"
 default_permission = true
-cost = 20
+cost = 5

@@ -1,5 +1,6 @@
-use std::{str::FromStr, time::Duration};
+use std::{ops::Div, str::FromStr, time::Duration};
 
+use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
 use serenity::{
@@ -9,7 +10,7 @@ use serenity::{
     client::Context,
     model::{
         channel::ChannelType,
-        id::GuildId,
+        id::{ChannelId, GuildId, UserId},
         interactions::{
             application_command::{
                 ApplicationCommand, ApplicationCommandInteraction,
@@ -26,12 +27,14 @@ use serenity::{
 };
 use tracing::{error, warn};
 
-use crate::strings::{ERR_API_LOAD, ERR_CMD_CREATION, ERR_CMD_NOT_FOUND, ERR_CMD_SET_PERMISSION};
 use crate::{
     config::{Command, CommandOption, Config, Module, Value},
     database::types::ModuleStatus,
     error::ExecutionError,
-    strings::{ERR_CMD_ARGS_INVALID, ERR_CMD_ARGS_LENGTH, ERR_CMD_SEND_FAILURE},
+    strings::{
+        ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_CMD_ARGS_LENGTH, ERR_CMD_CREATION,
+        ERR_CMD_NOT_FOUND, ERR_CMD_SEND_FAILURE, ERR_CMD_SET_PERMISSION,
+    },
 };
 
 pub enum InteractionResponse {
@@ -475,4 +478,52 @@ pub fn parse_arg_resolved(
         .resolved
         .as_ref()
         .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))
+}
+
+#[cfg(feature = "nlp-model")]
+/// Get last messages of the current channel which are relevant for analysis
+pub async fn get_relevant_messages(
+    ctx: &Context,
+    config: &Config,
+    channel_id: ChannelId,
+    user_id: Option<UserId>,
+) -> Result<Vec<String>, ExecutionError> {
+    // Get messages to analyze
+    let messages = channel_id
+        .messages(&ctx.http, |builder| {
+            builder.limit(config.general.nlp_max_messages)
+        })
+        .await?;
+
+    let messages = messages
+        .iter()
+        .rev()
+        .filter(|message| !message.content.is_empty())
+        .filter(|message| match user_id {
+            Some(user_id) => message.author.id == user_id,
+            None => true,
+        })
+        .enumerate()
+        .group_by(|(i, _)| i.div(config.general.nlp_group_size))
+        .into_iter()
+        .map(|(_, messages)| {
+            messages
+                .map(|(_, message)| {
+                    format!(
+                        "{}: {}",
+                        message.author.name,
+                        message
+                            .content
+                            .chars()
+                            .filter(|&char| char != ':')
+                            .take(config.general.nlp_max_message_length)
+                            .join("")
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .collect();
+
+    Ok(messages)
 }
