@@ -1,16 +1,15 @@
-use std::sync::Arc;
-
+use itertools::Itertools;
+use rust_bert::pipelines::conversation::ConversationManager;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
-use tokio::task::JoinError;
 
 use crate::{
     config::{Command, Config},
     error::ExecutionError,
     model::Model,
     strings::ERR_DATA_ACCESS,
-    utils::{get_relevant_messages, send_response},
+    utils::{parse_arg, send_response},
 };
 
 pub async fn execute(
@@ -28,39 +27,74 @@ pub async fn execute(
         (config, model)
     };
 
-    let messages = get_relevant_messages(ctx, &config, command.channel_id, None).await?;
+    let options = &command.data.options;
 
-    let mut summarization = String::new();
+    // Parse arguments
+    let question = parse_arg::<String>(options, 0)?;
 
-    for message in messages {
-        let result = analyze(model.clone(), message)
-            .await
-            .map_err(|why| ExecutionError::new(&format!("{}", why)))?
-            .first()
-            .cloned()
-            .unwrap_or_default();
-
-        summarization.push_str(&result);
-        summarization.push('\n');
-
-        send_response(
-            &ctx,
-            &command,
-            command_config,
-            "Tl;dr",
-            &format!("{}...", summarization),
-        )
+    // Get messages to analyze
+    let messages = command
+        .channel_id
+        .messages(&ctx.http, |builder| builder.limit(10))
         .await?;
+
+    let mut messages = messages
+        .iter()
+        .rev()
+        .filter(|message| !message.content.is_empty())
+        .map(|message| {
+            message
+                .content
+                .chars()
+                .take(config.general.nlp_max_message_length)
+                .join("")
+        })
+        .collect::<Vec<_>>();
+
+    messages.push(question.clone());
+
+    let mut result = tokio::task::spawn_blocking(move || {
+        // Create conversation
+        let mut manager = ConversationManager::new();
+        let conversation_id = manager.create_empty();
+        let conversation = manager.get(&conversation_id).unwrap();
+
+        let sliced = {
+            // Skip one message if the count is even
+            let skip = (messages.len() + 1) % 2;
+
+            messages
+                .iter()
+                .skip(skip)
+                .map(|message| (message as &dyn AsRef<str>).as_ref())
+                .collect::<Vec<_>>()
+        };
+
+        let model = model.conversation.lock().expect(ERR_DATA_ACCESS);
+
+        // Load messages
+        let encoded = model.encode_prompts(&sliced);
+        conversation.load_from_history(&sliced, &encoded);
+
+        model
+            .generate_responses(&mut manager)
+            .get(&conversation_id)
+            .unwrap()
+            .to_string()
+    })
+    .await
+    .map_err(|why| ExecutionError::new(&format!("{}", why)))?;
+
+    if result.is_empty() {
+        result = "I prefer not to answer...".to_string();
     }
 
-    send_response(&ctx, &command, command_config, "Tl;dr", &summarization).await
-}
-
-async fn analyze(model: Arc<Model>, message: String) -> Result<Vec<String>, JoinError> {
-    tokio::task::spawn_blocking(move || {
-        let model = model.summarization.lock().expect(ERR_DATA_ACCESS);
-
-        model.summarize(&vec![message])
-    })
+    send_response(
+        &ctx,
+        &command,
+        command_config,
+        &question,
+        &format!("**Oracle:** {}", result),
+    )
     .await
 }

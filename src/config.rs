@@ -73,6 +73,7 @@ pub enum CommandType {
     Top,
     ReactionRole,
     Mood,
+    Oracle,
     Tldr,
 }
 
