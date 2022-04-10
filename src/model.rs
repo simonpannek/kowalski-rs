@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use rust_bert::{
     pipelines::{
+        conversation::{ConversationConfig, ConversationModel},
         sentiment::{SentimentConfig, SentimentModel},
         summarization::{SummarizationConfig, SummarizationModel},
     },
@@ -14,6 +15,7 @@ use crate::strings::ERR_MODEL_CREATE;
 pub struct Model {
     pub summarization: Mutex<SummarizationModel>,
     pub sentiment: Mutex<SentimentModel>,
+    pub conversation: Mutex<ConversationModel>,
 }
 
 impl Model {
@@ -28,6 +30,10 @@ impl Model {
             Ok(Model {
                 summarization: Mutex::new(SummarizationModel::new(summarization_config)?),
                 sentiment: Mutex::new(SentimentModel::new(SentimentConfig::default())?),
+                conversation: Mutex::new(ConversationModel::new(ConversationConfig {
+                    max_length: 3000,
+                    ..ConversationConfig::default()
+                })?),
             })
         })
         .await
