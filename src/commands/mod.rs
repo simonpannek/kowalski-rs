@@ -13,6 +13,8 @@ pub mod moderate;
 pub mod module;
 #[cfg(feature = "nlp-model")]
 pub mod mood;
+#[cfg(feature = "nlp-model")]
+pub mod oracle;
 pub mod ping;
 pub mod rank;
 pub mod reactionrole;

@@ -312,15 +312,27 @@ command_type = "Mood"
 description = "Analyze the general mood in the chat or the mood of a certain user."
 module = "Analyze"
 default_permission = true
-cost = 20
+cost = 5
 
 [commands.mood.options.user]
 kind = "User"
 description = "The user to query."
+
+[commands.oracle]
+command_type = "Oracle"
+description = "Answer a question."
+module = "Analyze"
+default_permission = true
+cost = 10
+
+[commands.oracle.options.question]
+kind = "String"
+description = "The question to ask."
+required = true
 
 [commands.tldr]
 command_type = "Tldr"
 description = "Display a short summary of the last messages."
 module = "Analyze"
 default_permission = true
-cost = 5
+cost = 20
