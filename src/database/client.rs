@@ -112,6 +112,15 @@ impl Database {
                             CHECK (slots >= 0)
                     );
 
+                    CREATE TABLE IF NOT EXISTS reminders (
+                        guild           BIGINT,
+                        channel         BIGINT,
+                        \"user\"        BIGINT,
+                        time            TIMESTAMP WITH TIME ZONE,
+                        content         TEXT NOT NULL,
+                        PRIMARY KEY (guild, channel, \"user\", time)
+                    );
+
                     CREATE TABLE IF NOT EXISTS guilds (
                         guild           BIGINT PRIMARY KEY
                     );

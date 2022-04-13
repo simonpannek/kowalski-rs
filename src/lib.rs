@@ -9,5 +9,6 @@ pub mod events;
 pub mod history;
 #[cfg(feature = "nlp-model")]
 pub mod model;
+pub mod reminders;
 pub mod strings;
 pub mod utils;

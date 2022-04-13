@@ -1,8 +1,13 @@
-use std::{ops::Div, str::FromStr, time::Duration};
+#[cfg(feature = "nlp-model")]
+use std::ops::Div;
+use std::{str::FromStr, time::Duration};
 
+#[cfg(feature = "nlp-model")]
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
+#[cfg(feature = "nlp-model")]
+use serenity::model::id::{ChannelId, UserId};
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -10,7 +15,7 @@ use serenity::{
     client::Context,
     model::{
         channel::ChannelType,
-        id::{ChannelId, GuildId, UserId},
+        id::GuildId,
         interactions::{
             application_command::{
                 ApplicationCommand, ApplicationCommandInteraction,

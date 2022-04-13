@@ -133,6 +133,7 @@ async fn execute_command(
             CommandType::Say => say::execute(ctx, command, command_config).await,
             CommandType::Sql => sql::execute(ctx, command, command_config).await,
             CommandType::Clear => clear::execute(ctx, command, command_config).await,
+            CommandType::Reminder => reminder::execute(ctx, command, command_config).await,
             CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
             CommandType::Drops => drops::execute(ctx, command, command_config).await,
             CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
@@ -151,7 +152,9 @@ async fn execute_command(
             #[cfg(feature = "nlp-model")]
             CommandType::Tldr => tldr::execute(ctx, command, command_config).await,
             #[cfg(not(feature = "nlp-model"))]
-            _ => disabled::execute(ctx, command, command_config).await,
+            CommandType::Mood | CommandType::Oracle | CommandType::Tldr => {
+                disabled::execute(ctx, command, command_config).await
+            }
         }
     }
 }

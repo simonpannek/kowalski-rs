@@ -134,6 +134,37 @@ max_value = 100
 kind = "String"
 description = "The message id from which to start deleting messages."
 
+[commands.reminder]
+command_type = "Reminder"
+description = "Scheduler a reminder in a certain amount of time."
+module = "Utility"
+default_permission = true
+cost = 10
+
+[commands.reminder.options.message]
+kind = "String"
+description = "The message to send after the time has passed."
+required = true
+
+[commands.reminder.options.minutes]
+kind = "Integer"
+description = "The amount of minutes to wait before sending the reminder."
+required = true
+min_value = 0
+max_value = 59
+
+[commands.reminder.options.hours]
+kind = "Integer"
+description = "The amount of hours to wait before sending the reminder."
+min_value = 0
+max_value = 59
+
+[commands.reminder.options.days]
+kind = "Integer"
+description = "The amount of days to wait before sending the reminder."
+min_value = 0
+max_value = 365
+
 # Score
 [commands.cooldown]
 command_type = "Cooldown"
