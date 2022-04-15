@@ -53,17 +53,21 @@ pub async fn execute(
     let datetime =
         Utc::now() + Duration::minutes(minutes) + Duration::hours(hours) + Duration::days(days);
 
+    // Get response of the bot
+    let response = command.get_interaction_response(&ctx.http).await?;
+
     // Add reminder to database
     database
         .client
         .execute(
             "
     INSERT INTO reminders
-    VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::TIMESTAMPTZ, $5::TEXT)
+    VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::TIMESTAMPTZ, $6::TEXT)
     ",
             &[
                 &i64::from(command.guild_id.unwrap()),
                 &i64::from(command.channel_id),
+                &i64::from(response.id),
                 &i64::from(command.user.id),
                 &datetime,
                 &message,
@@ -77,7 +81,7 @@ pub async fn execute(
         command_config,
         "Schedule reminder",
         &format!(
-            "I am going to remind you about \"{}\" in approximately {} days, {} hours and {} minutes!",
+            "I'm going to remind you about \"{}\" in approximately {} days, {} hours and {} minutes!",
             message, days, hours, minutes
         ),
     )

@@ -115,6 +115,7 @@ impl Database {
                     CREATE TABLE IF NOT EXISTS reminders (
                         guild           BIGINT,
                         channel         BIGINT,
+                        message         BIGINT,
                         \"user\"        BIGINT,
                         time            TIMESTAMP WITH TIME ZONE,
                         content         TEXT NOT NULL,
