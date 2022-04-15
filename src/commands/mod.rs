@@ -18,6 +18,7 @@ pub mod oracle;
 pub mod ping;
 pub mod rank;
 pub mod reactionrole;
+pub mod reminder;
 pub mod say;
 pub mod score;
 pub mod sql;

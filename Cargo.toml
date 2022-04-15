@@ -7,20 +7,23 @@ description = ""
 repository = "https://github.com/simonpannek/kowalski-rs"
 
 [features]
-nlp-model = ["rust-bert"]
+nlp-model = ["itertools", "rust-bert"]
 
 default = []
 
 [dependencies]
 bit-vec = "0.6.3"
 chrono = "0.4.19"
-itertools = "0.10.3"
 serde_json = "1.0"
 tabled = "0.5.0"
 toml = "0.5.8"
 tracing = "0.1.30"
 tracing-subscriber = "0.3.8"
 unic-emoji-char = "0.9.0"
+
+[dependencies.itertools]
+version = "0.10.3"
+optional = true
 
 [dependencies.linked-hash-map]
 version = "0.5.4"
@@ -45,4 +48,4 @@ features = ["macros", "rt-multi-thread"]
 
 [dependencies.tokio-postgres]
 version = "0.7.5"
-features = ["with-bit-vec-0_6"]
+features = ["with-chrono-0_4", "with-bit-vec-0_6"]

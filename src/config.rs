@@ -61,6 +61,7 @@ pub enum CommandType {
     Say,
     Sql,
     Clear,
+    Reminder,
     Cooldown,
     Drops,
     Emoji,

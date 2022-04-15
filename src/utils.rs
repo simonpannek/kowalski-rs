@@ -1,8 +1,13 @@
-use std::{ops::Div, str::FromStr, time::Duration};
+#[cfg(feature = "nlp-model")]
+use std::ops::Div;
+use std::{str::FromStr, time::Duration};
 
+#[cfg(feature = "nlp-model")]
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
+#[cfg(feature = "nlp-model")]
+use serenity::model::id::{ChannelId, UserId};
 use serenity::{
     builder::{
         CreateActionRow, CreateApplicationCommand, CreateApplicationCommandOption, CreateEmbed,
@@ -10,7 +15,7 @@ use serenity::{
     client::Context,
     model::{
         channel::ChannelType,
-        id::{ChannelId, GuildId, UserId},
+        id::GuildId,
         interactions::{
             application_command::{
                 ApplicationCommand, ApplicationCommandInteraction,
@@ -36,6 +41,17 @@ use crate::{
         ERR_CMD_NOT_FOUND, ERR_CMD_SEND_FAILURE, ERR_CMD_SET_PERMISSION,
     },
 };
+
+#[macro_export]
+macro_rules! pluralize {
+    ($name:expr, $variable:expr) => {
+        if $variable == 1 {
+            format!("{} {}", $variable, $name)
+        } else {
+            format!("{} {}s", $variable, $name)
+        }
+    };
+}
 
 pub enum InteractionResponse {
     Continue,

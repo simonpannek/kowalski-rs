@@ -29,7 +29,7 @@ pub async fn execute(
 
     let options = &command.data.options;
 
-    // Parse arguments
+    // Parse argument
     let question = parse_arg::<String>(options, 0)?;
 
     // Get messages to analyze

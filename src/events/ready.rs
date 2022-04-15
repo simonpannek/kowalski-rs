@@ -6,11 +6,13 @@ use serenity::{
         interactions::application_command::ApplicationCommand,
     },
 };
+use std::time::Duration;
 use tracing::info;
 
 use crate::{
     config::Config,
     database::{client::Database, types::ModuleStatus},
+    reminders::check_reminders,
     strings::{
         ERR_CMD_CREATION, ERR_DATA_ACCESS, ERR_DB_QUERY, INFO_CMD_GLOBAL, INFO_CMD_MODULE,
         INFO_CONNECTED,
@@ -26,6 +28,9 @@ pub async fn ready(ctx: &Context, rdy: Ready) {
     ctx.set_activity(activity).await;
 
     // TODO: Clean up database
+
+    // Repeatedly check for reminders
+    check_reminders(ctx.clone(), Duration::from_secs(60));
 
     setup_commands(ctx, rdy).await;
 }
