@@ -13,6 +13,7 @@ use crate::{
     config::{Command, Config},
     database::client::Database,
     error::ExecutionError,
+    pluralize,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
     utils::{parse_arg, parse_arg_resolved, send_confirmation, send_response},
 };
@@ -68,7 +69,7 @@ pub async fn execute(
     let title = format!(
         "Gifting {} {} to {}",
         amount,
-        if amount == 1 { "reaction" } else { "reactions" },
+        pluralize!("reaction", amount),
         user.name
     );
 

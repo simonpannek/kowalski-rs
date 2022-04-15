@@ -42,6 +42,17 @@ use crate::{
     },
 };
 
+#[macro_export]
+macro_rules! pluralize {
+    ($name:expr, $variable:expr) => {
+        if $variable == 1 {
+            format!("{} {}", $variable, $name)
+        } else {
+            format!("{} {}s", $variable, $name)
+        }
+    };
+}
+
 pub enum InteractionResponse {
     Continue,
     Abort,

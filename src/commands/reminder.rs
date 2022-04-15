@@ -7,6 +7,7 @@ use crate::{
     config::Command,
     database::client::Database,
     error::ExecutionError,
+    pluralize,
     strings::{ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
     utils::{parse_arg, send_response},
 };
@@ -81,8 +82,11 @@ pub async fn execute(
         command_config,
         "Schedule reminder",
         &format!(
-            "I'm going to remind you about \"{}\" in approximately {} days, {} hours and {} minutes!",
-            message, days, hours, minutes
+            "I'm going to remind you about \"{}\" in approximately {}, {} and {}!",
+            message,
+            pluralize!("day", days),
+            pluralize!("hour", hours),
+            pluralize!("minute", minutes)
         ),
     )
     .await
