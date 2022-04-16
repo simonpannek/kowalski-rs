@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, DurationRound, Utc};
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
@@ -69,8 +69,10 @@ pub async fn execute(
     }
 
     // Get datetime of reminder
-    let datetime =
-        Utc::now() + Duration::minutes(minutes) + Duration::hours(hours) + Duration::days(days);
+    let datetime = Utc::now().duration_trunc(Duration::minutes(1)).unwrap()
+        + Duration::minutes(minutes)
+        + Duration::hours(hours)
+        + Duration::days(days);
 
     // Get response of the bot
     let response = command.get_interaction_response(&ctx.http).await?;

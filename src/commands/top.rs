@@ -215,7 +215,7 @@ async fn show_page(
     // Get the interaction response
     let interaction = message
         .await_component_interaction(&ctx)
-        .author_id(u64::from(command.user.id))
+        .author_id(command.user.id.0)
         .timeout(timeout)
         .await;
     let response = match interaction {

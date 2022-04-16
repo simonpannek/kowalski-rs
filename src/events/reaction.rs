@@ -142,7 +142,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                     .ok_or(ExecutionError::new(ERR_API_LOAD))?
                     .roles
                     .iter()
-                    .map(|&role| u64::from(role))
+                    .map(|&role_id| role_id.0)
                     .collect();
 
                 cooldowns

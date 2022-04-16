@@ -1,6 +1,7 @@
 use std::{error::Error, fmt::Debug};
 
 use bit_vec::BitVec;
+use chrono::{DateTime, Utc};
 use serenity::{
     client::Context,
     model::id::{GuildId, RoleId, UserId},
@@ -198,6 +199,11 @@ impl RowResolved {
                         Some(value) => values.push(value),
                         None => values.push("NULL".to_string()),
                     }
+                }
+                &Type::TIMESTAMP | &Type::TIMESTAMPTZ => {
+                    let value: DateTime<Utc> = row.get(i);
+
+                    values.push(value.to_rfc2822());
                 }
                 t => {
                     values.push(format!("unsupported type '{}'", t));

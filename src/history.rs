@@ -19,7 +19,7 @@ impl History {
 
     pub fn add_entry(&mut self, config: &Config, user: UserId, option_name: &str, entry: &str) {
         let entry = entry.trim().to_string();
-        let key = (u64::from(user), option_name.to_string());
+        let key = (user.0, option_name.to_string());
 
         let vector = match self.histories.get_mut(&key) {
             Some(vector) => vector,
@@ -54,8 +54,8 @@ impl History {
         }
     }
 
-    pub fn get_entries(&self, user: UserId, option_name: &str) -> &[String] {
-        let key = (u64::from(user), option_name.to_string());
+    pub fn get_entries(&self, user_id: UserId, option_name: &str) -> &[String] {
+        let key = (user_id.0, option_name.to_string());
 
         match self.histories.get(&key) {
             Some(vector) => vector.as_slice(),

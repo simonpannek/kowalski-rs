@@ -182,7 +182,7 @@ async fn remove(
     _module: Module,
     _database: Arc<Database>,
 ) -> Result<(), ExecutionError> {
-    // TODO (Currently, we do not save any data anyway)
+    // TODO
 
     send_response(
         ctx,
