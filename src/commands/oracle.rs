@@ -7,9 +7,10 @@ use serenity::{
 use crate::{
     config::{Command, Config},
     error::ExecutionError,
+    history::History,
     model::Model,
     strings::ERR_DATA_ACCESS,
-    utils::{parse_arg, send_response},
+    utils::{parse_arg, parse_arg_name, send_response},
 };
 
 pub async fn execute(
@@ -17,20 +18,33 @@ pub async fn execute(
     command: &ApplicationCommandInteraction,
     command_config: &Command,
 ) -> Result<(), ExecutionError> {
-    // Get config and model
-    let (config, model) = {
+    // Get config, lock to history and model
+    let (config, history_lock, model) = {
         let data = ctx.data.read().await;
 
         let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
+        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
         let model = data.get::<Model>().expect(ERR_DATA_ACCESS).clone();
 
-        (config, model)
+        (config, history_lock, model)
     };
 
     let options = &command.data.options;
 
     // Parse argument
     let question = parse_arg::<String>(options, 0)?;
+
+    // Add question to history
+    {
+        let mut history = history_lock.write().await;
+
+        history.add_entry(
+            &config,
+            command.user.id,
+            parse_arg_name(options, 0)?,
+            &question,
+        );
+    }
 
     // Get messages to analyze
     let messages = command
@@ -43,11 +57,11 @@ pub async fn execute(
         .rev()
         .filter(|message| !message.content.is_empty())
         .map(|message| {
-            message
-                .content
-                .chars()
-                .take(config.general.nlp_max_message_length)
-                .join("")
+            if message.content.len() > 100 {
+                message.content[..100].to_string()
+            } else {
+                message.content.to_string()
+            }
         })
         .collect::<Vec<_>>();
 

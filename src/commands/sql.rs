@@ -33,7 +33,6 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse argument
-    let query_name = parse_arg_name(options, 0)?;
     let query = parse_arg(options, 0)?;
 
     // Execute SQL query
@@ -44,7 +43,7 @@ pub async fn execute(
     {
         let mut history = history_lock.write().await;
 
-        history.add_entry(&config, command.user.id, query_name, query);
+        history.add_entry(&config, command.user.id, parse_arg_name(options, 0)?, query);
     }
 
     let string = resolved.table(0, resolved.len()).to_string();

@@ -219,7 +219,10 @@ async fn answer_autocomplete(
     autocomplete
         .create_autocomplete_response(&ctx, |response| {
             for choice in choices {
-                response.add_string_choice(&choice, &choice);
+                // Choices can have a maximum length of 100 characters
+                if choice.len() <= 100 {
+                    response.add_string_choice(&choice, &choice);
+                }
             }
 
             response

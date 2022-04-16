@@ -5,11 +5,13 @@ use serenity::{
 
 use crate::{
     config::Command,
+    config::Config,
     database::client::Database,
     error::ExecutionError,
+    history::History,
     pluralize,
     strings::{ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
-    utils::{parse_arg, send_response},
+    utils::{parse_arg, parse_arg_name, send_response},
 };
 
 pub async fn execute(
@@ -17,11 +19,15 @@ pub async fn execute(
     command: &ApplicationCommandInteraction,
     command_config: &Command,
 ) -> Result<(), ExecutionError> {
-    // Get database
-    let database = {
+    // Get config, database and lock to history
+    let (config, database, history_lock) = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
+        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
+
+        (config, database, history_lock)
     };
 
     let options = &command.data.options;
@@ -37,6 +43,18 @@ pub async fn execute(
             "days" => days = parse_arg(options, i)?,
             _ => return Err(ExecutionError::new(ERR_CMD_ARGS_INVALID)),
         }
+    }
+
+    // Add message to history
+    {
+        let mut history = history_lock.write().await;
+
+        history.add_entry(
+            &config,
+            command.user.id,
+            parse_arg_name(options, 0)?,
+            &message,
+        );
     }
 
     if minutes + hours + days == 0 {

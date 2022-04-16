@@ -145,6 +145,7 @@ cost = 10
 kind = "String"
 description = "The message to send after the time has passed."
 required = true
+autocomplete = true
 
 [commands.reminder.options.minutes]
 kind = "Integer"
@@ -360,6 +361,7 @@ cost = 10
 kind = "String"
 description = "The question to ask."
 required = true
+autocomplete = true
 
 [commands.tldr]
 command_type = "Tldr"
