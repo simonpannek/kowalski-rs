@@ -96,7 +96,10 @@ pub async fn execute(
                 database
                     .client
                     .execute(
-                        "INSERT INTO modules VALUES ($1::BIGINT, B'00000000')",
+                        "
+                        INSERT INTO modules
+                        VALUES ($1::BIGINT, B'00000000')
+                        ",
                         &[&i64::from(guild)],
                     )
                     .await?;
@@ -211,7 +214,11 @@ async fn update(
     database
         .client
         .execute(
-            "UPDATE modules SET status = $1::BIT(8) WHERE guild = $2::BIGINT",
+            "
+            UPDATE modules
+            SET status = $1::BIT(8)
+            WHERE guild = $2::BIGINT
+            ",
             &[&status, &i64::from(guild)],
         )
         .await?;

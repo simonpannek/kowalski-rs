@@ -30,7 +30,8 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
     // Check if the emoji is registered
     if let Some(emoji) = get_emoji_id(&add_reaction.emoji, &database).await? {
         // Get reaction data
-        let (guild, user_from, user_to, message) = get_reaction_data(ctx, &add_reaction).await?;
+        let (guild, user_from, user_to, channel, message) =
+            get_reaction_data(ctx, &add_reaction).await?;
 
         // Self reactions do not count
         if user_from == user_to {
@@ -44,9 +45,10 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                 .query(
                     "
                     SELECT role, slots FROM reaction_roles
-                    WHERE guild = $1::BIGINT AND message = $2::BIGINT AND emoji = $3::INT
+                    WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
+                    AND emoji = $4::INT
                     ",
-                    &[&guild, &message, &emoji],
+                    &[&guild, &channel, &message, &emoji],
                 )
                 .await?;
 
@@ -101,10 +103,10 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                         .execute(
                             "
                         UPDATE reaction_roles SET slots = slots + 1
-                        WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                            AND emoji = $3::INT AND slots IS NOT NULL
+                        WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
+                        AND emoji = $4::INT AND slots IS NOT NULL
                         ",
-                            &[&guild, &message, &emoji],
+                            &[&guild, &channel, &message, &emoji],
                         )
                         .await?;
 
@@ -118,10 +120,10 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                             .execute(
                                 "
                     UPDATE reaction_roles SET slots = slots - 1
-                    WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                        AND emoji = $3::INT AND slots IS NOT NULL
+                    WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
+                    AND emoji = $3::INT AND slots IS NOT NULL
                     ",
-                                &[&guild, &message, &emoji],
+                                &[&guild, &channel, &message, &emoji],
                             )
                             .await?;
 
@@ -160,9 +162,12 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                     .execute(
                         "
                 INSERT INTO reactions
-                VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::INT, $6::BOOLEAN)
+                VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::BIGINT, $6::INT,
+                $7::BOOLEAN)
                 ",
-                        &[&guild, &user_from, &user_to, &message, &emoji, &true],
+                        &[
+                            &guild, &user_from, &user_to, &channel, &message, &emoji, &true,
+                        ],
                     )
                     .await?;
 
@@ -203,7 +208,8 @@ pub async fn reaction_remove(
     // Check if the emoji is registered
     if let Some(emoji) = get_emoji_id(&removed_reaction.emoji, &database).await? {
         // Get reaction data
-        let (guild, user_from, _, message) = get_reaction_data(ctx, &removed_reaction).await?;
+        let (guild, user_from, _, channel, message) =
+            get_reaction_data(ctx, &removed_reaction).await?;
 
         // Get user of which the reaction was removed
         let user_to = {
@@ -212,10 +218,10 @@ pub async fn reaction_remove(
                 .query_opt(
                     "
             SELECT user_to FROM reactions
-            WHERE guild = $1::BIGINT AND user_from = $2::BIGINT
-                AND message = $3::BIGINT AND emoji = $4::INT
+            WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND channel = $3::BIGINT
+            AND message = $4::BIGINT AND emoji = $5::INT
             ",
-                    &[&guild, &user_from, &message, &emoji],
+                    &[&guild, &user_from, &channel, &message, &emoji],
                 )
                 .await?;
 
@@ -229,10 +235,10 @@ pub async fn reaction_remove(
                 .execute(
                     "
         DELETE FROM reactions
-        WHERE guild = $1::BIGINT AND user_from = $2::BIGINT
-            AND message = $3::BIGINT AND emoji = $4::INT
+        WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND channel = $3::BIGINT
+        AND message = $4::BIGINT AND emoji = $5::INT
         ",
-                    &[&guild, &user_from, &message, &emoji],
+                    &[&guild, &user_from, &channel, &message, &emoji],
                 )
                 .await?;
 
@@ -283,9 +289,13 @@ pub async fn reaction_remove_all(
             .execute(
                 "
         DELETE FROM reactions
-        WHERE guild = $1::BIGINT AND message = $2::BIGINT
+        WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
         ",
-                &[&i64::from(guild), &i64::from(removed_from_message_id)],
+                &[
+                    &i64::from(guild),
+                    &i64::from(channel_id),
+                    &i64::from(removed_from_message_id),
+                ],
             )
             .await?;
 
@@ -313,14 +323,23 @@ async fn get_emoji_id(
         ReactionType::Unicode(string) => {
             database
                 .client
-                .query("SELECT id FROM emojis WHERE unicode = $1::TEXT", &[string])
+                .query(
+                    "
+                SELECT id FROM emojis
+                WHERE unicode = $1::TEXT
+                ",
+                    &[string],
+                )
                 .await?
         }
         ReactionType::Custom { id, .. } => {
             database
                 .client
                 .query(
-                    "SELECT id FROM emojis WHERE emoji_guild = $1::BIGINT",
+                    "
+                    SELECT id FROM emojis
+                    WHERE emoji_guild = $1::BIGINT
+                    ",
                     &[&i64::from(id.clone())],
                 )
                 .await?
@@ -334,16 +353,17 @@ async fn get_emoji_id(
 async fn get_reaction_data(
     ctx: &Context,
     reaction: &Reaction,
-) -> Result<(i64, i64, i64, i64), ExecutionError> {
+) -> Result<(i64, i64, i64, i64, i64), ExecutionError> {
     let guild = i64::from(reaction.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
     let user_from = i64::from(reaction.user_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
     let user_to = {
         let message = reaction.message(&ctx.http).await?;
         i64::from(message.author.id)
     };
+    let channel = i64::from(reaction.channel_id);
     let message = i64::from(reaction.message_id);
 
-    Ok((guild, user_from, user_to, message))
+    Ok((guild, user_from, user_to, channel, message))
 }
 
 async fn update_roles(
@@ -394,13 +414,16 @@ async fn update_roles(
             .client
             .query(
                 "
-            SELECT role FROM score_roles
-            WHERE guild = $1::BIGINT AND score = (
+            WITH role_score AS (
                 SELECT score FROM score_roles
                 WHERE guild = $1::BIGINT AND score <= $2::BIGINT
                 ORDER BY score DESC
                 LIMIT 1
             )
+
+            SELECT role FROM score_roles
+            WHERE guild = $1::BIGINT
+            AND score = (SELECT score FROM role_score)
             ",
                 &[&i64::from(member.guild_id), &score],
             )

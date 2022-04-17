@@ -130,7 +130,8 @@ pub async fn execute(
             database
                 .client
                 .execute(
-                    "INSERT INTO guilds VALUES ($1::BIGINT)",
+                    "
+                    INSERT INTO guilds VALUES ($1::BIGINT)",
                     &[&i64::from(guild.id)],
                 )
                 .await?;

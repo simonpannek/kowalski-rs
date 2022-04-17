@@ -63,7 +63,8 @@ impl Cooldowns {
                         .client
                         .query_opt(
                             "
-                        SELECT cooldown FROM score_cooldowns
+                        SELECT cooldown
+                        FROM score_cooldowns
                         WHERE guild = $1::BIGINT AND role = $2::BIGINT
                         ",
                             &[&(guild as i64), &(*role as i64)],

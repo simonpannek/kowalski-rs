@@ -66,10 +66,8 @@ pub async fn execute(
             .client
             .query(
                 "
-        SELECT
-            user_to,
-            COUNT(*) FILTER (WHERE upvote) upvotes,
-            COUNT(*) FILTER (WHERE NOT upvote) downvotes
+        SELECT user_to, COUNT(*) FILTER (WHERE upvote) upvotes,
+        COUNT(*) FILTER (WHERE NOT upvote) downvotes
         FROM reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT

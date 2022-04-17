@@ -131,6 +131,7 @@ pub async fn execute(
 
                     // Convert the ids to integers
                     let guild_id = i64::from(guild);
+                    let channel_id = i64::from(command.channel_id);
                     let message_id = i64::from(reaction.message_id);
                     let role_id = i64::from(role.id);
 
@@ -141,15 +142,18 @@ pub async fn execute(
                                 .client
                                 .execute(
                                     "
-                            INSERT INTO reaction_roles
-                            SELECT $1::BIGINT, $2::BIGINT, $3::INT, $4::BIGINT
-                            WHERE NOT EXISTS (
+                            WITH duplicate AS (
                                 SELECT * FROM reaction_roles
-                                WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                    AND emoji = $3::INT AND role = $4::BIGINT
+                                WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+                                AND message = $3::BIGINT AND emoji = $4::INT
+                                AND role = $5::BIGINT
                             )
+
+                            INSERT INTO reaction_roles
+                            SELECT $1::BIGINT, $2::BIGINT, $3::BIGINT, $4::INT, $5::BIGINT
+                            WHERE NOT EXISTS /duplicate
                             ",
-                                    &[&guild_id, &message_id, &emoji, &role_id],
+                                    &[&guild_id, &channel_id, &message_id, &emoji, &role_id],
                                 )
                                 .await?;
 
@@ -162,10 +166,18 @@ pub async fn execute(
                                             "
                                     UPDATE reaction_roles
                                     SET slots = $5::BIGINT
-                                    WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                    AND emoji = $3::INT AND role = $4::BIGINT
+                                    WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+                                    AND message = $3::BIGINT AND emoji = $4::INT
+                                    AND role = $5::BIGINT
                                     ",
-                                            &[&guild_id, &message_id, &emoji, &role_id, &slots],
+                                            &[
+                                                &guild_id,
+                                                &channel_id,
+                                                &message_id,
+                                                &emoji,
+                                                &role_id,
+                                                &slots,
+                                            ],
                                         )
                                         .await?;
                                 }
@@ -176,10 +188,17 @@ pub async fn execute(
                                             "
                                     UPDATE reaction_roles
                                     SET slots = NULL
-                                    WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                    AND emoji = $3::INT AND role = $4::BIGINT
+                                    WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+                                    AND message = $3::BIGINT AND emoji = $4::INT
+                                    AND role = $5::BIGINT
                                     ",
-                                            &[&guild_id, &message_id, &emoji, &role_id],
+                                            &[
+                                                &guild_id,
+                                                &channel_id,
+                                                &message_id,
+                                                &emoji,
+                                                &role_id,
+                                            ],
                                         )
                                         .await?;
                                 }
@@ -208,10 +227,10 @@ pub async fn execute(
                                 .execute(
                                     "
                             DELETE FROM reaction_roles
-                            WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                AND emoji = $3::INT AND role = $4::BIGINT
+                            WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+                            AND message = $3::BIGINT AND emoji = $4::INT AND role = $5::BIGINT
                             ",
-                                    &[&guild_id, &message_id, &emoji, &role_id],
+                                    &[&guild_id, &channel_id, &message_id, &emoji, &role_id],
                                 )
                                 .await?;
 

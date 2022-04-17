@@ -107,15 +107,18 @@ pub async fn execute(
                 .client
                 .execute(
                     "
-                UPDATE reactions
-                SET user_to = $3::BIGINT, native = false
-                WHERE (guild, user_from, user_to, message, emoji) IN (
-                    SELECT r.guild, user_from, user_to, message, r.emoji FROM reactions r
+                WITH to_update AS (
+                    SELECT r.guild, user_from, user_to, channel, message, r.emoji
+                    FROM reactions r
                     INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                     WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND upvote
                     ORDER BY native
                     LIMIT $4::BIGINT
                 )
+
+                UPDATE reactions
+                SET user_to = $3::BIGINT, native = false
+                WHERE (guild, user_from, user_to, channel, message, emoji) IN to_update
                 ",
                     &[&guild_id, &user_id, &i64::from(user.id), &amount],
                 )

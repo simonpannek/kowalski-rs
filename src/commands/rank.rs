@@ -44,17 +44,18 @@ pub async fn execute(
     // Get rank of the user
     let rank = {
         let row = database.client.query_opt("
-            SELECT rank FROM (
-                SELECT
-                    user_to,
-                    RANK() OVER (
-                        ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
-                    ) rank
+            WITH ranks AS (
+                SELECT user_to,
+                RANK() OVER (
+                    ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
+                ) rank
                 FROM reactions r
                 INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT
                 GROUP BY user_to
-            ) AS ranks
+            )
+
+            SELECT rank FROM ranks
             WHERE user_to = $2::BIGINT
             ", &[&i64::from(guild), &i64::from(user.id)]).await?;
 

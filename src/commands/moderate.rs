@@ -79,7 +79,8 @@ pub async fn execute(
                     .client
                     .execute(
                         "
-                        INSERT INTO score_auto_pin VALUES ($1::BIGINT, $2::BIGINT)
+                        INSERT INTO score_auto_pin
+                        VALUES ($1::BIGINT, $2::BIGINT)
                         ON CONFLICT (guild) DO UPDATE SET score = $2::BIGINT
                         ",
                         &[&guild_id, &score],
@@ -91,7 +92,8 @@ pub async fn execute(
                     .client
                     .execute(
                         "
-                        INSERT INTO score_auto_delete VALUES ($1::BIGINT, $2::BIGINT)
+                        INSERT INTO score_auto_delete
+                        VALUES ($1::BIGINT, $2::BIGINT)
                         ON CONFLICT (guild) DO UPDATE SET score = $2::BIGINT
                         ",
                         &[&guild_id, &score],

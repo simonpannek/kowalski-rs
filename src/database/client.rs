@@ -91,21 +91,23 @@ impl Database {
                         guild           BIGINT,
                         user_from       BIGINT,
                         user_to         BIGINT,
+                        channel         BIGINT,
                         message         BIGINT,
                         emoji           INT,
                         native          BOOLEAN NOT NULL DEFAULT true,
-                        PRIMARY KEY (guild, user_from, user_to, message, emoji),
+                        PRIMARY KEY (guild, user_from, user_to, channel, message, emoji),
                         CONSTRAINT fk_emojis
                             FOREIGN KEY (emoji) REFERENCES emojis(id)
                     );
 
                     CREATE TABLE IF NOT EXISTS reaction_roles (
                         guild           BIGINT,
+                        channel         BIGINT,
                         message         BIGINT,
                         emoji           INT,
                         role            BIGINT,
                         slots           INT,
-                        PRIMARY KEY (guild, message, emoji, role),
+                        PRIMARY KEY (guild, channel, message, emoji, role),
                         CONSTRAINT fk_emojis
                             FOREIGN KEY (emoji) REFERENCES emojis(id),
                         CONSTRAINT unsigned_slots

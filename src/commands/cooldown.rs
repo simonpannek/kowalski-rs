@@ -47,8 +47,10 @@ pub async fn execute(
             .client
             .execute(
                 "
-        INSERT INTO score_cooldowns VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
-        ON CONFLICT (guild, role) DO UPDATE SET cooldown = $3::BIGINT
+        INSERT INTO score_cooldowns
+        VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
+        ON CONFLICT (guild, role)
+        DO UPDATE SET cooldown = $3::BIGINT
         ",
                 &[&guild_id, &role_id, &cooldown],
             )

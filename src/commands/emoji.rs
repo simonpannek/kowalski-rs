@@ -155,14 +155,18 @@ pub async fn execute(
                             database
                                 .client
                                 .execute(
-                                    "DELETE FROM reactions WHERE emoji = $1::INT",
+                                    "
+                                    DELETE FROM reactions
+                                    WHERE emoji = $1::INT",
                                     &[&emoji_id],
                                 )
                                 .await?;
                             database
                                 .client
                                 .execute(
-                                    "DELETE FROM score_emojis WHERE emoji = $1::INT",
+                                    "
+                                    DELETE FROM score_emojis
+                                    WHERE emoji = $1::INT",
                                     &[&emoji_id],
                                 )
                                 .await?;

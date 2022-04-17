@@ -4,7 +4,7 @@ use serenity::{
     client::Context,
     model::{
         channel::ReactionType,
-        id::{EmojiId, MessageId, RoleId},
+        id::{ChannelId, EmojiId, MessageId, RoleId},
         interactions::application_command::ApplicationCommandInteraction,
     },
     prelude::Mentionable,
@@ -41,7 +41,11 @@ pub async fn execute(
         let row = database
             .client
             .query_opt(
-                "SELECT status FROM modules WHERE guild = $1::BIGINT",
+                "
+                SELECT status
+                FROM modules
+                WHERE guild = $1::BIGINT
+                ",
                 &[&i64::from(guild)],
             )
             .await?;
@@ -198,7 +202,8 @@ pub async fn execute(
                             .client
                             .query(
                                 "
-                                SELECT message, unicode, emoji_guild, role, slots FROM reaction_roles rr
+                                SELECT channel, message, unicode, emoji_guild, role, slots
+                                FROM reaction_roles rr
                                 INNER JOIN emojis e ON emoji = id
                                 WHERE guild = $1::BIGINT
                                 ",
@@ -209,9 +214,15 @@ pub async fn execute(
                         let mut roles = Vec::new();
 
                         for row in rows {
-                            let message = MessageId(row.get::<_, i64>(0) as u64);
-                            let unicode: Option<String> = row.get(1);
-                            let emoji_guild: Option<i64> = row.get(2);
+                            let link = {
+                                let channel_id = ChannelId(row.get::<_, i64>(0) as u64);
+                                let message_id = MessageId(row.get::<_, i64>(1) as u64);
+                                let message = channel_id.message(&ctx.http, message_id).await?;
+
+                                message.link()
+                            };
+                            let unicode: Option<String> = row.get(2);
+                            let emoji_guild: Option<i64> = row.get(3);
                             let emoji = match (unicode, emoji_guild) {
                                 (Some(string), _) => ReactionType::Unicode(string),
                                 (_, Some(id)) => {
@@ -225,10 +236,10 @@ pub async fn execute(
                                 }
                                 _ => unreachable!(),
                             };
-                            let role = RoleId(row.get::<_, i64>(3) as u64);
-                            let slots: Option<i32> = row.get(4);
+                            let role = RoleId(row.get::<_, i64>(4) as u64);
+                            let slots: Option<i32> = row.get(5);
 
-                            roles.push((message, emoji, role, slots));
+                            roles.push((link, emoji, role, slots));
                         }
 
                         roles
@@ -236,11 +247,12 @@ pub async fn execute(
 
                     let mut roles = roles
                         .iter()
-                        .map(|(_message, emoji, role, slots)| {
+                        .map(|(link, emoji, role, slots)| {
                             let mut content = format!(
-                                "{} when reacting with {}",
+                                "{} when reacting with {} [here]({})",
                                 role.mention(),
-                                emoji.to_string()
+                                emoji.to_string(),
+                                link
                             );
 
                             if let Some(slots) = slots {
