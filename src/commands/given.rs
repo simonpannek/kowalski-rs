@@ -12,23 +12,19 @@ use serenity::{
 
 use crate::utils::parse_arg_resolved;
 use crate::{
-    config::Command,
-    database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::send_response_complex,
+    config::Command, database::client::Database, error::KowalskiError, utils::send_response_complex,
 };
 
 pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let options = &command.data.options;
@@ -36,15 +32,15 @@ pub async fn execute(
     // Parse argument (use command user as fallback)
     let user = if !options.is_empty() {
         match parse_arg_resolved(options, 0)? {
-            User(user, ..) => Ok(user),
-            _ => Err(ExecutionError::new(ERR_API_LOAD)),
-        }?
+            User(user, ..) => user,
+            _ => unreachable!(),
+        }
     } else {
         &command.user
     };
 
     // Get guild
-    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild_id = command.guild_id.unwrap();
 
     // Analyze reactions from the user
     let (upvotes, downvotes) = {

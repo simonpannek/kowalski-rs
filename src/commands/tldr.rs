@@ -7,7 +7,7 @@ use tokio::task::JoinError;
 
 use crate::{
     config::{Command, Config},
-    error::ExecutionError,
+    error::KowalskiError,
     model::Model,
     strings::ERR_DATA_ACCESS,
     utils::{get_relevant_messages, send_response},
@@ -17,13 +17,13 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and model
     let (config, model) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let model = data.get::<Model>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let model = data.get::<Model>().unwrap().clone();
 
         (config, model)
     };
@@ -35,7 +35,7 @@ pub async fn execute(
     for message in messages {
         let result = analyze(model.clone(), message)
             .await
-            .map_err(|why| ExecutionError::new(&format!("{}", why)))?
+            .map_err(|why| KowalskiError::new(&format!("{}", why)))?
             .first()
             .cloned()
             .unwrap_or_default();
@@ -58,7 +58,7 @@ pub async fn execute(
 
 async fn analyze(model: Arc<Model>, message: String) -> Result<Vec<String>, JoinError> {
     tokio::task::spawn_blocking(move || {
-        let model = model.summarization.lock().expect(ERR_DATA_ACCESS);
+        let model = model.summarization.lock().unwrap();
 
         model.summarize(&vec![message])
     })

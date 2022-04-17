@@ -7,8 +7,7 @@ use serenity::{
 use crate::{
     config::Command,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
+    error::KowalskiError,
     utils::{parse_arg, parse_arg_resolved, send_response},
 };
 
@@ -16,21 +15,21 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let options = &command.data.options;
 
     // Parse first argument
     let role = match parse_arg_resolved(options, 0)? {
-        Role(role) => Ok(role),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        Role(role) => role,
+        _ => unreachable!(),
+    };
 
     // Get guild and role ids
     let guild_id = role.guild_id.0 as i64;

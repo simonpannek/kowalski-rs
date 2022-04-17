@@ -12,8 +12,8 @@ use serenity::{
 use tokio::{fs::File, io::AsyncReadExt};
 
 use crate::{
-    error::ExecutionError,
-    strings::{ERR_CMD_ARGS_INVALID, ERR_CONFIG_PARSE, ERR_CONFIG_READ},
+    error::KowalskiError,
+    strings::{ERR_CONFIG_PARSE, ERR_CONFIG_READ},
 };
 
 #[derive(Deserialize)]
@@ -162,7 +162,7 @@ impl TypeMapKey for Config {
 }
 
 impl FromStr for Module {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -171,10 +171,7 @@ impl FromStr for Module {
             "Score" => Ok(Module::Score),
             "ReactionRoles" => Ok(Module::ReactionRoles),
             "Analyze" => Ok(Module::Analyze),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => unreachable!(),
         }
     }
 }

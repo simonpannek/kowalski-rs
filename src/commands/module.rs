@@ -10,11 +10,12 @@ use serenity::{
     model::{id::GuildId, interactions::application_command::ApplicationCommandInteraction},
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::{Command, Config, Module},
     database::{client::Database, types::ModuleStatus},
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{
         create_module_command, parse_arg, send_confirmation, send_response, InteractionResponse,
     },
@@ -43,17 +44,14 @@ impl Display for Action {
 }
 
 impl FromStr for Action {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "enable" => Ok(Action::Enable),
             "disable" => Ok(Action::Disable(false)),
             "remove" => Ok(Action::Disable(true)),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -62,13 +60,13 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };
@@ -80,7 +78,7 @@ pub async fn execute(
     let module = Module::from_str(parse_arg(options, 1)?)?;
 
     // Get guild status
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild = command.guild_id.unwrap();
     let status: ModuleStatus = {
         let row = database
             .client
@@ -184,7 +182,7 @@ async fn remove(
     title: String,
     _module: Module,
     _database: Arc<Database>,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // TODO
 
     send_response(
@@ -206,7 +204,7 @@ async fn update(
     guild: GuildId,
     status: ModuleStatus,
     database: Arc<Database>,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Update the guild commands
     create_module_command(ctx, config, guild, &status).await;
 

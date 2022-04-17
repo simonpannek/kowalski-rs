@@ -13,12 +13,13 @@ use serenity::{
     prelude::Mentionable,
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::Command,
     config::Config,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{send_response, send_response_complex},
 };
 
@@ -28,16 +29,13 @@ enum ComponentInteractionResponse {
 }
 
 impl FromStr for ComponentInteractionResponse {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "left" => Ok(ComponentInteractionResponse::Left),
             "right" => Ok(ComponentInteractionResponse::Right),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -46,19 +44,19 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };
 
     // Get guild
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild = command.guild_id.unwrap();
 
     // Get top users
     let top: Vec<_> = {
@@ -144,7 +142,7 @@ async fn show_page(
     size: usize,
     rank_titles: &Vec<String>,
     timeout: Duration,
-) -> Result<Option<ComponentInteractionResponse>, ExecutionError> {
+) -> Result<Option<ComponentInteractionResponse>, KowalskiError> {
     let mut row = CreateActionRow::default();
     row.create_button(|button| {
         button

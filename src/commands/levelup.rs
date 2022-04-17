@@ -11,11 +11,12 @@ use serenity::{
     prelude::Mentionable,
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::Command,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, parse_arg_resolved, send_response},
 };
 
@@ -36,16 +37,13 @@ impl Display for Action {
 }
 
 impl FromStr for Action {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "add" => Ok(Action::Add),
             "remove" => Ok(Action::Remove),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -54,12 +52,12 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let options = &command.data.options;
@@ -67,9 +65,9 @@ pub async fn execute(
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?)?;
     let role = match parse_arg_resolved(options, 1)? {
-        Role(role) => Ok(role),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        Role(role) => role,
+        _ => unreachable!(),
+    };
     let score: i64 = parse_arg(options, 2)?;
 
     // Get guild and role ids

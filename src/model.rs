@@ -37,7 +37,7 @@ impl Model {
             })
         })
         .await
-        .expect(ERR_MODEL_CREATE)
+        .unwrap()
     }
 }
 

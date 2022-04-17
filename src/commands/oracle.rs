@@ -6,7 +6,7 @@ use serenity::{
 
 use crate::{
     config::{Command, Config},
-    error::ExecutionError,
+    error::KowalskiError,
     history::History,
     model::Model,
     strings::ERR_DATA_ACCESS,
@@ -17,14 +17,14 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config, lock to history and model
     let (config, history_lock, model) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
-        let model = data.get::<Model>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let history_lock = data.get::<History>().unwrap().clone();
+        let model = data.get::<Model>().unwrap().clone();
 
         (config, history_lock, model)
     };
@@ -84,7 +84,7 @@ pub async fn execute(
                 .collect::<Vec<_>>()
         };
 
-        let model = model.conversation.lock().expect(ERR_DATA_ACCESS);
+        let model = model.conversation.lock().unwrap();
 
         // Load messages
         let encoded = model.encode_prompts(&sliced);
@@ -97,7 +97,7 @@ pub async fn execute(
             .to_string()
     })
     .await
-    .map_err(|why| ExecutionError::new(&format!("{}", why)))?;
+    .map_err(|why| KowalskiError::new(&format!("{}", why)))?;
 
     if result.is_empty() {
         result = "I prefer not to answer...".to_string();

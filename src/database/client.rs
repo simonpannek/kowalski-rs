@@ -6,7 +6,7 @@ use tokio_postgres::{Client, NoTls};
 use tracing::{error, info};
 
 use crate::{
-    error::ExecutionError,
+    error::KowalskiError,
     strings::{ERR_DB_CONNECTION, ERR_ENV_NOT_SET, INFO_DB_CONNECTED, INFO_DB_SETUP},
 };
 
@@ -139,7 +139,7 @@ impl Database {
     /// Gets the id of an emoji given the reaction type.
     ///
     /// Note: If the emoji is not registered before, it will create a new row
-    pub async fn get_emoji(&self, emoji: &ReactionType) -> Result<i32, ExecutionError> {
+    pub async fn get_emoji(&self, emoji: &ReactionType) -> Result<i32, KowalskiError> {
         let row = match emoji {
             ReactionType::Custom { id: emoji_id, .. } => {
                 self.client

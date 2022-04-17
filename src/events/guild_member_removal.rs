@@ -12,8 +12,7 @@ use serenity::{
 use std::time::Duration;
 
 use crate::{
-    config::Config, database::client::Database, error::ExecutionError, strings::ERR_DATA_ACCESS,
-    utils::create_embed,
+    config::Config, database::client::Database, error::KowalskiError, utils::create_embed,
 };
 
 pub async fn guild_member_removal(
@@ -21,13 +20,13 @@ pub async fn guild_member_removal(
     guild_id: GuildId,
     user: User,
     _member_data: Option<Member>,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };

@@ -12,9 +12,8 @@ use crate::utils::InteractionResponse;
 use crate::{
     config::{Command, Config},
     database::client::Database,
-    error::ExecutionError,
+    error::KowalskiError,
     pluralize,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
     utils::{parse_arg, parse_arg_resolved, send_confirmation, send_response},
 };
 
@@ -22,13 +21,13 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };
@@ -37,13 +36,13 @@ pub async fn execute(
 
     // Parse arguments
     let user = match parse_arg_resolved(options, 0)? {
-        User(user, ..) => Ok(user),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        User(user, ..) => user,
+        _ => unreachable!(),
+    };
     let score: i64 = parse_arg(options, 1)?;
 
     // Get guild and user ids
-    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
+    let guild_id = command.guild_id.unwrap().0 as i64;
     let user_id = command.user.id.0 as i64;
 
     // Calculate amount to gift

@@ -13,11 +13,11 @@ use crate::{
     commands::*,
     config::{CommandType, Config},
     credits::Credits,
-    error::ExecutionError,
+    error::KowalskiError,
     history::History,
     strings::{
-        ERR_API_LOAD, ERR_AUTOCOMPLETE, ERR_CMD_EXECUTION, ERR_CMD_NOT_FOUND, ERR_CMD_PERMISSION,
-        ERR_DATA_ACCESS, ERR_MESSAGE_COMPONENT, ERR_USER_EXECUTION_FAILED, ERR_USER_TITLE,
+        ERR_AUTOCOMPLETE, ERR_CMD_EXECUTION, ERR_MESSAGE_COMPONENT, ERR_USER_EXECUTION_FAILED,
+        ERR_USER_TITLE,
     },
     utils::send_failure,
 };
@@ -47,7 +47,7 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction) {
 async fn execute_command(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Add thinking modal
     command
         .create_interaction_response(&ctx.http, |response| {
@@ -59,8 +59,8 @@ async fn execute_command(
     let (config, credits_lock) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let credits_lock = data.get::<Credits>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let credits_lock = data.get::<Credits>().unwrap().clone();
 
         (config, credits_lock)
     };
@@ -68,10 +68,7 @@ async fn execute_command(
     // Get command name
     let name = &command.data.name;
     // Get command config
-    let command_config = config
-        .commands
-        .get(name)
-        .ok_or(ExecutionError::new(ERR_CMD_NOT_FOUND))?;
+    let command_config = config.commands.get(name).unwrap();
 
     // Check for permissions (this should not be necessary, just an additional fallback)
     if !command_config.default_permission {
@@ -89,18 +86,16 @@ async fn execute_command(
         if let Some(permission) = command_config.permission {
             if let Some(member) = &command.member {
                 // Get permissions of the user
-                let permissions = member
-                    .permissions
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+                let permissions = member.permissions.unwrap();
 
                 // Check whether the user has sufficient permissions
                 can_execute = permissions.contains(permission);
             }
         }
 
-        // Fail if user cannot execute the command
+        // Fail if user cannot execute the command (this shouldn't happen because of the Discord API)
         if !can_execute {
-            return Err(ExecutionError::new(ERR_CMD_PERMISSION));
+            unreachable!();
         }
     }
 
@@ -162,13 +157,13 @@ async fn execute_command(
 async fn answer_autocomplete(
     ctx: &Context,
     autocomplete: &AutocompleteInteraction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get read access to the history
     let (config, history_lock) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let history_lock = data.get::<History>().unwrap().clone();
 
         (config, history_lock)
     };
@@ -179,23 +174,17 @@ async fn answer_autocomplete(
         // Get the last option the user currently is typing
         let option = {
             let options = &autocomplete.data.options;
-            let mut last = options.last().ok_or(ExecutionError::new(ERR_API_LOAD))?;
+            let mut last = options.last().unwrap();
 
             while let ApplicationCommandOptionType::SubCommand = last.kind {
-                last = last
-                    .options
-                    .last()
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+                last = last.options.last().unwrap();
             }
 
             last
         };
 
         let option_name = &option.name;
-        let written = option
-            .value
-            .as_ref()
-            .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+        let written = option.value.as_ref().unwrap();
 
         (option_name, written)
     };
@@ -227,18 +216,20 @@ async fn answer_autocomplete(
 
             response
         })
-        .await
-        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+        .await?;
+
+    Ok(())
 }
 
 async fn answer_message_component(
     ctx: &Context,
     message_component: MessageComponentInteraction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     message_component
         .create_interaction_response(&ctx.http, |response| {
             response.kind(InteractionResponseType::DeferredUpdateMessage)
         })
-        .await
-        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+        .await?;
+
+    Ok(())
 }

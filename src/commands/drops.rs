@@ -5,19 +5,18 @@ use std::{
 
 use serenity::{
     client::Context,
-    model::{
-        interactions::application_command::{
-            ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
-        },
+    model::interactions::application_command::{
+        ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
     },
     prelude::Mentionable,
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::Command,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, parse_arg_resolved, send_response},
 };
 
@@ -38,16 +37,13 @@ impl Display for Action {
 }
 
 impl FromStr for Action {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "add" => Ok(Action::Add),
             "remove" => Ok(Action::Remove),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -56,12 +52,12 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let options = &command.data.options;
@@ -69,13 +65,13 @@ pub async fn execute(
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?)?;
     let partial_channel = match parse_arg_resolved(options, 1)? {
-        Channel(channel) => Ok(channel),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        Channel(channel) => channel,
+        _ => unreachable!(),
+    };
     let channel = partial_channel.id.to_channel(&ctx.http).await?;
 
     // Get guild and channel ids
-    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
+    let guild_id = command.guild_id.unwrap().0 as i64;
     let channel_id = partial_channel.id.0 as i64;
 
     let title = format!("{} drops for channel {}", action, partial_channel.name);

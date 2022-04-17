@@ -13,8 +13,7 @@ use serenity::{
 use crate::{
     config::{Command, Module},
     database::{client::Database, types::ModuleStatus},
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
+    error::KowalskiError,
     utils::{parse_arg, send_response_complex},
 };
 
@@ -22,12 +21,12 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let options = &command.data.options;
@@ -36,7 +35,7 @@ pub async fn execute(
     let module = Module::from_str(parse_arg(options, 0)?)?;
 
     // Get guild status
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild = command.guild_id.unwrap();
     let status = {
         let row = database
             .client

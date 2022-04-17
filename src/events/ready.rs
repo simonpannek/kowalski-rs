@@ -13,10 +13,7 @@ use crate::{
     config::Config,
     database::{client::Database, types::ModuleStatus},
     reminders::check_reminders,
-    strings::{
-        ERR_CMD_CREATION, ERR_DATA_ACCESS, ERR_DB_QUERY, INFO_CMD_GLOBAL, INFO_CMD_MODULE,
-        INFO_CONNECTED,
-    },
+    strings::{ERR_CMD_CREATION, ERR_DB_QUERY, INFO_CMD_GLOBAL, INFO_CMD_MODULE, INFO_CONNECTED},
     utils::{add_permissions, create_command, create_module_command},
 };
 
@@ -40,8 +37,8 @@ async fn setup_commands(ctx: &Context, rdy: Ready) {
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };

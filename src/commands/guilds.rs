@@ -21,11 +21,12 @@ use serenity::{
     },
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::{Command, Config},
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{
         parse_arg, send_confirmation, send_response, send_response_complex, InteractionResponse,
     },
@@ -46,16 +47,13 @@ enum ComponentInteractionResponse {
 }
 
 impl FromStr for Action {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "create" => Ok(Action::Create),
             "list" => Ok(Action::List),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -76,7 +74,7 @@ impl Display for ComponentInteractionResponse {
 }
 
 impl FromStr for ComponentInteractionResponse {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -86,10 +84,7 @@ impl FromStr for ComponentInteractionResponse {
             "remove_admin" => Ok(ComponentInteractionResponse::RemoveAdmin),
             "ownership" => Ok(ComponentInteractionResponse::Ownership),
             "delete" => Ok(ComponentInteractionResponse::Delete),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -98,13 +93,13 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };
@@ -191,8 +186,7 @@ pub async fn execute(
                         | ComponentInteractionResponse::RemoveAdmin
                         | ComponentInteractionResponse::Ownership
                         | ComponentInteractionResponse::Delete => {
-                            let current =
-                                owned.get(index).ok_or(ExecutionError::new(ERR_API_LOAD))?;
+                            let current = owned.get(index).unwrap();
                             guild_action(
                                 ctx,
                                 command,
@@ -229,11 +223,11 @@ async fn show_guild(
     guilds: &Vec<GuildId>,
     index: usize,
     timeout: Duration,
-) -> Result<Option<ComponentInteractionResponse>, ExecutionError> {
+) -> Result<Option<ComponentInteractionResponse>, KowalskiError> {
     // Get partial guild
     let partial_guild = guilds
         .get(index)
-        .ok_or(ExecutionError::new(ERR_API_LOAD))?
+        .unwrap()
         .to_partial_guild(&ctx.http)
         .await?;
 
@@ -352,7 +346,7 @@ async fn guild_action(
     database: &Database,
     current: &GuildId,
     interaction: ComponentInteractionResponse,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     let mut guild = current.to_partial_guild(&ctx.http).await?;
 
     let title = format!("{} '{}'", interaction, guild.name);
@@ -551,7 +545,7 @@ async fn guild_action(
     }
 }
 
-async fn get_invite(ctx: &Context, guild: &PartialGuild) -> Result<RichInvite, ExecutionError> {
+async fn get_invite(ctx: &Context, guild: &PartialGuild) -> Result<RichInvite, KowalskiError> {
     // Get invite channel
     let channels = guild.channels(&ctx.http).await?;
     let invite_channel = channels
@@ -563,7 +557,9 @@ async fn get_invite(ctx: &Context, guild: &PartialGuild) -> Result<RichInvite, E
         Some(channel) => Ok(channel
             .create_invite(&ctx.http, |invite| invite.max_age(60))
             .await?),
-        None => Err(ExecutionError::new(ERR_API_LOAD)),
+        None => Err(DiscordApiError(
+            "Couldn't find an invite channel".to_string(),
+        )),
     }
 }
 

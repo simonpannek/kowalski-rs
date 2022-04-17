@@ -7,11 +7,12 @@ use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::Command,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, send_response},
 };
 
@@ -32,16 +33,13 @@ impl Display for Moderation {
 }
 
 impl FromStr for Moderation {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "pin" => Ok(Moderation::Pin),
             "delete" => Ok(Moderation::Delete),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -50,12 +48,12 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let options = &command.data.options;
@@ -64,7 +62,7 @@ pub async fn execute(
     let moderation = Moderation::from_str(parse_arg(options, 0)?)?;
 
     // Get guild id
-    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
+    let guild_id = command.guild_id.unwrap().0 as i64;
 
     let title = format!("{} message", moderation);
 

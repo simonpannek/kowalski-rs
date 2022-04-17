@@ -4,7 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use serenity::prelude::TypeMapKey;
 use tokio::sync::RwLock;
 
-use crate::{config::Config, database::client::Database, error::ExecutionError};
+use crate::{config::Config, database::client::Database, error::KowalskiError};
 
 /// Cooldown struct containing a map, mapping guild ids to the cooldowns of the guild.
 pub struct Cooldowns {
@@ -33,7 +33,7 @@ impl Cooldowns {
         guild: u64,
         user: u64,
         roles: &Vec<u64>,
-    ) -> Result<bool, ExecutionError> {
+    ) -> Result<bool, KowalskiError> {
         // Get or create guild cooldowns
         let guild_cooldowns = match self.guilds.get_mut(&guild) {
             Some(cooldowns) => cooldowns,

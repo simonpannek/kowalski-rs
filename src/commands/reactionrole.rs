@@ -16,12 +16,13 @@ use serenity::{
     prelude::Mentionable,
 };
 
+use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::Command,
     config::Config,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, parse_arg_resolved, send_response},
 };
 
@@ -42,16 +43,13 @@ impl Display for Action {
 }
 
 impl FromStr for Action {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "add" => Ok(Action::Add),
             "remove" => Ok(Action::Remove),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -60,27 +58,27 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
     let (config, database) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
 
         (config, database)
     };
 
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild = command.guild_id.unwrap();
 
     let options = &command.data.options;
 
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?)?;
     let role = match parse_arg_resolved(options, 1)? {
-        Role(role) => Ok(role),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        Role(role) => role,
+        _ => unreachable!(),
+    };
     let slots = {
         if options.len() > 2 {
             Some(parse_arg::<i64>(options, 2)?)

@@ -7,10 +7,9 @@ use crate::{
     config::Command,
     config::Config,
     database::client::Database,
-    error::ExecutionError,
+    error::KowalskiError,
     history::History,
     pluralize,
-    strings::{ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
     utils::{parse_arg, parse_arg_name, send_response},
 };
 
@@ -18,14 +17,14 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config, database and lock to history
     let (config, database, history_lock) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
+        let history_lock = data.get::<History>().unwrap().clone();
 
         (config, database, history_lock)
     };
@@ -41,7 +40,7 @@ pub async fn execute(
         match options.get(i).unwrap().name.as_str() {
             "hours" => hours = parse_arg(options, i)?,
             "days" => days = parse_arg(options, i)?,
-            _ => return Err(ExecutionError::new(ERR_CMD_ARGS_INVALID)),
+            _ => unreachable!(),
         }
     }
 

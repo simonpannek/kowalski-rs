@@ -12,25 +12,26 @@ nlp-model = ["itertools", "rust-bert"]
 default = []
 
 [dependencies]
-bit-vec = "0.6.3"
-chrono = "0.4.19"
+bit-vec = "0.6"
+chrono = "0.4"
 serde_json = "1.0"
-tabled = "0.5.0"
-toml = "0.5.8"
-tracing = "0.1.30"
-tracing-subscriber = "0.3.8"
-unic-emoji-char = "0.9.0"
+tabled = "0.5"
+thiserror = "1.0"
+toml = "0.5"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+unic-emoji-char = "0.9"
 
 [dependencies.itertools]
-version = "0.10.3"
+version = "0.10"
 optional = true
 
 [dependencies.linked-hash-map]
-version = "0.5.4"
+version = "0.5"
 features = ["serde_impl"]
 
 [dependencies.rust-bert]
-version = "0.17.0"
+version = "0.17"
 optional = true
 
 [dependencies.serde]
@@ -47,5 +48,5 @@ version = "1.0"
 features = ["macros", "rt-multi-thread"]
 
 [dependencies.tokio-postgres]
-version = "0.7.5"
+version = "0.7"
 features = ["with-chrono-0_4", "with-bit-vec-0_6"]

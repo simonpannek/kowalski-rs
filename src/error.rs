@@ -1,53 +1,33 @@
-use std::fmt::{Debug, Display, Formatter, Result};
+use std::fmt::Debug;
 
-use crate::strings::ERR_DB_QUERY;
+use thiserror::Error;
 
-/// Custom error type when executing something like a command.
-pub struct ExecutionError {
-    reason: String,
+/// Custom error type of the bot
+#[derive(Error, Debug)]
+pub enum KowalskiError {
+    #[error("Unexpected response from the Discord API: {0}")]
+    DiscordApiError(String),
+    #[error("Failed to execute the database query: {source:?}")]
+    DatabaseError {
+        #[from]
+        source: tokio_postgres::Error,
+    },
+    #[cfg(feature = "nlp-model")]
+    #[error("Something went wrong handling the language model: {source:?}")]
+    ModelError {
+        #[from]
+        source: rust_bert::RustBertError,
+    },
 }
 
-impl ExecutionError {
-    pub fn new(reason: &str) -> Self {
-        ExecutionError {
-            reason: reason.to_string(),
-        }
+impl From<serenity::Error> for KowalskiError {
+    fn from(why: serenity::Error) -> Self {
+        KowalskiError::DiscordApiError(format!("{}", why))
     }
 }
 
-impl Debug for ExecutionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{{ reason: {}, file: {}, line: {} }}",
-            self.reason,
-            file!(),
-            line!()
-        )
-    }
-}
-
-impl Display for ExecutionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.reason)
-    }
-}
-
-#[cfg(feature = "nlp-model")]
-impl From<rust_bert::RustBertError> for ExecutionError {
-    fn from(e: rust_bert::RustBertError) -> Self {
-        ExecutionError::new(&format!("{:?}", e))
-    }
-}
-
-impl From<serenity::Error> for ExecutionError {
-    fn from(e: serenity::Error) -> Self {
-        ExecutionError::new(&format!("{}", e))
-    }
-}
-
-impl From<tokio_postgres::Error> for ExecutionError {
-    fn from(e: tokio_postgres::Error) -> Self {
-        ExecutionError::new(&format!("{}: {}", ERR_DB_QUERY, e))
+impl From<serde_json::Error> for KowalskiError {
+    fn from(why: serde_json::Error) -> Self {
+        KowalskiError::DiscordApiError(format!("{}", why))
     }
 }

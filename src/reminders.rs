@@ -7,7 +7,7 @@ use serenity::{
 };
 use tokio::time::interval;
 
-use crate::{database::client::Database, strings::ERR_DATA_ACCESS, utils::create_embed};
+use crate::{database::client::Database, utils::create_embed};
 
 pub fn check_reminders(ctx: Context, period: Duration) {
     tokio::spawn(async move {
@@ -15,7 +15,7 @@ pub fn check_reminders(ctx: Context, period: Duration) {
         let database = {
             let data = ctx.data.read().await;
 
-            data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+            data.get::<Database>().unwrap().clone()
         };
 
         // Create the interval at which we will check for reminders

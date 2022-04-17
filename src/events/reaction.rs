@@ -8,21 +8,17 @@ use serenity::{
 };
 
 use crate::{
-    config::Config,
-    cooldowns::Cooldowns,
-    database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
+    config::Config, cooldowns::Cooldowns, database::client::Database, error::KowalskiError,
 };
 
-pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), ExecutionError> {
+pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), KowalskiError> {
     // Get database
     let (config, database, cooldowns_lock) = {
         let data = ctx.data.read().await;
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-        let cooldowns_lock = data.get::<Cooldowns>().expect(ERR_DATA_ACCESS).clone();
+        let config = data.get::<Config>().unwrap().clone();
+        let database = data.get::<Database>().unwrap().clone();
+        let cooldowns_lock = data.get::<Cooldowns>().unwrap().clone();
 
         (config, database, cooldowns_lock)
     };
@@ -79,10 +75,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
             // Get guild
             let guild_id = {
                 let channel = add_reaction.channel_id.to_channel(&ctx.http).await?;
-                channel
-                    .guild()
-                    .map(|channel| channel.guild_id)
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?
+                channel.guild().map(|channel| channel.guild_id).unwrap()
             };
             // Get the member
             let mut member = guild_id.member(&ctx, user_from as u64).await?;
@@ -141,7 +134,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                 let roles: Vec<_> = add_reaction
                     .member
                     .as_ref()
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?
+                    .unwrap()
                     .roles
                     .iter()
                     .map(|&role_id| role_id.0)
@@ -174,10 +167,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
                 // Get guild
                 let guild = {
                     let channel = add_reaction.channel_id.to_channel(&ctx.http).await?;
-                    channel
-                        .guild()
-                        .map(|channel| channel.guild_id)
-                        .ok_or(ExecutionError::new(ERR_API_LOAD))?
+                    channel.guild().map(|channel| channel.guild_id).unwrap()
                 };
 
                 // Update the roles of the user
@@ -197,12 +187,12 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), E
 pub async fn reaction_remove(
     ctx: &Context,
     removed_reaction: Reaction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     // Check if the emoji is registered
@@ -245,10 +235,7 @@ pub async fn reaction_remove(
             // Get guild
             let guild = {
                 let channel = removed_reaction.channel_id.to_channel(&ctx.http).await?;
-                channel
-                    .guild()
-                    .map(|channel| channel.guild_id)
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?
+                channel.guild().map(|channel| channel.guild_id).unwrap()
             };
 
             // Update the roles of the user
@@ -268,12 +255,12 @@ pub async fn reaction_remove_all(
     ctx: Context,
     channel_id: ChannelId,
     removed_from_message_id: MessageId,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
     let database = {
         let data = ctx.data.read().await;
 
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
+        data.get::<Database>().unwrap().clone()
     };
 
     let guild = {
@@ -318,7 +305,7 @@ pub async fn reaction_remove_all(
 async fn get_emoji_id(
     emoji: &ReactionType,
     database: &Database,
-) -> Result<Option<i32>, ExecutionError> {
+) -> Result<Option<i32>, KowalskiError> {
     let rows = match emoji {
         ReactionType::Unicode(string) => {
             database
@@ -353,12 +340,9 @@ async fn get_emoji_id(
 async fn get_reaction_data(
     ctx: &Context,
     reaction: &Reaction,
-) -> Result<(i64, i64, i64, i64, i64), ExecutionError> {
-    let guild = reaction
-        .guild_id
-        .ok_or(ExecutionError::new(ERR_API_LOAD))?
-        .0 as i64;
-    let user_from = reaction.user_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
+) -> Result<(i64, i64, i64, i64, i64), KowalskiError> {
+    let guild = reaction.guild_id.unwrap().0 as i64;
+    let user_from = reaction.user_id.unwrap().0 as i64;
     let user_to = {
         let message = reaction.message(&ctx.http).await?;
         message.author.id.0 as i64
@@ -373,7 +357,7 @@ async fn update_roles(
     ctx: &Context,
     database: &Database,
     member: &mut Member,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Never update roles of bots
     if member.user.bot {
         return Ok(());
@@ -470,7 +454,7 @@ async fn auto_moderate(
     database: &Database,
     guild_id: GuildId,
     message: Message,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get scores of auto-pin and auto-delete
     let pin_score = {
         let row = database
