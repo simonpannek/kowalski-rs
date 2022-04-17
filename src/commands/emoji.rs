@@ -70,7 +70,7 @@ pub async fn execute(
         (config, database)
     };
 
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
 
     let options = &command.data.options;
 
@@ -79,7 +79,7 @@ pub async fn execute(
     let emoji = {
         let string: String = parse_arg(options, 1)?;
         match parse_emoji(&string) {
-            Some(identifier) => guild
+            Some(identifier) => guild_id
                 .emoji(&ctx.http, identifier.id)
                 .await
                 .map_or(None, |emoji| {
@@ -121,7 +121,7 @@ pub async fn execute(
                     INSERT INTO score_emojis
                     VALUES ($1::BIGINT, $2::INT, $3::BOOLEAN)
                     ",
-                            &[&i64::from(guild), &emoji_id, &upvote],
+                            &[&(guild_id.0 as i64), &emoji_id, &upvote],
                         )
                         .await?;
 

@@ -44,7 +44,7 @@ pub async fn execute(
     };
 
     // Get guild
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
 
     // Analyze reactions from the user
     let (upvotes, downvotes) = {
@@ -58,7 +58,7 @@ pub async fn execute(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT
         ",
-                &[&i64::from(guild), &i64::from(user.id)],
+                &[&(guild_id.0 as i64), &(user.id.0 as i64)],
             )
             .await?;
 
@@ -80,7 +80,7 @@ pub async fn execute(
         GROUP BY emoji, unicode, emoji_guild
         ORDER BY count DESC
         ",
-                &[&i64::from(guild), &i64::from(user.id)],
+                &[&(guild_id.0 as i64), &(user.id.0 as i64)],
             )
             .await?;
 
@@ -94,7 +94,7 @@ pub async fn execute(
             let emoji = match (unicode, emoji_guild) {
                 (Some(string), _) => ReactionType::Unicode(string),
                 (_, Some(id)) => {
-                    let emoji = guild.emoji(&ctx.http, EmojiId(id as u64)).await?;
+                    let emoji = guild_id.emoji(&ctx.http, EmojiId(id as u64)).await?;
 
                     ReactionType::Custom {
                         animated: emoji.animated,
@@ -124,7 +124,7 @@ pub async fn execute(
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
         LIMIT 5
         ",
-                &[&i64::from(guild), &i64::from(user.id)],
+                &[&(guild_id.0 as i64), &(user.id.0 as i64)],
             )
             .await?;
 
@@ -134,7 +134,7 @@ pub async fn execute(
                 let upvotes: i64 = row.get(1);
                 let downvotes: i64 = row.get(2);
 
-                (UserId::from(user as u64), upvotes, downvotes)
+                (UserId(user as u64), upvotes, downvotes)
             })
             .collect()
     };

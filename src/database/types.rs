@@ -162,7 +162,7 @@ impl RowResolved {
                         Some(value) => {
                             let string = if column.name().starts_with("user") {
                                 // Guild column
-                                UserId::from(value as u64)
+                                UserId(value as u64)
                                     .to_user(&ctx.http)
                                     .await
                                     .map_or(format!("unknown user ({})", value), |user| {
@@ -170,7 +170,7 @@ impl RowResolved {
                                     })
                             } else if column.name().starts_with("guild") {
                                 // Guild column
-                                GuildId::from(value as u64)
+                                GuildId(value as u64)
                                     .to_partial_guild(&ctx.http)
                                     .await
                                     .map_or(format!("unknown guild ({})", value), |guild| {
@@ -178,7 +178,7 @@ impl RowResolved {
                                     })
                             } else if column.name().starts_with("role") {
                                 // Guild column
-                                RoleId::from(value as u64)
+                                RoleId(value as u64)
                                     .to_role_cached(&ctx.cache)
                                     .await
                                     .map_or(format!("unknown role ({})", value), |role| role.name)

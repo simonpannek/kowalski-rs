@@ -46,7 +46,7 @@ pub async fn execute(
                 FROM modules
                 WHERE guild = $1::BIGINT
                 ",
-                &[&i64::from(guild)],
+                &[&(guild.0 as i64)],
             )
             .await?;
 
@@ -107,7 +107,7 @@ pub async fn execute(
                                 INNER JOIN emojis e ON se.emoji = e.id
                                 WHERE guild = $1::BIGINT
                                 ",
-                                &[&i64::from(guild)],
+                                &[&(guild.0 as i64)],
                             )
                             .await?;
 
@@ -175,7 +175,7 @@ pub async fn execute(
                                 WHERE guild = $1::BIGINT
                                 ORDER BY score
                                 ",
-                                &[&i64::from(guild)],
+                                &[&(guild.0 as i64)],
                             )
                             .await?;
 
@@ -207,7 +207,7 @@ pub async fn execute(
                                 INNER JOIN emojis e ON emoji = id
                                 WHERE guild = $1::BIGINT
                                 ",
-                                &[&i64::from(guild)],
+                                &[&(guild.0 as i64)],
                             )
                             .await?;
 

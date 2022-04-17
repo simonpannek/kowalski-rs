@@ -86,7 +86,7 @@ pub async fn execute(
             .client
             .query_opt(
                 "SELECT status FROM modules WHERE guild = $1::BIGINT",
-                &[&i64::from(guild)],
+                &[&(guild.0 as i64)],
             )
             .await?;
 
@@ -100,7 +100,7 @@ pub async fn execute(
                         INSERT INTO modules
                         VALUES ($1::BIGINT, B'00000000')
                         ",
-                        &[&i64::from(guild)],
+                        &[&(guild.0 as i64)],
                     )
                     .await?;
 
@@ -219,7 +219,7 @@ async fn update(
             SET status = $1::BIT(8)
             WHERE guild = $2::BIGINT
             ",
-            &[&status, &i64::from(guild)],
+            &[&status, &(guild.0 as i64)],
         )
         .await?;
 

@@ -43,7 +43,7 @@ pub async fn guild_member_removal(
         OFFSET floor(random() * (SELECT COUNT(*) FROM score_drops WHERE guild = $1::BIGINT))
         LIMIT 1
         ",
-                &[&i64::from(guild_id)],
+                &[&(guild_id.0 as i64)],
             )
             .await?;
 
@@ -65,7 +65,7 @@ pub async fn guild_member_removal(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
-                        &[&i64::from(guild_id), &i64::from(user.id)],
+                        &[&(guild_id.0 as i64), &(user.id.0 as i64)],
                     )
                     .await?;
 
@@ -118,9 +118,9 @@ pub async fn guild_member_removal(
                 WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
                 ",
                             &[
-                                &i64::from(guild_id),
-                                &i64::from(user.id),
-                                &i64::from(interaction.user.id),
+                                &(guild_id.0 as i64),
+                                &(user.id.0 as i64),
+                                &(interaction.user.id.0 as i64),
                             ],
                         )
                         .await?;
@@ -143,7 +143,7 @@ pub async fn guild_member_removal(
         DELETE FROM reactions
         WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
-                            &[&i64::from(guild_id), &i64::from(user.id)],
+                            &[&(guild_id.0 as i64), &(user.id.0 as i64)],
                         )
                         .await?;
 
@@ -168,7 +168,7 @@ pub async fn guild_member_removal(
         DELETE FROM reactions
         WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
-                    &[&i64::from(guild_id), &i64::from(user.id)],
+                    &[&(guild_id.0 as i64), &(user.id.0 as i64)],
                 )
                 .await?;
         }

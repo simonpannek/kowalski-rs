@@ -6,7 +6,6 @@ use std::{
 use serenity::{
     client::Context,
     model::{
-        id::ChannelId,
         interactions::application_command::{
             ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
         },
@@ -73,14 +72,11 @@ pub async fn execute(
         Channel(channel) => Ok(channel),
         _ => Err(ExecutionError::new(ERR_API_LOAD)),
     }?;
-    let channel = {
-        let id = ChannelId::from(partial_channel.id);
-        id.to_channel(&ctx.http).await?
-    };
+    let channel = partial_channel.id.to_channel(&ctx.http).await?;
 
     // Get guild and channel ids
-    let guild_id = i64::from(command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
-    let channel_id = i64::from(partial_channel.id);
+    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
+    let channel_id = partial_channel.id.0 as i64;
 
     let title = format!("{} drops for channel {}", action, partial_channel.name);
 

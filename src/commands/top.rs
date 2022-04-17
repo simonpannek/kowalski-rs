@@ -74,7 +74,7 @@ pub async fn execute(
         GROUP BY user_to
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
         ",
-                &[&i64::from(guild)],
+                &[&(guild.0 as i64)],
             )
             .await?;
 
@@ -84,7 +84,7 @@ pub async fn execute(
                 let upvotes: i64 = row.get(1);
                 let downvotes: i64 = row.get(2);
 
-                (UserId::from(user as u64), upvotes, downvotes)
+                (UserId(user as u64), upvotes, downvotes)
             })
             .collect()
     };

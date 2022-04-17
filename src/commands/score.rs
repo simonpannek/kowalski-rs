@@ -57,7 +57,7 @@ pub async fn execute(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
-                &[&i64::from(guild), &i64::from(user.id)],
+                &[&(guild.0 as i64), &(user.id.0 as i64)],
             )
             .await?;
 
@@ -78,7 +78,7 @@ pub async fn execute(
         GROUP BY emoji, unicode, emoji_guild
         ORDER BY count DESC
         ",
-                &[&i64::from(guild), &i64::from(user.id)],
+                &[&(guild.0 as i64), &(user.id.0 as i64)],
             )
             .await?;
 
@@ -122,7 +122,7 @@ pub async fn execute(
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
         LIMIT 5
         ",
-                &[&i64::from(guild), &i64::from(user.id)],
+                &[&(guild.0 as i64), &(user.id.0 as i64)],
             )
             .await?;
 
@@ -132,7 +132,7 @@ pub async fn execute(
                 let upvotes: i64 = row.get(1);
                 let downvotes: i64 = row.get(2);
 
-                (UserId::from(user as u64), upvotes, downvotes)
+                (UserId(user as u64), upvotes, downvotes)
             })
             .collect()
     };

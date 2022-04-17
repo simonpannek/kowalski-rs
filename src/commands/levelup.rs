@@ -73,8 +73,8 @@ pub async fn execute(
     let score: i64 = parse_arg(options, 2)?;
 
     // Get guild and role ids
-    let guild_id = i64::from(role.guild_id);
-    let role_id = i64::from(role.id);
+    let guild_id = role.guild_id.0 as i64;
+    let role_id = role.id.0 as i64;
 
     let title = format!("{} level-up role for {}", action, role.name);
 

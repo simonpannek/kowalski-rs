@@ -57,7 +57,7 @@ pub async fn execute(
 
             SELECT rank FROM ranks
             WHERE user_to = $2::BIGINT
-            ", &[&i64::from(guild), &i64::from(user.id)]).await?;
+            ", &[&(guild.0 as i64), &(user.id.0 as i64)]).await?;
 
         row.map(|row| row.get::<_, i64>(0))
     };

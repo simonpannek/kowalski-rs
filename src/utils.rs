@@ -113,7 +113,7 @@ pub async fn send_confirmation(
     // Get the interaction response
     let interaction = message
         .await_component_interaction(&ctx)
-        .author_id(u64::from(command.user.id.0))
+        .author_id(command.user.id.0)
         .timeout(timeout)
         .await;
 
@@ -406,7 +406,7 @@ pub async fn add_permissions(
                         role.permissions.contains(Permissions::ADMINISTRATOR)
                             || role.permissions.contains(permission)
                     })
-                    .map(|(&id, _)| u64::from(id))
+                    .map(|(&id, _)| id.0)
                     .collect(),
             ),
             None => None,
@@ -427,7 +427,7 @@ pub async fn add_permissions(
                     // Always give permission to the guild owner
                     command_perms.create_permission(|perm| {
                         perm.kind(User)
-                            .id(u64::from(partial_guild.owner_id))
+                            .id(partial_guild.owner_id.0)
                             .permission(true)
                     });
 

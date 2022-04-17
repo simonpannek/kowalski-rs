@@ -86,10 +86,10 @@ pub async fn execute(
     VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::TIMESTAMPTZ, $6::TEXT)
     ",
             &[
-                &i64::from(command.guild_id.unwrap()),
-                &i64::from(command.channel_id),
-                &i64::from(response.id),
-                &i64::from(command.user.id),
+                &(command.guild_id.unwrap().0 as i64),
+                &(command.channel_id.0 as i64),
+                &(response.id.0 as i64),
+                &(command.user.id.0 as i64),
                 &datetime,
                 &message,
             ],

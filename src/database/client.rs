@@ -141,7 +141,7 @@ impl Database {
     /// Note: If the emoji is not registered before, it will create a new row
     pub async fn get_emoji(&self, emoji: &ReactionType) -> Result<i32, ExecutionError> {
         let row = match emoji {
-            ReactionType::Custom { id, .. } => {
+            ReactionType::Custom { id: emoji_id, .. } => {
                 self.client
                     .query_one(
                         "
@@ -159,7 +159,7 @@ impl Database {
                         UNION ALL
                         SELECT * FROM new_row
                         ",
-                        &[&i64::from(*id)],
+                        &[&(emoji_id.0 as i64)],
                     )
                     .await?
             }

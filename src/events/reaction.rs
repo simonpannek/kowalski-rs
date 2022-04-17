@@ -282,7 +282,7 @@ pub async fn reaction_remove_all(
     };
 
     // Check if there is a guild
-    if let Some(guild) = guild {
+    if let Some(guild_id) = guild {
         // Delete possible reaction emojis
         database
             .client
@@ -292,9 +292,9 @@ pub async fn reaction_remove_all(
         WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
         ",
                 &[
-                    &i64::from(guild),
-                    &i64::from(channel_id),
-                    &i64::from(removed_from_message_id),
+                    &(guild_id.0 as i64),
+                    &(channel_id.0 as i64),
+                    &(removed_from_message_id.0 as i64),
                 ],
             )
             .await?;
@@ -303,13 +303,13 @@ pub async fn reaction_remove_all(
         let message = channel_id
             .message(&ctx.http, removed_from_message_id)
             .await?;
-        let mut member = guild.member(&ctx, message.author.id).await?;
+        let mut member = guild_id.member(&ctx, message.author.id).await?;
         update_roles(&ctx, &database, &mut member).await?;
 
         let message = channel_id
             .message(&ctx.http, removed_from_message_id)
             .await?;
-        auto_moderate(&ctx, &database, guild, message).await?;
+        auto_moderate(&ctx, &database, guild_id, message).await?;
     }
 
     Ok(())
@@ -332,7 +332,7 @@ async fn get_emoji_id(
                 )
                 .await?
         }
-        ReactionType::Custom { id, .. } => {
+        ReactionType::Custom { id: emoji_id, .. } => {
             database
                 .client
                 .query(
@@ -340,7 +340,7 @@ async fn get_emoji_id(
                     SELECT id FROM emojis
                     WHERE emoji_guild = $1::BIGINT
                     ",
-                    &[&i64::from(id.clone())],
+                    &[&(emoji_id.0 as i64)],
                 )
                 .await?
         }
@@ -354,14 +354,17 @@ async fn get_reaction_data(
     ctx: &Context,
     reaction: &Reaction,
 ) -> Result<(i64, i64, i64, i64, i64), ExecutionError> {
-    let guild = i64::from(reaction.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
-    let user_from = i64::from(reaction.user_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
+    let guild = reaction
+        .guild_id
+        .ok_or(ExecutionError::new(ERR_API_LOAD))?
+        .0 as i64;
+    let user_from = reaction.user_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
     let user_to = {
         let message = reaction.message(&ctx.http).await?;
-        i64::from(message.author.id)
+        message.author.id.0 as i64
     };
-    let channel = i64::from(reaction.channel_id);
-    let message = i64::from(reaction.message_id);
+    let channel = reaction.channel_id.0 as i64;
+    let message = reaction.message_id.0 as i64;
 
     Ok((guild, user_from, user_to, channel, message))
 }
@@ -387,7 +390,7 @@ async fn update_roles(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
-                &[&i64::from(member.guild_id), &i64::from(member.user.id)],
+                &[&(member.guild_id.0 as i64), &(member.user.id.0 as i64)],
             )
             .await?;
 
@@ -400,7 +403,7 @@ async fn update_roles(
             .client
             .query(
                 "SELECT DISTINCT role FROM score_roles WHERE guild = $1::BIGINT",
-                &[&i64::from(member.guild_id)],
+                &[&(member.guild_id.0 as i64)],
             )
             .await?;
 
@@ -425,7 +428,7 @@ async fn update_roles(
             WHERE guild = $1::BIGINT
             AND score = (SELECT score FROM role_score)
             ",
-                &[&i64::from(member.guild_id), &score],
+                &[&(member.guild_id.0 as i64), &score],
             )
             .await?;
 
@@ -465,7 +468,7 @@ async fn update_roles(
 async fn auto_moderate(
     ctx: &Context,
     database: &Database,
-    guild: GuildId,
+    guild_id: GuildId,
     message: Message,
 ) -> Result<(), ExecutionError> {
     // Get scores of auto-pin and auto-delete
@@ -477,7 +480,7 @@ async fn auto_moderate(
         SELECT score FROM score_auto_pin
         WHERE guild = $1::BIGINT
         ",
-                &[&i64::from(guild)],
+                &[&(guild_id.0 as i64)],
             )
             .await?;
 
@@ -491,7 +494,7 @@ async fn auto_moderate(
         SELECT score FROM score_auto_delete
         WHERE guild = $1::BIGINT
         ",
-                &[&i64::from(guild)],
+                &[&(guild_id.0 as i64)],
             )
             .await?;
 
@@ -510,7 +513,7 @@ async fn auto_moderate(
                 INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT AND message = $2::BIGINT
                 ",
-                    &[&i64::from(guild), &i64::from(message.id)],
+                    &[&(guild_id.0 as i64), &(message.id.0 as i64)],
                 )
                 .await?;
 

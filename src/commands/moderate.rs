@@ -64,7 +64,7 @@ pub async fn execute(
     let moderation = Moderation::from_str(parse_arg(options, 0)?)?;
 
     // Get guild id
-    let guild_id = i64::from(command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
+    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
 
     let title = format!("{} message", moderation);
 

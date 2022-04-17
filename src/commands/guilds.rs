@@ -132,7 +132,7 @@ pub async fn execute(
                 .execute(
                     "
                     INSERT INTO guilds VALUES ($1::BIGINT)",
-                    &[&i64::from(guild.id)],
+                    &[&(guild.id.0 as i64)],
                 )
                 .await?;
             // Get invite
@@ -495,7 +495,7 @@ async fn guild_action(
                             .client
                             .execute(
                                 "DELETE FROM guilds WHERE guild = $1::BIGINT",
-                                &[&i64::from(current.clone())],
+                                &[&(current.0 as i64)],
                             )
                             .await?;
 
@@ -528,7 +528,7 @@ async fn guild_action(
                         .client
                         .execute(
                             "DELETE FROM guilds WHERE guild = $1::BIGINT",
-                            &[&i64::from(current.clone())],
+                            &[&(current.0 as i64)],
                         )
                         .await?;
 

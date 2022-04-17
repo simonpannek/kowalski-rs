@@ -130,10 +130,10 @@ pub async fn execute(
                     let emoji = database.get_emoji(&reaction.emoji).await?;
 
                     // Convert the ids to integers
-                    let guild_id = i64::from(guild);
-                    let channel_id = i64::from(command.channel_id);
-                    let message_id = i64::from(reaction.message_id);
-                    let role_id = i64::from(role.id);
+                    let guild_id = guild.0 as i64;
+                    let channel_id = command.channel_id.0 as i64;
+                    let message_id = reaction.message_id.0 as i64;
+                    let role_id = role.id.0 as i64;
 
                     match action {
                         Action::Add => {

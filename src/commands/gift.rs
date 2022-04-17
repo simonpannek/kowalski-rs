@@ -43,8 +43,8 @@ pub async fn execute(
     let score: i64 = parse_arg(options, 1)?;
 
     // Get guild and user ids
-    let guild_id = i64::from(command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
-    let user_id = i64::from(command.user.id);
+    let guild_id = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?.0 as i64;
+    let user_id = command.user.id.0 as i64;
 
     // Calculate amount to gift
     let amount = {
@@ -120,7 +120,7 @@ pub async fn execute(
                 SET user_to = $3::BIGINT, native = false
                 WHERE (guild, user_from, user_to, channel, message, emoji) IN to_update
                 ",
-                    &[&guild_id, &user_id, &i64::from(user.id), &amount],
+                    &[&guild_id, &user_id, &(user.id.0 as i64), &amount],
                 )
                 .await?;
 
