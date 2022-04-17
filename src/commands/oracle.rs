@@ -6,6 +6,7 @@ use serenity::{
 
 use crate::{
     config::{Command, Config},
+    data,
     error::KowalskiError,
     history::History,
     model::Model,
@@ -19,15 +20,7 @@ pub async fn execute(
     command_config: &Command,
 ) -> Result<(), KowalskiError> {
     // Get config, lock to history and model
-    let (config, history_lock, model) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let history_lock = data.get::<History>().unwrap().clone();
-        let model = data.get::<Model>().unwrap().clone();
-
-        (config, history_lock, model)
-    };
+    let (config, history_lock, model) = data!(ctx, (Config, History, Model));
 
     let options = &command.data.options;
 

@@ -6,6 +6,7 @@ use serenity::{
 
 use crate::{
     config::Command,
+    data,
     database::client::Database,
     error::KowalskiError,
     utils::{parse_arg, parse_arg_resolved, send_response},
@@ -17,11 +18,7 @@ pub async fn execute(
     command_config: &Command,
 ) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().unwrap().clone()
-    };
+    let database = data!(ctx, Database);
 
     let options = &command.data.options;
 

@@ -13,6 +13,7 @@ use crate::{
     commands::*,
     config::{CommandType, Config},
     credits::Credits,
+    data,
     error::KowalskiError,
     history::History,
     strings::{
@@ -56,14 +57,7 @@ async fn execute_command(
         .await?;
 
     // Get config and credits
-    let (config, credits_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let credits_lock = data.get::<Credits>().unwrap().clone();
-
-        (config, credits_lock)
-    };
+    let (config, credits_lock) = data!(ctx, (Config, Credits));
 
     // Get command name
     let name = &command.data.name;
@@ -159,14 +153,7 @@ async fn answer_autocomplete(
     autocomplete: &AutocompleteInteraction,
 ) -> Result<(), KowalskiError> {
     // Get read access to the history
-    let (config, history_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let history_lock = data.get::<History>().unwrap().clone();
-
-        (config, history_lock)
-    };
+    let (config, history_lock) = data!(ctx, (Config, History));
 
     // Get user, option name and the content written by the user
     let user = autocomplete.user.id;

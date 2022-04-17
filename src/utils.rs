@@ -32,15 +32,37 @@ use serenity::{
 };
 use tracing::{error, warn};
 
-use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::{Command, CommandOption, Config, Module, Value},
     database::types::ModuleStatus,
     error::KowalskiError,
+    error::KowalskiError::DiscordApiError,
     strings::{
         ERR_CMD_ARGS_INVALID, ERR_CMD_CREATION, ERR_CMD_SEND_FAILURE, ERR_CMD_SET_PERMISSION,
     },
 };
+
+#[macro_export]
+macro_rules! data {
+    ( $ctx:expr, ( $( $type:ty ),*) ) => {
+        {
+            let data = $ctx.data.read().await;
+
+            (
+                $(
+                data.get::<$type>().unwrap().clone(),
+                )*
+            )
+        }
+    };
+    ( $ctx:expr, $type:ty ) => {
+        {
+            let data = $ctx.data.read().await;
+
+            data.get::<$type>().unwrap().clone()
+        }
+    };
+}
 
 #[macro_export]
 macro_rules! pluralize {

@@ -7,6 +7,7 @@ use tokio::task::JoinError;
 
 use crate::{
     config::{Command, Config},
+    data,
     error::KowalskiError,
     model::Model,
     strings::ERR_DATA_ACCESS,
@@ -19,14 +20,7 @@ pub async fn execute(
     command_config: &Command,
 ) -> Result<(), KowalskiError> {
     // Get config and model
-    let (config, model) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let model = data.get::<Model>().unwrap().clone();
-
-        (config, model)
-    };
+    let (config, model) = data!(ctx, (Config, Model));
 
     let messages = get_relevant_messages(ctx, &config, command.channel_id, None).await?;
 

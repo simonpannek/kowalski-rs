@@ -11,6 +11,7 @@ use tracing::info;
 
 use crate::{
     config::Config,
+    data,
     database::{client::Database, types::ModuleStatus},
     reminders::check_reminders,
     strings::{ERR_CMD_CREATION, ERR_DB_QUERY, INFO_CMD_GLOBAL, INFO_CMD_MODULE, INFO_CONNECTED},
@@ -34,14 +35,7 @@ pub async fn ready(ctx: &Context, rdy: Ready) {
 
 async fn setup_commands(ctx: &Context, rdy: Ready) {
     // Get config and database
-    let (config, database) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let database = data.get::<Database>().unwrap().clone();
-
-        (config, database)
-    };
+    let (config, database) = data!(ctx, (Config, Database));
 
     // Create global commands
     let commands = create_global_commands(ctx, &config).await;

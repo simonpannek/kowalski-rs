@@ -12,7 +12,7 @@ use serenity::{
 use std::time::Duration;
 
 use crate::{
-    config::Config, database::client::Database, error::KowalskiError, utils::create_embed,
+    config::Config, data, database::client::Database, error::KowalskiError, utils::create_embed,
 };
 
 pub async fn guild_member_removal(
@@ -22,14 +22,7 @@ pub async fn guild_member_removal(
     _member_data: Option<Member>,
 ) -> Result<(), KowalskiError> {
     // Get config and database
-    let (config, database) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let database = data.get::<Database>().unwrap().clone();
-
-        (config, database)
-    };
+    let (config, database) = data!(ctx, (Config, Database));
 
     // Select a random channel to send the message to
     let channel = {

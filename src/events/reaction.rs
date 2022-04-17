@@ -8,20 +8,12 @@ use serenity::{
 };
 
 use crate::{
-    config::Config, cooldowns::Cooldowns, database::client::Database, error::KowalskiError,
+    config::Config, cooldowns::Cooldowns, data, database::client::Database, error::KowalskiError,
 };
 
 pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), KowalskiError> {
     // Get database
-    let (config, database, cooldowns_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().unwrap().clone();
-        let database = data.get::<Database>().unwrap().clone();
-        let cooldowns_lock = data.get::<Cooldowns>().unwrap().clone();
-
-        (config, database, cooldowns_lock)
-    };
+    let (config, database, cooldowns_lock) = data!(ctx, (Config, Database, Cooldowns));
 
     // Check if the emoji is registered
     if let Some(emoji) = get_emoji_id(&add_reaction.emoji, &database).await? {
@@ -189,11 +181,7 @@ pub async fn reaction_remove(
     removed_reaction: Reaction,
 ) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().unwrap().clone()
-    };
+    let database = data!(ctx, Database);
 
     // Check if the emoji is registered
     if let Some(emoji) = get_emoji_id(&removed_reaction.emoji, &database).await? {
@@ -257,11 +245,7 @@ pub async fn reaction_remove_all(
     removed_from_message_id: MessageId,
 ) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().unwrap().clone()
-    };
+    let database = data!(ctx, Database);
 
     let guild = {
         let channel = channel_id.to_channel(&ctx.http).await?;

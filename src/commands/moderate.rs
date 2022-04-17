@@ -7,11 +7,12 @@ use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
 
-use crate::error::KowalskiError::DiscordApiError;
 use crate::{
     config::Command,
+    data,
     database::client::Database,
     error::KowalskiError,
+    error::KowalskiError::DiscordApiError,
     strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, send_response},
 };
@@ -50,11 +51,7 @@ pub async fn execute(
     command_config: &Command,
 ) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().unwrap().clone()
-    };
+    let database = data!(ctx, Database);
 
     let options = &command.data.options;
 
