@@ -49,7 +49,7 @@ pub async fn execute(
                 "
         SELECT SUM(CASE WHEN upvote THEN 1 END) upvotes,
         SUM(CASE WHEN NOT upvote THEN 1 END) downvotes
-        FROM reactions r
+        FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
@@ -68,7 +68,7 @@ pub async fn execute(
             .client
             .query(
                 "
-        SELECT unicode, emoji_guild, COUNT(*) FROM reactions r
+        SELECT unicode, emoji_guild, COUNT(*) FROM score_reactions r
         INNER JOIN emojis e ON r.emoji = e.id
         WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
         GROUP BY emoji, unicode, emoji_guild
@@ -111,7 +111,7 @@ pub async fn execute(
                 "
         SELECT user_from, COUNT(*) FILTER (WHERE upvote) upvotes,
         COUNT(*) FILTER (WHERE NOT upvote) downvotes
-        FROM reactions r
+        FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         GROUP BY user_from

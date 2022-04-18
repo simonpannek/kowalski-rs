@@ -53,7 +53,7 @@ pub async fn guild_member_removal(
                     .query_one(
                         "
         SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) score
-        FROM reactions r
+        FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
@@ -105,7 +105,7 @@ pub async fn guild_member_removal(
                         .client
                         .execute(
                             "
-                UPDATE reactions
+                UPDATE score_reactions
                 SET user_to = $3::BIGINT, native = false
                 WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
                 ",
@@ -132,7 +132,7 @@ pub async fn guild_member_removal(
                         .client
                         .execute(
                             "
-        DELETE FROM reactions
+        DELETE FROM score_reactions
         WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
                             &[&(guild_id.0 as i64), &(user.id.0 as i64)],
@@ -157,7 +157,7 @@ pub async fn guild_member_removal(
                 .client
                 .execute(
                     "
-        DELETE FROM reactions
+        DELETE FROM score_reactions
         WHERE guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
                     &[&(guild_id.0 as i64), &(user.id.0 as i64)],

@@ -146,7 +146,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     .client
                     .execute(
                         "
-                INSERT INTO reactions
+                INSERT INTO score_reactions
                 VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::BIGINT, $6::INT,
                 $7::BOOLEAN)
                 ",
@@ -195,7 +195,7 @@ pub async fn reaction_remove(
                 .client
                 .query_opt(
                     "
-            SELECT user_to FROM reactions
+            SELECT user_to FROM score_reactions
             WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND channel = $3::BIGINT
             AND message = $4::BIGINT AND emoji = $5::INT
             ",
@@ -212,7 +212,7 @@ pub async fn reaction_remove(
                 .client
                 .execute(
                     "
-        DELETE FROM reactions
+        DELETE FROM score_reactions
         WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND channel = $3::BIGINT
         AND message = $4::BIGINT AND emoji = $5::INT
         ",
@@ -259,7 +259,7 @@ pub async fn reaction_remove_all(
             .client
             .execute(
                 "
-        DELETE FROM reactions
+        DELETE FROM score_reactions
         WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
         ",
                 &[
@@ -354,7 +354,7 @@ async fn update_roles(
             .query_one(
                 "
         SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) score
-        FROM reactions r
+        FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
@@ -477,7 +477,7 @@ async fn auto_moderate(
                 .client
                 .query_one(
                     "
-                SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) FROM reactions r
+                SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) FROM score_reactions r
                 INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT AND message = $2::BIGINT
                 ",

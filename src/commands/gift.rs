@@ -46,7 +46,7 @@ pub async fn execute(
             .client
             .query_one(
                 "
-        SELECT COUNT(*) FROM reactions r
+        SELECT COUNT(*) FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND upvote
         ",
@@ -102,14 +102,14 @@ pub async fn execute(
                     "
                 WITH to_update AS (
                     SELECT r.guild, user_from, user_to, channel, message, r.emoji
-                    FROM reactions r
+                    FROM score_reactions r
                     INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                     WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND upvote
                     ORDER BY native
                     LIMIT $4::BIGINT
                 )
 
-                UPDATE reactions
+                UPDATE score_reactions
                 SET user_to = $3::BIGINT, native = false
                 WHERE (guild, user_from, user_to, channel, message, emoji) IN to_update
                 ",

@@ -60,7 +60,7 @@ pub async fn execute(
                 "
         SELECT user_to, COUNT(*) FILTER (WHERE upvote) upvotes,
         COUNT(*) FILTER (WHERE NOT upvote) downvotes
-        FROM reactions r
+        FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT
         GROUP BY user_to

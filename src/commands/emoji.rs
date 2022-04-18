@@ -150,7 +150,7 @@ pub async fn execute(
                                 .client
                                 .execute(
                                     "
-                                    DELETE FROM reactions
+                                    DELETE FROM score_reactions
                                     WHERE emoji = $1::INT",
                                     &[&emoji_id],
                                 )

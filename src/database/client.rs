@@ -80,14 +80,7 @@ impl Database {
                             FOREIGN KEY (emoji) REFERENCES emojis(id)
                     );
 
-                    CREATE TABLE IF NOT EXISTS score_roles (
-                        guild           BIGINT,
-                        role            BIGINT,
-                        score           BIGINT,
-                        PRIMARY KEY (guild, role, score)
-                    );
-
-                    CREATE TABLE IF NOT EXISTS reactions (
+                    CREATE TABLE IF NOT EXISTS score_reactions (
                         guild           BIGINT,
                         user_from       BIGINT,
                         user_to         BIGINT,
@@ -98,6 +91,13 @@ impl Database {
                         PRIMARY KEY (guild, user_from, user_to, channel, message, emoji),
                         CONSTRAINT fk_emojis
                             FOREIGN KEY (emoji) REFERENCES emojis(id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS score_roles (
+                        guild           BIGINT,
+                        role            BIGINT,
+                        score           BIGINT,
+                        PRIMARY KEY (guild, role, score)
                     );
 
                     CREATE TABLE IF NOT EXISTS reaction_roles (
