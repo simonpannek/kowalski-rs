@@ -68,6 +68,16 @@ pub async fn execute(
     // Get response of the bot
     let response = command.get_interaction_response(&ctx.http).await?;
 
+    let guild_id = command.guild_id.unwrap();
+
+    // Get guild, channel, message and user ids
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let channel_db_id = database.get_channel(guild_id, command.channel_id).await?;
+    let message_db_id = database
+        .get_message(guild_id, command.channel_id, response.id)
+        .await?;
+    let user_db_id = database.get_user(guild_id, command.user.id).await?;
+
     // Add reminder to database
     database
         .client
@@ -77,10 +87,10 @@ pub async fn execute(
     VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::TIMESTAMPTZ, $6::TEXT)
     ",
             &[
-                &(command.guild_id.unwrap().0 as i64),
-                &(command.channel_id.0 as i64),
-                &(response.id.0 as i64),
-                &(command.user.id.0 as i64),
+                &guild_db_id,
+                &channel_db_id,
+                &message_db_id,
+                &user_db_id,
                 &datetime,
                 &message,
             ],

@@ -49,8 +49,8 @@ pub async fn execute(
     // Get config and database
     let (config, database) = data!(ctx, (Config, Database));
 
-    // Get guild
-    let guild = command.guild_id.unwrap();
+    // Get guild id
+    let guild_db_id = database.get_guild(command.guild_id.unwrap()).await?;
 
     // Get top users
     let top: Vec<_> = {
@@ -66,7 +66,7 @@ pub async fn execute(
         GROUP BY user_to
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
         ",
-                &[&(guild.0 as i64)],
+                &[&guild_db_id],
             )
             .await?;
 

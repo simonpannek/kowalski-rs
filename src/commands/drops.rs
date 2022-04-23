@@ -67,9 +67,11 @@ pub async fn execute(
     };
     let channel = partial_channel.id.to_channel(&ctx.http).await?;
 
+    let guild_id = command.guild_id.unwrap();
+
     // Get guild and channel ids
-    let guild_id = command.guild_id.unwrap().0 as i64;
-    let channel_id = partial_channel.id.0 as i64;
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let channel_db_id = database.get_channel(guild_id, partial_channel.id).await?;
 
     let title = format!("{} drops for channel {}", action, partial_channel.name);
 
@@ -82,7 +84,7 @@ pub async fn execute(
             INSERT INTO score_drops
             VALUES ($1::BIGINT, $2::BIGINT)
             ",
-                    &[&guild_id, &channel_id],
+                    &[&guild_db_id, &channel_db_id],
                 )
                 .await?;
 
@@ -106,7 +108,7 @@ pub async fn execute(
             DELETE FROM score_drops
             WHERE guild = $1::BIGINT AND channel = $2::BIGINT
             ",
-                    &[&guild_id, &channel_id],
+                    &[&guild_db_id, &channel_db_id],
                 )
                 .await?;
 

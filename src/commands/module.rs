@@ -71,14 +71,18 @@ pub async fn execute(
     let action = Action::from_str(parse_arg(options, 0)?)?;
     let module = Module::from_str(parse_arg(options, 1)?)?;
 
+    let guild_id = command.guild_id.unwrap();
+
+    // Get guild id
+    let guild_db_id = database.get_guild(guild_id).await?;
+
     // Get guild status
-    let guild = command.guild_id.unwrap();
     let status: ModuleStatus = {
         let row = database
             .client
             .query_opt(
                 "SELECT status FROM modules WHERE guild = $1::BIGINT",
-                &[&(guild.0 as i64)],
+                &[&guild_db_id],
             )
             .await?;
 
@@ -92,7 +96,7 @@ pub async fn execute(
                         INSERT INTO modules
                         VALUES ($1::BIGINT, B'00000000')
                         ",
-                        &[&(guild.0 as i64)],
+                        &[&guild_db_id],
                     )
                     .await?;
 
@@ -159,7 +163,7 @@ pub async fn execute(
                     command_config,
                     title,
                     &config,
-                    guild,
+                    guild_id,
                     status_new,
                     database,
                 )
@@ -195,12 +199,15 @@ async fn update(
     command_config: &Command,
     title: String,
     config: &Config,
-    guild: GuildId,
+    guild_id: GuildId,
     status: ModuleStatus,
     database: Arc<Database>,
 ) -> Result<(), KowalskiError> {
     // Update the guild commands
-    create_module_command(ctx, config, guild, &status).await;
+    create_module_command(ctx, config, guild_id, &status).await;
+
+    // Get guild id
+    let guild_db_id = database.get_guild(guild_id).await?;
 
     // Update the database entry
     database
@@ -211,7 +218,7 @@ async fn update(
             SET status = $1::BIT(8)
             WHERE guild = $2::BIGINT
             ",
-            &[&status, &(guild.0 as i64)],
+            &[&status, &guild_db_id],
         )
         .await?;
 

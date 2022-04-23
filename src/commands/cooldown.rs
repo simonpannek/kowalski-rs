@@ -29,8 +29,8 @@ pub async fn execute(
     };
 
     // Get guild and role ids
-    let guild_id = role.guild_id.0 as i64;
-    let role_id = role.id.0 as i64;
+    let guild_db_id = database.get_guild(role.guild_id).await?;
+    let role_db_id = database.get_role(role.guild_id, role.id).await?;
 
     let title = format!("Set cooldown for {}", role.name);
 
@@ -48,7 +48,7 @@ pub async fn execute(
         ON CONFLICT (guild, role)
         DO UPDATE SET cooldown = $3::BIGINT
         ",
-                &[&guild_id, &role_id, &cooldown],
+                &[&guild_db_id, &role_db_id, &cooldown],
             )
             .await?;
 
@@ -73,7 +73,7 @@ pub async fn execute(
         DELETE FROM score_cooldowns
         WHERE guild = $1::BIGINT AND role = $2::BIGINT
         ",
-                &[&guild_id, &role_id],
+                &[&guild_db_id, &role_db_id],
             )
             .await?;
 

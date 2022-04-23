@@ -33,6 +33,34 @@ pub async fn ready(ctx: &Context, rdy: Ready) {
     setup_commands(ctx, rdy).await;
 }
 
+async fn clean_database(ctx: &Context, rdy: Ready) {
+    // Get database
+    let database = data!(ctx, Database);
+
+    // Get all guild ids currently tracked
+    let guilds = {
+        let rows = database
+            .client
+            .query(
+                "
+        SELECT guild FROM modules
+        UNION
+        SELECT guild FROM score_auto_delete
+        UNION
+        SELECT guild FROM score_auto_pin
+        UNION
+        SELECT guild FROM score_cooldowns
+        UNION
+        SELECT guild FROM score_drops
+
+        ",
+                &[],
+            )
+            .await
+            .unwrap();
+    };
+}
+
 async fn setup_commands(ctx: &Context, rdy: Ready) {
     // Get config and database
     let (config, database) = data!(ctx, (Config, Database));

@@ -79,7 +79,7 @@ pub enum CommandType {
 }
 
 /// Types of modules parsed by the config.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub enum Module {
     Owner,
     Utility,

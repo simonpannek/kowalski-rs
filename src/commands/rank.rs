@@ -34,8 +34,11 @@ pub async fn execute(
         &command.user
     };
 
-    // Get guild
-    let guild = command.guild_id.unwrap();
+    let guild_id = command.guild_id.unwrap();
+
+    // Get guild id
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let user_db_id = database.get_user(guild_id, user.id).await?;
 
     // Get rank of the user
     let rank = {
@@ -53,7 +56,7 @@ pub async fn execute(
 
             SELECT rank FROM ranks
             WHERE user_to = $2::BIGINT
-            ", &[&(guild.0 as i64), &(user.id.0 as i64)]).await?;
+            ", &[&guild_db_id, &user_db_id]).await?;
 
         row.map(|row| row.get::<_, i64>(0))
     };

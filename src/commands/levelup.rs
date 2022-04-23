@@ -68,8 +68,8 @@ pub async fn execute(
     let score: i64 = parse_arg(options, 2)?;
 
     // Get guild and role ids
-    let guild_id = role.guild_id.0 as i64;
-    let role_id = role.id.0 as i64;
+    let guild_db_id = database.get_guild(role.guild_id).await?;
+    let role_db_id = database.get_role(role.guild_id, role.id).await?;
 
     let title = format!("{} level-up role for {}", action, role.name);
 
@@ -82,7 +82,7 @@ pub async fn execute(
             INSERT INTO score_roles
             VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
             ",
-                    &[&guild_id, &role_id, &score],
+                    &[&guild_db_id, &role_db_id, &score],
                 )
                 .await?;
 
@@ -107,7 +107,7 @@ pub async fn execute(
             DELETE FROM score_roles
             WHERE guild = $1::BIGINT AND role = $2::BIGINT AND score = $3::BIGINT
             ",
-                    &[&guild_id, &role_id, &score],
+                    &[&guild_db_id, &role_db_id, &score],
                 )
                 .await?;
 

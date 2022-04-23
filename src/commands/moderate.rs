@@ -58,8 +58,10 @@ pub async fn execute(
     // Parse first argument
     let moderation = Moderation::from_str(parse_arg(options, 0)?)?;
 
+    let guild_id = command.guild_id.unwrap();
+
     // Get guild id
-    let guild_id = command.guild_id.unwrap().0 as i64;
+    let guild_db_id = database.get_guild(guild_id).await?;
 
     let title = format!("{} message", moderation);
 
@@ -78,7 +80,7 @@ pub async fn execute(
                         VALUES ($1::BIGINT, $2::BIGINT)
                         ON CONFLICT (guild) DO UPDATE SET score = $2::BIGINT
                         ",
-                        &[&guild_id, &score],
+                        &[&guild_db_id, &score],
                     )
                     .await?;
             }
@@ -91,7 +93,7 @@ pub async fn execute(
                         VALUES ($1::BIGINT, $2::BIGINT)
                         ON CONFLICT (guild) DO UPDATE SET score = $2::BIGINT
                         ",
-                        &[&guild_id, &score],
+                        &[&guild_db_id, &score],
                     )
                     .await?;
             }
@@ -119,7 +121,7 @@ pub async fn execute(
                         DELETE FROM score_auto_pin
                         WHERE guild = $1::BIGINT
                         ",
-                        &[&guild_id],
+                        &[&guild_db_id],
                     )
                     .await?;
             }
@@ -131,7 +133,7 @@ pub async fn execute(
                         DELETE FROM score_auto_delete
                         WHERE guild = $1::BIGINT
                         ",
-                        &[&guild_id],
+                        &[&guild_db_id],
                     )
                     .await?;
             }

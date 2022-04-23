@@ -63,7 +63,7 @@ pub async fn execute(
     // Get config and database
     let (config, database) = data!(ctx, (Config, Database));
 
-    let guild = command.guild_id.unwrap();
+    let guild_id = command.guild_id.unwrap();
 
     let options = &command.data.options;
 
@@ -93,9 +93,9 @@ pub async fn execute(
         .await?;
 
     // Wait for the reaction
-    let reaction = guild
+    let reaction = guild_id
         .await_reaction(&ctx)
-        .guild_id(guild)
+        .guild_id(guild_id)
         .author_id(command.user.id)
         .removed(false)
         .timeout(Duration::from_secs(config.general.interaction_timeout))
@@ -107,7 +107,7 @@ pub async fn execute(
                 ReactionAction::Added(reaction) => {
                     // Check whether the emoji is available on the guild
                     if let ReactionType::Custom { id, .. } = &reaction.emoji {
-                        if let Err(_) = guild.emoji(&ctx.http, *id).await {
+                        if let Err(_) = guild_id.emoji(&ctx.http, *id).await {
                             return send_response(
                                 ctx,
                                 command,
@@ -121,11 +121,13 @@ pub async fn execute(
                     // Get the id of the emoji in the emoji table
                     let emoji = database.get_emoji(&reaction.emoji).await?;
 
-                    // Convert the ids to integers
-                    let guild_id = guild.0 as i64;
-                    let channel_id = command.channel_id.0 as i64;
-                    let message_id = reaction.message_id.0 as i64;
-                    let role_id = role.id.0 as i64;
+                    // Get the guild, role, channel and message ids
+                    let guild_db_id = database.get_guild(guild_id).await?;
+                    let role_db_id = database.get_role(guild_id, role.id).await?;
+                    let channel_db_id = database.get_channel(guild_id, command.channel_id).await?;
+                    let message_db_id = database
+                        .get_message(guild_id, command.channel_id, reaction.message_id)
+                        .await?;
 
                     match action {
                         Action::Add => {
@@ -143,9 +145,15 @@ pub async fn execute(
 
                             INSERT INTO reaction_roles
                             SELECT $1::BIGINT, $2::BIGINT, $3::BIGINT, $4::INT, $5::BIGINT
-                            WHERE NOT EXISTS /duplicate
+                            WHERE NOT EXISTS (SELECT * FROM duplicate)
                             ",
-                                    &[&guild_id, &channel_id, &message_id, &emoji, &role_id],
+                                    &[
+                                        &guild_db_id,
+                                        &channel_db_id,
+                                        &message_db_id,
+                                        &emoji,
+                                        &role_db_id,
+                                    ],
                                 )
                                 .await?;
 
@@ -163,11 +171,11 @@ pub async fn execute(
                                     AND role = $5::BIGINT
                                     ",
                                             &[
-                                                &guild_id,
-                                                &channel_id,
-                                                &message_id,
+                                                &guild_db_id,
+                                                &channel_db_id,
+                                                &message_db_id,
                                                 &emoji,
-                                                &role_id,
+                                                &role_db_id,
                                                 &slots,
                                             ],
                                         )
@@ -185,11 +193,11 @@ pub async fn execute(
                                     AND role = $5::BIGINT
                                     ",
                                             &[
-                                                &guild_id,
-                                                &channel_id,
-                                                &message_id,
+                                                &guild_db_id,
+                                                &channel_db_id,
+                                                &message_db_id,
                                                 &emoji,
-                                                &role_id,
+                                                &role_db_id,
                                             ],
                                         )
                                         .await?;
@@ -222,7 +230,13 @@ pub async fn execute(
                             WHERE guild = $1::BIGINT AND channel = $2::BIGINT
                             AND message = $3::BIGINT AND emoji = $4::INT AND role = $5::BIGINT
                             ",
-                                    &[&guild_id, &channel_id, &message_id, &emoji, &role_id],
+                                    &[
+                                        &guild_db_id,
+                                        &channel_db_id,
+                                        &message_db_id,
+                                        &emoji,
+                                        &role_db_id,
+                                    ],
                                 )
                                 .await?;
 

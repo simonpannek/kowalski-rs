@@ -64,6 +64,9 @@ pub async fn execute(
 
     let guild_id = command.guild_id.unwrap();
 
+    // Get guild id
+    let guild_db_id = database.get_guild(guild_id).await?;
+
     let options = &command.data.options;
 
     // Parse arguments
@@ -115,7 +118,7 @@ pub async fn execute(
                     INSERT INTO score_emojis
                     VALUES ($1::BIGINT, $2::INT, $3::BOOLEAN)
                     ",
-                            &[&(guild_id.0 as i64), &emoji_id, &upvote],
+                            &[&guild_db_id, &emoji_id, &upvote],
                         )
                         .await?;
 

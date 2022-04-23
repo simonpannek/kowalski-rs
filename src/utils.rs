@@ -549,7 +549,6 @@ pub async fn get_relevant_messages(
                             .join("")
                     )
                 })
-                .collect::<Vec<_>>()
                 .join("\n")
         })
         .collect();

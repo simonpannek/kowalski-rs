@@ -35,9 +35,12 @@ pub async fn execute(
     };
     let score: i64 = parse_arg(options, 1)?;
 
+    let guild_id = command.guild_id.unwrap();
+
     // Get guild and user ids
-    let guild_id = command.guild_id.unwrap().0 as i64;
-    let user_id = command.user.id.0 as i64;
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let user_from_db_id = database.get_user(guild_id, command.user.id).await?;
+    let user_to_db_id = database.get_user(guild_id, user.id).await?;
 
     // Calculate amount to gift
     let amount = {
@@ -50,7 +53,7 @@ pub async fn execute(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND upvote
         ",
-                &[&guild_id, &user_id],
+                &[&guild_db_id, &user_from_db_id],
             )
             .await?;
 
@@ -113,7 +116,7 @@ pub async fn execute(
                 SET user_to = $3::BIGINT, native = false
                 WHERE (guild, user_from, user_to, channel, message, emoji) IN to_update
                 ",
-                    &[&guild_id, &user_id, &(user.id.0 as i64), &amount],
+                    &[&guild_db_id, &user_from_db_id, &user_to_db_id, &amount],
                 )
                 .await?;
 

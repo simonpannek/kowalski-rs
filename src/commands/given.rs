@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use serenity::{
     client::Context,
     model::{
@@ -36,8 +37,11 @@ pub async fn execute(
         &command.user
     };
 
-    // Get guild
     let guild_id = command.guild_id.unwrap();
+
+    // Get guild id
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let user_db_id = database.get_user(guild_id, user.id).await?;
 
     // Analyze reactions from the user
     let (upvotes, downvotes) = {
@@ -51,7 +55,7 @@ pub async fn execute(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT
         ",
-                &[&(guild_id.0 as i64), &(user.id.0 as i64)],
+                &[&guild_db_id, &user_db_id],
             )
             .await?;
 
@@ -73,7 +77,7 @@ pub async fn execute(
         GROUP BY emoji, unicode, emoji_guild
         ORDER BY count DESC
         ",
-                &[&(guild_id.0 as i64), &(user.id.0 as i64)],
+                &[&guild_db_id, &user_db_id],
             )
             .await?;
 
@@ -103,6 +107,7 @@ pub async fn execute(
 
         emojis
     };
+
     let users: Vec<_> = {
         let rows = database
             .client
@@ -117,7 +122,7 @@ pub async fn execute(
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
         LIMIT 5
         ",
-                &[&(guild_id.0 as i64), &(user.id.0 as i64)],
+                &[&guild_db_id, &user_db_id],
             )
             .await?;
 
@@ -157,7 +162,6 @@ pub async fn execute(
                         f_count / f_total * 100f64
                     )
                 })
-                .collect::<Vec<_>>()
                 .join(", ");
             if emojis.is_empty() {
                 emojis = "Not available".to_string();
@@ -174,7 +178,6 @@ pub async fn execute(
                         downvotes
                     )
                 })
-                .collect::<Vec<_>>()
                 .join("\n");
             if users.is_empty() {
                 users = "Not available".to_string();

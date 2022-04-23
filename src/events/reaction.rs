@@ -3,7 +3,7 @@ use serenity::{
     model::{
         channel::{Message, Reaction, ReactionType},
         guild::Member,
-        id::{ChannelId, GuildId, MessageId, RoleId},
+        id::{ChannelId, GuildId, MessageId, RoleId, UserId},
     },
 };
 
@@ -15,14 +15,23 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
     // Get database
     let (config, database, cooldowns_lock) = data!(ctx, (Config, Database, Cooldowns));
 
-    // Check if the emoji is registered
-    if let Some(emoji) = get_emoji_id(&add_reaction.emoji, &database).await? {
+    // Check if the emoji is registered and get its id
+    if let Some(emoji_db_id) = get_emoji_id(&add_reaction.emoji, &database).await? {
         // Get reaction data
-        let (guild, user_from, user_to, channel, message) =
+        let (guild_id, user_from_id, user_to_id, channel_id, message_id) =
             get_reaction_data(ctx, &add_reaction).await?;
 
+        // Get guild, channel, user_from, user_to and message ids
+        let guild_db_id = database.get_guild(guild_id).await?;
+        let user_from_db_id = database.get_user(guild_id, user_from_id).await?;
+        let user_to_db_id = database.get_user(guild_id, user_to_id).await?;
+        let channel_db_id = database.get_channel(guild_id, channel_id).await?;
+        let message_db_id = database
+            .get_message(guild_id, channel_id, message_id)
+            .await?;
+
         // Self reactions do not count
-        if user_from == user_to {
+        if user_from_id == user_to_id {
             return Ok(());
         }
 
@@ -36,7 +45,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
                     AND emoji = $4::INT
                     ",
-                    &[&guild, &channel, &message, &emoji],
+                    &[&guild_db_id, &channel_db_id, &message_db_id, &emoji_db_id],
                 )
                 .await?;
 
@@ -49,6 +58,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                 })
                 .collect()
         };
+
         // Whether the emoji should count as a up-/downvote
         let levelup = reaction_roles.is_empty()
             && database
@@ -58,7 +68,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     SELECT * FROM score_emojis
                     WHERE guild = $1::BIGINT AND emoji = $2::INT
                     ",
-                    &[&guild, &emoji],
+                    &[&guild_db_id, &emoji_db_id],
                 )
                 .await?
                 .is_some();
@@ -69,8 +79,9 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                 let channel = add_reaction.channel_id.to_channel(&ctx.http).await?;
                 channel.guild().map(|channel| channel.guild_id).unwrap()
             };
+
             // Get the member
-            let mut member = guild_id.member(&ctx, user_from as u64).await?;
+            let mut member = guild_id.member(&ctx, user_from_id.0).await?;
 
             // Never give roles to bots
             if member.user.bot {
@@ -91,7 +102,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                         WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
                         AND emoji = $4::INT AND slots IS NOT NULL
                         ",
-                            &[&guild, &channel, &message, &emoji],
+                            &[&guild_db_id, &channel_db_id, &message_db_id, &emoji_db_id],
                         )
                         .await?;
 
@@ -108,7 +119,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
                     AND emoji = $3::INT AND slots IS NOT NULL
                     ",
-                                &[&guild, &channel, &message, &emoji],
+                                &[&guild_db_id, &channel_db_id, &message_db_id, &emoji_db_id],
                             )
                             .await?;
 
@@ -129,11 +140,11 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     .unwrap()
                     .roles
                     .iter()
-                    .map(|&role_id| role_id.0)
+                    .map(|role_id| role_id.clone())
                     .collect();
 
                 cooldowns
-                    .check_cooldown(&config, &database, guild as u64, user_from as u64, &roles)
+                    .check_cooldown(&config, &database, guild_id, user_from_id, &roles)
                     .await?
             };
 
@@ -151,7 +162,13 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                 $7::BOOLEAN)
                 ",
                         &[
-                            &guild, &user_from, &user_to, &channel, &message, &emoji, &true,
+                            &guild_db_id,
+                            &user_from_db_id,
+                            &user_to_db_id,
+                            &channel_db_id,
+                            &message_db_id,
+                            &emoji_db_id,
+                            &true,
                         ],
                     )
                     .await?;
@@ -163,7 +180,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                 };
 
                 // Update the roles of the user
-                let mut member = guild.member(&ctx, user_to as u64).await?;
+                let mut member = guild.member(&ctx, user_to_id.0).await?;
                 update_roles(&ctx, &database, &mut member).await?;
 
                 // Auto moderate the message if necessary
@@ -184,13 +201,21 @@ pub async fn reaction_remove(
     let database = data!(ctx, Database);
 
     // Check if the emoji is registered
-    if let Some(emoji) = get_emoji_id(&removed_reaction.emoji, &database).await? {
+    if let Some(emoji_db_id) = get_emoji_id(&removed_reaction.emoji, &database).await? {
         // Get reaction data
-        let (guild, user_from, _, channel, message) =
+        let (guild_id, user_from_id, _, channel_id, message_id) =
             get_reaction_data(ctx, &removed_reaction).await?;
 
+        // Get guild, channel, user_from and message ids
+        let guild_db_id = database.get_guild(guild_id).await?;
+        let user_from_db_id = database.get_user(guild_id, user_from_id).await?;
+        let channel_db_id = database.get_channel(guild_id, channel_id).await?;
+        let message_db_id = database
+            .get_message(guild_id, channel_id, message_id)
+            .await?;
+
         // Get user of which the reaction was removed
-        let user_to = {
+        let user_to_db_id = {
             let row = database
                 .client
                 .query_opt(
@@ -199,14 +224,20 @@ pub async fn reaction_remove(
             WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND channel = $3::BIGINT
             AND message = $4::BIGINT AND emoji = $5::INT
             ",
-                    &[&guild, &user_from, &channel, &message, &emoji],
+                    &[
+                        &guild_db_id,
+                        &user_from_db_id,
+                        &channel_db_id,
+                        &message_db_id,
+                        &emoji_db_id,
+                    ],
                 )
                 .await?;
 
             row.map(|row| row.get::<_, i64>(0))
         };
 
-        if let Some(user_to) = user_to {
+        if let Some(user_to_db_id) = user_to_db_id {
             // Delete possible reaction emoji
             database
                 .client
@@ -216,7 +247,13 @@ pub async fn reaction_remove(
         WHERE guild = $1::BIGINT AND user_from = $2::BIGINT AND channel = $3::BIGINT
         AND message = $4::BIGINT AND emoji = $5::INT
         ",
-                    &[&guild, &user_from, &channel, &message, &emoji],
+                    &[
+                        &guild_db_id,
+                        &user_from_db_id,
+                        &channel_db_id,
+                        &message_db_id,
+                        &emoji_db_id,
+                    ],
                 )
                 .await?;
 
@@ -227,7 +264,7 @@ pub async fn reaction_remove(
             };
 
             // Update the roles of the user
-            let mut member = guild.member(&ctx, user_to as u64).await?;
+            let mut member = guild.member(&ctx, user_to_db_id as u64).await?;
             update_roles(&ctx, &database, &mut member).await?;
 
             // Auto moderate the message if necessary
@@ -247,13 +284,20 @@ pub async fn reaction_remove_all(
     // Get database
     let database = data!(ctx, Database);
 
-    let guild = {
+    let guild_id = {
         let channel = channel_id.to_channel(&ctx.http).await?;
         channel.guild().map(|channel| channel.guild_id)
     };
 
     // Check if there is a guild
-    if let Some(guild_id) = guild {
+    if let Some(guild_id) = guild_id {
+        // Get guild id
+        let guild_db_id = database.get_guild(guild_id).await?;
+        let channel_db_id = database.get_channel(guild_id, channel_id).await?;
+        let message_db_id = database
+            .get_message(guild_id, channel_id, removed_from_message_id)
+            .await?;
+
         // Delete possible reaction emojis
         database
             .client
@@ -262,11 +306,7 @@ pub async fn reaction_remove_all(
         DELETE FROM score_reactions
         WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
         ",
-                &[
-                    &(guild_id.0 as i64),
-                    &(channel_id.0 as i64),
-                    &(removed_from_message_id.0 as i64),
-                ],
+                &[&guild_db_id, &channel_db_id, &message_db_id],
             )
             .await?;
 
@@ -324,17 +364,17 @@ async fn get_emoji_id(
 async fn get_reaction_data(
     ctx: &Context,
     reaction: &Reaction,
-) -> Result<(i64, i64, i64, i64, i64), KowalskiError> {
-    let guild = reaction.guild_id.unwrap().0 as i64;
-    let user_from = reaction.user_id.unwrap().0 as i64;
-    let user_to = {
+) -> Result<(GuildId, UserId, UserId, ChannelId, MessageId), KowalskiError> {
+    let guild_id = reaction.guild_id.unwrap();
+    let user_from_id = reaction.user_id.unwrap();
+    let user_to_id = {
         let message = reaction.message(&ctx.http).await?;
-        message.author.id.0 as i64
+        message.author.id
     };
-    let channel = reaction.channel_id.0 as i64;
-    let message = reaction.message_id.0 as i64;
+    let channel_id = reaction.channel_id;
+    let message_id = reaction.message_id;
 
-    Ok((guild, user_from, user_to, channel, message))
+    Ok((guild_id, user_from_id, user_to_id, channel_id, message_id))
 }
 
 async fn update_roles(
@@ -347,6 +387,10 @@ async fn update_roles(
         return Ok(());
     }
 
+    // Get guild and user ids
+    let guild_db_id = database.get_guild(member.guild_id).await?;
+    let user_db_id = database.get_user(member.guild_id, member.user.id).await?;
+
     // Get the score of the user
     let score = {
         let row = database
@@ -358,7 +402,7 @@ async fn update_roles(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
         ",
-                &[&(member.guild_id.0 as i64), &(member.user.id.0 as i64)],
+                &[&guild_db_id, &user_db_id],
             )
             .await?;
 
@@ -371,7 +415,7 @@ async fn update_roles(
             .client
             .query(
                 "SELECT DISTINCT role FROM score_roles WHERE guild = $1::BIGINT",
-                &[&(member.guild_id.0 as i64)],
+                &[&guild_db_id],
             )
             .await?;
 
@@ -379,6 +423,7 @@ async fn update_roles(
             .map(|row| RoleId(row.get::<_, i64>(0) as u64))
             .collect()
     };
+
     // Get all roles the user should currently have
     let current: Vec<_> = {
         let rows = database
@@ -396,7 +441,7 @@ async fn update_roles(
             WHERE guild = $1::BIGINT
             AND score = (SELECT score FROM role_score)
             ",
-                &[&(member.guild_id.0 as i64), &score],
+                &[&guild_db_id, &score],
             )
             .await?;
 
@@ -439,6 +484,12 @@ async fn auto_moderate(
     guild_id: GuildId,
     message: Message,
 ) -> Result<(), KowalskiError> {
+    // Get guild and message ids
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let message_db_id = database
+        .get_message(guild_id, message.channel_id, message.id)
+        .await?;
+
     // Get scores of auto-pin and auto-delete
     let pin_score = {
         let row = database
@@ -448,12 +499,13 @@ async fn auto_moderate(
         SELECT score FROM score_auto_pin
         WHERE guild = $1::BIGINT
         ",
-                &[&(guild_id.0 as i64)],
+                &[&guild_db_id],
             )
             .await?;
 
         row.map(|row| row.get::<_, i64>(0))
     };
+
     let delete_score = {
         let row = database
             .client
@@ -462,7 +514,7 @@ async fn auto_moderate(
         SELECT score FROM score_auto_delete
         WHERE guild = $1::BIGINT
         ",
-                &[&(guild_id.0 as i64)],
+                &[&guild_db_id],
             )
             .await?;
 
@@ -481,7 +533,7 @@ async fn auto_moderate(
                 INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT AND message = $2::BIGINT
                 ",
-                    &[&(guild_id.0 as i64), &(message.id.0 as i64)],
+                    &[&guild_db_id, &message_db_id],
                 )
                 .await?;
 

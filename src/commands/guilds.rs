@@ -108,24 +108,29 @@ pub async fn execute(
             // Get count of owned guilds
             let count: i64 = database
                 .client
-                .query_one("SELECT COUNT(*) FROM guilds", &[])
+                .query_one("SELECT COUNT(*) FROM owned_guilds", &[])
                 .await?
                 .get(0);
 
             // Create guild
-            let guild =
+            let partial_guild =
                 create_guild(&ctx.http, &format!("Kowalski Guild #{}", count + 1), None).await?;
+
+            // Get guild id
+            let guild_db_id = database.get_guild(partial_guild.id).await?;
+
             // Add guild to database
             database
                 .client
                 .execute(
                     "
-                    INSERT INTO guilds VALUES ($1::BIGINT)",
-                    &[&(guild.id.0 as i64)],
+                    INSERT INTO owned_guilds VALUES ($1::BIGINT)",
+                    &[&guild_db_id],
                 )
                 .await?;
+
             // Get invite
-            let invite = get_invite(ctx, &guild).await?;
+            let invite = get_invite(ctx, &partial_guild).await?;
 
             send_response(
                 &ctx,
@@ -143,7 +148,7 @@ pub async fn execute(
             // Get list of owned guilds
             let owned: Vec<GuildId> = database
                 .client
-                .query("SELECT guild FROM guilds", &[])
+                .query("SELECT guild FROM owned_guilds", &[])
                 .await?
                 .iter()
                 .map(|row| GuildId(row.get::<_, i64>(0) as u64))
@@ -338,12 +343,12 @@ async fn guild_action(
     command_config: &Command,
     config: &Config,
     database: &Database,
-    current: &GuildId,
+    current_guild_id: &GuildId,
     interaction: ComponentInteractionResponse,
 ) -> Result<(), KowalskiError> {
-    let mut guild = current.to_partial_guild(&ctx.http).await?;
+    let mut partial_guild = current_guild_id.to_partial_guild(&ctx.http).await?;
 
-    let title = format!("{} '{}'", interaction, guild.name);
+    let title = format!("{} '{}'", interaction, partial_guild.name);
 
     let content = match interaction {
         ComponentInteractionResponse::GetAdmin => {
@@ -378,13 +383,13 @@ async fn guild_action(
             match interaction {
                 ComponentInteractionResponse::GetAdmin => {
                     // Get the member
-                    let member = guild.member(&ctx.http, command.user.id).await;
+                    let member = partial_guild.member(&ctx.http, command.user.id).await;
 
                     match member {
                         Ok(mut member) => {
                             // Get an admin role
                             let admin = {
-                                let role = guild
+                                let role = partial_guild
                                     .roles
                                     .iter()
                                     .filter(|(_, role)| role.permissions.administrator())
@@ -394,7 +399,7 @@ async fn guild_action(
                                 match role {
                                     Some(role) => role,
                                     None => {
-                                        guild
+                                        partial_guild
                                             .create_role(&ctx.http, |role| {
                                                 role.name("Kowalski Admin")
                                                     .permissions(Permissions::ADMINISTRATOR)
@@ -412,7 +417,7 @@ async fn guild_action(
                                 command,
                                 command_config,
                                 &title,
-                                &format!("You are now an admin of guild '{}'.", guild.name),
+                                &format!("You are now an admin of guild '{}'.", partial_guild.name),
                             )
                             .await
                         }
@@ -432,7 +437,7 @@ async fn guild_action(
                 }
                 ComponentInteractionResponse::RemoveAdmin => {
                     // Get the member
-                    let member = guild.member(&ctx.http, command.user.id).await;
+                    let member = partial_guild.member(&ctx.http, command.user.id).await;
 
                     match member {
                         Ok(mut member) => {
@@ -453,7 +458,7 @@ async fn guild_action(
                                 command,
                                 command_config,
                                 &title,
-                                &format!("You are not an admin of guild '{}' anymore.", guild.name),
+                                &format!("You are not an admin of guild '{}' anymore.", partial_guild.name),
                             )
                             .await
                         }
@@ -473,17 +478,20 @@ async fn guild_action(
                 }
                 ComponentInteractionResponse::Ownership => {
                     // Transfer ownership
-                    guild
+                    partial_guild
                         .edit(&ctx.http, |guild| guild.owner(&command.user))
                         .await?;
 
-                    if guild.owner_id == command.user.id {
+                    if partial_guild.owner_id == command.user.id {
+                        // Get guild id
+                        let guild_db_id = database.get_guild(current_guild_id.clone()).await?;
+
                         // Remove guild from database
                         database
                             .client
                             .execute(
-                                "DELETE FROM guilds WHERE guild = $1::BIGINT",
-                                &[&(current.0 as i64)],
+                                "DELETE FROM owned_guilds WHERE guild = $1::BIGINT",
+                                &[&guild_db_id],
                             )
                             .await?;
 
@@ -492,7 +500,7 @@ async fn guild_action(
                             command,
                             command_config,
                             &title,
-                            &format!("You are now the owner of guild '{}'.", guild.name),
+                            &format!("You are now the owner of guild '{}'.", partial_guild.name),
                         )
                         .await
                     } else {
@@ -509,14 +517,18 @@ async fn guild_action(
                     }
                 }
                 ComponentInteractionResponse::Delete => {
+                    // Get guild id
+                    let guild_db_id = database.get_guild(current_guild_id.clone()).await?;
+
                     // Delete guild (ignore result because of a library bug)
-                    let _ = current.delete(&ctx.http).await;
+                    let _ = current_guild_id.delete(&ctx.http).await;
+
                     // Remove guild from database
                     database
                         .client
                         .execute(
-                            "DELETE FROM guilds WHERE guild = $1::BIGINT",
-                            &[&(current.0 as i64)],
+                            "DELETE FROM owned_guilds WHERE guild = $1::BIGINT",
+                            &[&guild_db_id],
                         )
                         .await?;
 
@@ -525,7 +537,7 @@ async fn guild_action(
                         command,
                         command_config,
                         &title,
-                        &format!("I have removed guild '{}'.", guild.name),
+                        &format!("I have removed guild '{}'.", partial_guild.name),
                     )
                     .await
                 }
