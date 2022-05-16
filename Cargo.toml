@@ -16,7 +16,7 @@ bit-vec = "0.6"
 chrono = "0.4"
 itertools = "0.10"
 serde_json = "1.0"
-tabled = "0.5"
+tabled = "0.6"
 thiserror = "1.0"
 toml = "0.5"
 tracing = "0.1"
@@ -36,12 +36,12 @@ version = "1.0"
 features = ["derive"]
 
 [dependencies.serenity]
-version = "0.10"
+version = "0.11.2"
 default-features = false
 features = ["cache", "client", "collector", "rustls_backend", "unstable_discord_api"]
 
 [dependencies.tokio]
-version = "1.0"
+version = "1.18"
 features = ["macros", "rt-multi-thread"]
 
 [dependencies.tokio-postgres]

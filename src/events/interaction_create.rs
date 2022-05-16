@@ -113,27 +113,39 @@ async fn execute_command(
         Ok(())
     } else {
         // Execute the command
+        // TODO: Use meta programming for this?
         match command_config.command_type {
             CommandType::About => about::execute(ctx, command, command_config).await,
             CommandType::Info => info::execute(ctx, command, command_config).await,
             CommandType::Module => module::execute(ctx, command, command_config).await,
+            CommandType::Modules => modules::execute(ctx, command, command_config).await,
             CommandType::Ping => ping::execute(ctx, command, command_config).await,
-            CommandType::Guild => guilds::execute(ctx, command, command_config).await,
+            CommandType::Guild => guild::execute(ctx, command, command_config).await,
+            CommandType::Guilds => guilds::execute(ctx, command, command_config).await,
             CommandType::Say => say::execute(ctx, command, command_config).await,
             CommandType::Sql => sql::execute(ctx, command, command_config).await,
             CommandType::Clear => clear::execute(ctx, command, command_config).await,
             CommandType::Reminder => reminder::execute(ctx, command, command_config).await,
+            CommandType::Reminders => reminders::execute(ctx, command, command_config).await,
             CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
+            CommandType::Cooldowns => cooldowns::execute(ctx, command, command_config).await,
+            CommandType::Drop => drop::execute(ctx, command, command_config).await,
             CommandType::Drops => drops::execute(ctx, command, command_config).await,
             CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
+            CommandType::Emojis => emojis::execute(ctx, command, command_config).await,
             CommandType::Gift => gift::execute(ctx, command, command_config).await,
             CommandType::Given => given::execute(ctx, command, command_config).await,
             CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
-            CommandType::Moderate => moderate::execute(ctx, command, command_config).await,
+            CommandType::LevelUps => levelups::execute(ctx, command, command_config).await,
+            CommandType::Moderation => moderation::execute(ctx, command, command_config).await,
+            CommandType::Moderations => moderations::execute(ctx, command, command_config).await,
             CommandType::Score => score::execute(ctx, command, command_config).await,
             CommandType::Rank => rank::execute(ctx, command, command_config).await,
             CommandType::Top => top::execute(ctx, command, command_config).await,
             CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
+            CommandType::ReactionRoles => {
+                reactionroles::execute(ctx, command, command_config).await
+            }
             #[cfg(feature = "nlp-model")]
             CommandType::Mood => mood::execute(ctx, command, command_config).await,
             #[cfg(feature = "nlp-model")]

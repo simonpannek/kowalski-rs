@@ -1,4 +1,4 @@
-use serenity::client::bridge::gateway::GatewayIntents;
+use serenity::prelude::GatewayIntents;
 use std::{env, error::Error, sync::Arc};
 use tokio::sync::RwLock;
 
@@ -30,15 +30,15 @@ impl Client {
             .parse()?;
 
         // Build the database
-        let client = serenity::Client::builder(token)
-            .event_handler(Handler)
-            .intents(
-                GatewayIntents::GUILD_MEMBERS
-                    | GatewayIntents::GUILD_MESSAGES
-                    | GatewayIntents::GUILD_MESSAGE_REACTIONS,
-            )
-            .application_id(id)
-            .await?;
+        let client = serenity::Client::builder(
+            token,
+            GatewayIntents::GUILD_MEMBERS
+                | GatewayIntents::GUILD_MESSAGES
+                | GatewayIntents::GUILD_MESSAGE_REACTIONS,
+        )
+        .event_handler(Handler)
+        .application_id(id)
+        .await?;
 
         {
             let mut data = client.data.write().await;

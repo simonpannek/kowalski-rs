@@ -1,4 +1,5 @@
 use chrono::Utc;
+use serenity::model::Timestamp;
 use serenity::{
     client::Context,
     model::{channel::Message, interactions::application_command::ApplicationCommandInteraction},
@@ -44,11 +45,14 @@ pub async fn execute(
             let filtered: Vec<&Message> = messages
                 .iter()
                 .filter(|message| {
-                    let age_weeks = Utc::now()
-                        .signed_duration_since(message.timestamp)
-                        .num_days();
+                    let age_days = {
+                        let age_seconds =
+                            Timestamp::now().unix_timestamp() - message.timestamp.unix_timestamp();
 
-                    age_weeks < 14
+                        age_seconds / (60 * 60 * 24)
+                    };
+
+                    age_days < 14
                 })
                 .collect();
 

@@ -1,8 +1,10 @@
 use std::borrow::Cow;
 
 use serenity::{
-    client::Context, http::AttachmentType,
-    model::interactions::application_command::ApplicationCommandInteraction,
+    client::Context,
+    model::{
+        channel::AttachmentType, interactions::application_command::ApplicationCommandInteraction,
+    },
 };
 
 use crate::{

@@ -180,7 +180,6 @@ impl RowResolved {
                                 // Guild column
                                 RoleId(value as u64)
                                     .to_role_cached(&ctx.cache)
-                                    .await
                                     .map_or(format!("unknown role ({})", value), |role| role.name)
                             } else {
                                 // Just return the number

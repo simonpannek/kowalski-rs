@@ -45,7 +45,7 @@ choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
 
 [commands.module]
 command_type = "Module"
-description = "Update the activated modules on this guild."
+description = "Update the activated modules."
 default_permission = false
 permission = "8"
 cost = 10
@@ -61,6 +61,11 @@ kind = "String"
 description = "The module to update."
 required = true
 choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
+
+[commands.modules]
+command_type = "Modules"
+description = "See which modules are enabled."
+default_permission = true
 
 [commands.ping]
 command_type = "Ping"
@@ -79,7 +84,14 @@ owner = true
 kind = "String"
 description = "What to do."
 required = true
-choices = ["create", "list"]
+choices = ["create", "edit"]
+
+[commands.guilds]
+command_type = "Guilds"
+description = "See which guilds are owned by this bot."
+module = "Owner"
+default_permission = false
+owner = true
 
 [commands.say]
 command_type = "Say"
@@ -166,6 +178,12 @@ description = "The amount of days to wait before sending the reminder."
 min_value = 0
 max_value = 365
 
+[commands.reminders]
+command_type = "Reminders"
+description = "See which reminders are currently pending."
+module = "Utility"
+default_permission = true
+
 # Score
 [commands.cooldown]
 command_type = "Cooldown"
@@ -184,24 +202,34 @@ kind = "Integer"
 description = "The cooldown in seconds (reset the cooldown if no cooldown is given)."
 min_value = 0
 
-[commands.drops]
-command_type = "Drops"
-description = "Set channels into which reactions should get dropped into when a user leaves the guild."
+[commands.cooldowns]
+command_type = "Cooldowns"
+description = "See the reaction cooldown of all roles."
+default_permission = true
+
+[commands.drop]
+command_type = "Drop"
+description = "Set channels which reactions should get dropped into when a user leaves the guild."
 module = "Score"
 default_permission = false
 permission = "8"
 
-[commands.drops.options.action]
+[commands.drop.options.action]
 kind = "String"
 description = "What to do."
 required = true
 choices = ["add", "remove"]
 
-[commands.drops.options.channel]
+[commands.drop.options.channel]
 kind = "Channel"
 description = "The channel to update."
 required = true
 channel_types = ["Text"]
+
+[commands.drops]
+command_type = "Drops"
+description = "See which channels reactions should get dropped into if a user leaves."
+default_permission = true
 
 [commands.emoji]
 command_type = "Emoji"
@@ -220,6 +248,12 @@ choices = ["add upvote", "add downvote", "remove"]
 kind = "String"
 description = "The emoji to update."
 required = true
+
+[commands.emojis]
+command_type = "Emojis"
+description = "See which emojis are listed as up- or downvotes."
+module = "Score"
+default_permission = true
 
 [commands.gift]
 command_type = "Gift"
@@ -271,22 +305,33 @@ kind = "Integer"
 description = "The required score for the role."
 required = true
 
-[commands.moderate]
-command_type = "Moderate"
+[commands.levelups]
+command_type = "LevelUps"
+description = "See which role gets awarded on which score."
+default_permission = true
+
+[commands.moderation]
+command_type = "Moderation"
 description = "Automatically pin/delete messages based on their votes."
 module = "Score"
 default_permission = false
 permission = "8"
 
-[commands.moderate.options.moderation]
+[commands.moderation.options.moderation]
 kind = "String"
 description = "What to do to the message after reaching the score."
 required = true
 choices = ["pin", "delete"]
 
-[commands.moderate.options.score]
+[commands.moderation.options.score]
 kind = "Integer"
 description = "The score to reach (disable the moderation if no score is given)."
+
+[commands.moderations]
+command_type = "Moderations"
+description = "See what auto-moderation features are enabled."
+module = "Score"
+default_permission = true
 
 [commands.rank]
 command_type = "Rank"
@@ -337,6 +382,12 @@ required = true
 kind = "Integer"
 description = "The maximum number of users which can hold the reaction-role at the same time."
 min_value = 0
+
+[commands.reactionroles]
+command_type = "ReactionRoles"
+description = "See into which channels reactions should get dropped into if a user leaves."
+module = "ReactionRoles"
+default_permission = true
 
 # Analyze
 [commands.mood]
