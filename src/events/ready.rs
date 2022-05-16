@@ -15,7 +15,7 @@ use crate::{
     database::{client::Database, types::ModuleStatus},
     reminders::check_reminders,
     strings::{ERR_CMD_CREATION, ERR_DB_QUERY, INFO_CMD_GLOBAL, INFO_CMD_MODULE, INFO_CONNECTED},
-    utils::{add_permissions, create_command, create_module_command},
+    utils::{create_command, create_module_command},
 };
 
 pub async fn ready(ctx: &Context, rdy: Ready) {
@@ -66,11 +66,7 @@ async fn setup_commands(ctx: &Context, rdy: Ready) {
     let (config, database) = data!(ctx, (Config, Database));
 
     // Create global commands
-    let commands = create_global_commands(ctx, &config).await;
-    // Set permissions of the global commands per guild
-    for guild in rdy.guilds {
-        add_permissions(ctx, &config, guild.id, &commands).await;
-    }
+    create_global_commands(ctx, &config).await;
     info!("{}", INFO_CMD_GLOBAL);
 
     // Create module commands per guild

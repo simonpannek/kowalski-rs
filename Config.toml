@@ -30,12 +30,10 @@ nlp_group_size = 20
 [commands.about]
 command_type = "About"
 description = "Display information about the bot."
-default_permission = true
 
 [commands.info]
 command_type = "Info"
 description = "Display information about certain modules."
-default_permission = true
 
 [commands.info.options.module]
 kind = "String"
@@ -46,7 +44,6 @@ choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
 [commands.module]
 command_type = "Module"
 description = "Update the activated modules."
-default_permission = false
 permission = "8"
 cost = 10
 
@@ -65,19 +62,17 @@ choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
 [commands.modules]
 command_type = "Modules"
 description = "See which modules are enabled."
-default_permission = true
 
 [commands.ping]
 command_type = "Ping"
 description = "Ping the bot."
-default_permission = true
 
 # Bot management
 [commands.guild]
 command_type = "Guild"
 description = "Manage guilds created by the bot."
 module = "Owner"
-default_permission = false
+permission = "8"
 owner = true
 
 [commands.guild.options.action]
@@ -90,14 +85,13 @@ choices = ["create", "edit"]
 command_type = "Guilds"
 description = "See which guilds are owned by this bot."
 module = "Owner"
-default_permission = false
+permission = "8"
 owner = true
 
 [commands.say]
 command_type = "Say"
 description = "Make the bot say something."
 module = "Owner"
-default_permission = false
 owner = true
 
 [commands.say.options.title]
@@ -116,7 +110,7 @@ autocomplete = true
 command_type = "Sql"
 description = "Execute a SQL query."
 module = "Owner"
-default_permission = false
+permission = "8"
 owner = true
 cost = 5
 
@@ -131,7 +125,6 @@ autocomplete = true
 command_type = "Clear"
 description = "Clear a certain amount of recent messages."
 module = "Utility"
-default_permission = false
 permission = "8192"
 cost = 10
 
@@ -150,7 +143,6 @@ description = "The message id from which to start deleting messages."
 command_type = "Reminder"
 description = "Scheduler a reminder in a certain amount of time."
 module = "Utility"
-default_permission = true
 cost = 10
 
 [commands.reminder.options.message]
@@ -182,14 +174,12 @@ max_value = 365
 command_type = "Reminders"
 description = "See which reminders are currently pending."
 module = "Utility"
-default_permission = true
 
 # Score
 [commands.cooldown]
 command_type = "Cooldown"
 description = "Define a custom reaction cooldown for certain roles."
 module = "Score"
-default_permission = false
 permission = "8"
 
 [commands.cooldown.options.role]
@@ -205,13 +195,11 @@ min_value = 0
 [commands.cooldowns]
 command_type = "Cooldowns"
 description = "See the reaction cooldown of all roles."
-default_permission = true
 
 [commands.drop]
 command_type = "Drop"
 description = "Set channels which reactions should get dropped into when a user leaves the guild."
 module = "Score"
-default_permission = false
 permission = "8"
 
 [commands.drop.options.action]
@@ -229,13 +217,11 @@ channel_types = ["Text"]
 [commands.drops]
 command_type = "Drops"
 description = "See which channels reactions should get dropped into if a user leaves."
-default_permission = true
 
 [commands.emoji]
 command_type = "Emoji"
 description = "Manage which emojis should count as up- and downvotes."
 module = "Score"
-default_permission = false
 permission = "8"
 
 [commands.emoji.options.action]
@@ -253,13 +239,11 @@ required = true
 command_type = "Emojis"
 description = "See which emojis are listed as up- or downvotes."
 module = "Score"
-default_permission = true
 
 [commands.gift]
 command_type = "Gift"
 description = "Send a certain amount of your reactions to another user."
 module = "Score"
-default_permission = true
 
 [commands.gift.options.user]
 kind = "User"
@@ -276,7 +260,6 @@ min_value = 1
 command_type = "Given"
 description = "Display stats about the votes given to other users."
 module = "Score"
-default_permission = true
 
 [commands.given.options.user]
 kind = "User"
@@ -286,7 +269,6 @@ description = "The user to query."
 command_type = "LevelUp"
 description = "Manage the roles assigned by the bot on a certain score."
 module = "Score"
-default_permission = false
 permission = "8"
 
 [commands.levelup.options.action]
@@ -308,13 +290,11 @@ required = true
 [commands.levelups]
 command_type = "LevelUps"
 description = "See which role gets awarded on which score."
-default_permission = true
 
 [commands.moderation]
 command_type = "Moderation"
 description = "Automatically pin/delete messages based on their votes."
 module = "Score"
-default_permission = false
 permission = "8"
 
 [commands.moderation.options.moderation]
@@ -331,13 +311,11 @@ description = "The score to reach (disable the moderation if no score is given).
 command_type = "Moderations"
 description = "See what auto-moderation features are enabled."
 module = "Score"
-default_permission = true
 
 [commands.rank]
 command_type = "Rank"
 description = "Display the rank of a user."
 module = "Score"
-default_permission = true
 
 [commands.rank.options.user]
 kind = "User"
@@ -347,7 +325,6 @@ description = "The user to query."
 command_type = "Score"
 description = "Display the score of a user."
 module = "Score"
-default_permission = true
 
 [commands.score.options.user]
 kind = "User"
@@ -357,14 +334,12 @@ description = "The user to query."
 command_type = "Top"
 description = "Display the users with the highest scores."
 module = "Score"
-default_permission = true
 
 # Reaction Roles
 [commands.reactionrole]
 command_type = "ReactionRole"
 description = "Manage the roles assigned when a user reacts on a certain message."
 module = "ReactionRoles"
-default_permission = false
 permission = "8"
 
 [commands.reactionrole.options.action]
@@ -387,14 +362,12 @@ min_value = 0
 command_type = "ReactionRoles"
 description = "See into which channels reactions should get dropped into if a user leaves."
 module = "ReactionRoles"
-default_permission = true
 
 # Analyze
 [commands.mood]
 command_type = "Mood"
 description = "Analyze the general mood in the chat or the mood of a certain user."
 module = "Analyze"
-default_permission = true
 cost = 5
 
 [commands.mood.options.user]
@@ -405,7 +378,6 @@ description = "The user to query."
 command_type = "Oracle"
 description = "Answer a question."
 module = "Analyze"
-default_permission = true
 cost = 10
 
 [commands.oracle.options.question]
@@ -418,5 +390,4 @@ autocomplete = true
 command_type = "Tldr"
 description = "Display a short summary of the last messages."
 module = "Analyze"
-default_permission = true
 cost = 20

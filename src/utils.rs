@@ -275,10 +275,11 @@ async fn edit_embed(
 pub fn create_command(name: &str, command_config: &Command) -> CreateApplicationCommand {
     let mut command = CreateApplicationCommand::default();
 
-    command
-        .name(name)
-        .description(&command_config.description)
-        .default_permission(command_config.default_permission);
+    command.name(name).description(&command_config.description);
+
+    if let Some(permission) = command_config.permission {
+        command.default_member_permissions(permission);
+    }
 
     // Add options if there are any
     if let Some(options) = &command_config.options {
@@ -328,7 +329,7 @@ pub async fn create_module_command(
         });
 
     // Add the commands
-    let commands = guild
+    guild
         .set_application_commands(&ctx.http, |commands| {
             for (name, options) in filtered {
                 let command = create_command(name, options);
@@ -339,8 +340,6 @@ pub async fn create_module_command(
         })
         .await
         .expect(ERR_CMD_CREATION);
-
-    add_permissions(ctx, &config, guild, &commands).await;
 }
 
 fn create_option(name: &str, option_config: &CommandOption) -> CreateApplicationCommandOption {
@@ -393,83 +392,6 @@ fn create_option(name: &str, option_config: &CommandOption) -> CreateApplication
     }
 
     option
-}
-
-/// Add permissions for a command.
-pub async fn add_permissions(
-    ctx: &Context,
-    config: &Config,
-    guild_id: GuildId,
-    commands: &Vec<ApplicationCommand>,
-) {
-    // Get the partial guild to get the owner information later
-    let partial_guild = guild_id.to_partial_guild(&ctx.http).await.unwrap();
-
-    // Get commands which do not have default permissions
-    let commands = commands
-        .iter()
-        .filter(|command| !command.default_permission);
-
-    for command in commands {
-        // Get config of the command
-        let command_config = config.commands.get(&command.name).unwrap();
-
-        // Get roles which should have access to the command
-        let roles: Option<Vec<_>> = match command_config.permission {
-            Some(permission) => Some(
-                guild_id
-                    .roles(&ctx.http)
-                    .await
-                    .unwrap()
-                    .iter()
-                    .filter(|(_, role)| {
-                        role.permissions.contains(Permissions::ADMINISTRATOR)
-                            || role.permissions.contains(permission)
-                    })
-                    .map(|(&id, _)| id.0)
-                    .collect(),
-            ),
-            None => None,
-        };
-
-        let result = guild_id
-            .create_application_command_permission(&ctx.http, command.id, |command_perms| {
-                // Set owner execution only
-                if command_config.owner.unwrap_or_default() {
-                    for &owner in &config.general.owners {
-                        command_perms
-                            .create_permission(|perm| perm.kind(User).id(owner).permission(true));
-                    }
-                }
-
-                // Set custom permissions
-                if command_config.permission.is_some() {
-                    // Always give permission to the guild owner
-                    command_perms.create_permission(|perm| {
-                        perm.kind(User)
-                            .id(partial_guild.owner_id.0)
-                            .permission(true)
-                    });
-
-                    // TODO: Listen for guild owner change and role edit events
-
-                    // Set custom permission for roles with the permission
-                    if let Some(roles) = roles {
-                        for id in roles {
-                            command_perms
-                                .create_permission(|perm| perm.kind(Role).id(id).permission(true));
-                        }
-                    };
-                }
-
-                command_perms
-            })
-            .await;
-
-        if let Err(why) = result {
-            warn!("{}: {:?}", ERR_CMD_SET_PERMISSION, why);
-        }
-    }
 }
 
 /// Parse the name of a command argument given an index.

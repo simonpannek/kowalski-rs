@@ -64,33 +64,32 @@ async fn execute_command(
     // Get command config
     let command_config = config.commands.get(name).unwrap();
 
-    // Check for permissions (this should not be necessary, just an additional fallback)
-    if !command_config.default_permission {
-        let mut can_execute = false;
+    // Check for permissions
+    let mut can_execute = true;
 
-        // Check if the user is a owner if the comment requires it to be one
-        if command_config.owner.unwrap_or_default() {
-            let owners = &config.general.owners;
-            if owners.contains(&command.user.id.0) {
-                can_execute = true;
-            }
+    // Check if the user is a owner if the comment requires it to be one
+    if command_config.owner.unwrap_or_default() {
+        let owners = &config.general.owners;
+        if !owners.contains(&command.user.id.0) {
+            can_execute = false;
         }
+    }
 
-        // Check if the user has the required permissions if there are any
-        if let Some(permission) = command_config.permission {
-            if let Some(member) = &command.member {
-                // Get permissions of the user
-                let permissions = member.permissions.unwrap();
+    // Check if the user has the required permissions if there are any
+    if let Some(permission) = command_config.permission {
+        if let Some(member) = &command.member {
+            // Get permissions of the user
+            let permissions = member.permissions.unwrap();
 
-                // Check whether the user has sufficient permissions
-                can_execute = permissions.contains(permission);
-            }
+            // Check whether the user has sufficient permissions
+            can_execute = permissions.contains(permission);
         }
+    }
 
-        // Fail if user cannot execute the command (this shouldn't happen because of the Discord API)
-        if !can_execute {
-            unreachable!();
-        }
+    // Fail if user cannot execute the command
+    if !can_execute {
+        // TODO: Send a message
+        unreachable!();
     }
 
     // Add command costs to user credits

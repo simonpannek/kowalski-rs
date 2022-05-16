@@ -43,7 +43,6 @@ pub struct Command {
     pub command_type: CommandType,
     pub description: String,
     pub module: Option<Module>,
-    pub default_permission: bool,
     pub permission: Option<Permissions>,
     pub owner: Option<bool>,
     pub options: Option<LinkedHashMap<String, CommandOption>>,
