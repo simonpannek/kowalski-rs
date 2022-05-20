@@ -318,7 +318,7 @@ impl Database {
                 "
             WITH duplicate AS (
                 SELECT * FROM users
-                WHERE guild = $1::BIGINT AND user = $2::BIGINT
+                WHERE guild = $1::BIGINT AND \"user\" = $2::BIGINT
             )
 
             INSERT INTO users
