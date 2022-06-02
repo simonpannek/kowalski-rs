@@ -31,4 +31,4 @@ pub mod score;
 pub mod sql;
 #[cfg(feature = "nlp-model")]
 pub mod tldr;
-pub mod top;
+pub mod scores;

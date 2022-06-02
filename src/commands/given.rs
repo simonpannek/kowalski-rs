@@ -117,7 +117,7 @@ pub async fn execute(
         COUNT(*) FILTER (WHERE NOT upvote) downvotes
         FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
-        WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT
+        WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT AND native = true
         GROUP BY user_to
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
         LIMIT 5

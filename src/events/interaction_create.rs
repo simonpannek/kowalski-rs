@@ -137,8 +137,8 @@ async fn execute_command(
             CommandType::Moderation => moderation::execute(ctx, command, command_config).await,
             CommandType::Moderations => moderations::execute(ctx, command, command_config).await,
             CommandType::Score => score::execute(ctx, command, command_config).await,
+            CommandType::Scores => scores::execute(ctx, command, command_config).await,
             CommandType::Rank => rank::execute(ctx, command, command_config).await,
-            CommandType::Top => top::execute(ctx, command, command_config).await,
             CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
             CommandType::ReactionRoles => {
                 reactionroles::execute(ctx, command, command_config).await

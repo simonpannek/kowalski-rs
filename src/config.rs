@@ -79,7 +79,7 @@ pub enum CommandType {
     Moderations,
     Rank,
     Score,
-    Top,
+    Scores,
     ReactionRole,
     ReactionRoles,
     Mood,

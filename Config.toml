@@ -321,8 +321,8 @@ module = "Score"
 kind = "User"
 description = "The user to query."
 
-[commands.top]
-command_type = "Top"
+[commands.scores]
+command_type = "Scores"
 description = "Display the users with the highest scores."
 module = "Score"
 
