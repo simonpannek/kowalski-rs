@@ -15,7 +15,7 @@ pub mod levelups;
 pub mod moderation;
 pub mod moderations;
 pub mod module;
-pub mod modules;
+pub modmodules;
 #[cfg(feature = "nlp-model")]
 pub mod mood;
 #[cfg(feature = "nlp-model")]
@@ -28,7 +28,7 @@ pub mod reminder;
 pub mod reminders;
 pub mod say;
 pub mod score;
+pub mod scores;
 pub mod sql;
 #[cfg(feature = "nlp-model")]
 pub mod tldr;
-pub mod scores;

@@ -160,31 +160,40 @@ impl RowResolved {
 
                     match value {
                         Some(value) => {
-                            let string = if column.name().starts_with("user") {
-                                // Guild column
-                                UserId(value as u64)
-                                    .to_user(&ctx.http)
-                                    .await
-                                    .map_or(format!("unknown user ({})", value), |user| {
-                                        format!("{}#{:04}", user.name, user.discriminator)
-                                    })
-                            } else if column.name().starts_with("guild") {
-                                // Guild column
-                                GuildId(value as u64)
-                                    .to_partial_guild(&ctx.http)
-                                    .await
-                                    .map_or(format!("unknown guild ({})", value), |guild| {
-                                        guild.name
-                                    })
-                            } else if column.name().starts_with("role") {
-                                // Guild column
-                                RoleId(value as u64)
-                                    .to_role_cached(&ctx.cache)
-                                    .map_or(format!("unknown role ({})", value), |role| role.name)
-                            } else {
-                                // Just return the number
-                                value.to_string()
-                            };
+                            let string =
+                                if column.name().starts_with("user") {
+                                    // Guild column
+                                    UserId(value as u64)
+                                        .to_user(&ctx.http)
+                                        .await
+                                        .map_or(format!("unknown user ({})", value), |user| {
+                                            format!("{}#{:04}", user.name, user.discriminator)
+                                        })
+                                } else if column.name().starts_with("guild") {
+                                    // Guild column
+                                    let guild_id = GuildId(value as u64);
+                                    match guild_id.to_guild_cached(&ctx.cache) {
+                                        Some(guild) => guild.name,
+                                        None => guild_id.to_partial_guild(&ctx.http).await.map_or(
+                                            format!("unknown guild ({})", value),
+                                            |guild| guild.name,
+                                        ),
+                                    }
+                                } else if column.name().starts_with("role") {
+                                    // Guild column
+                                    let role_id = RoleId(value as u64);
+                                    match role_id.to_role_cached(&ctx.cache) {
+                                        Some(role) => role.name,
+                                        None => role_id
+                                            .to_role_cached(&ctx.cache)
+                                            .map_or(format!("unknown role ({})", value), |role| {
+                                                role.name
+                                            }),
+                                    }
+                                } else {
+                                    // Just return the number
+                                    value.to_string()
+                                };
 
                             values.push(string)
                         }
