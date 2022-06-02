@@ -56,7 +56,7 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse first argument
-    let moderation = Moderation::from_str(parse_arg(options, 0)?)?;
+    let moderation = Moderation::from_str(parse_arg(options, 0)?).unwrap();
 
     let guild_id = command.guild_id.unwrap();
 

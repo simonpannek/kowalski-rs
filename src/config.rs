@@ -9,6 +9,7 @@ use serenity::{
     },
     prelude::TypeMapKey,
 };
+use strum_macros::{EnumIter, EnumString};
 use tokio::{fs::File, io::AsyncReadExt};
 
 use crate::{
@@ -36,6 +37,8 @@ pub struct General {
     pub nlp_max_message_length: usize,
     pub nlp_max_messages: u64,
     pub nlp_group_size: usize,
+    pub reminder_list_size: usize,
+    pub reminder_list_max_message_length: usize,
 }
 
 #[derive(Deserialize)]
@@ -53,12 +56,10 @@ pub struct Command {
 #[derive(Deserialize)]
 pub enum CommandType {
     About,
-    Info,
     Module,
     Modules,
     Ping,
     Guild,
-    Guilds,
     Say,
     Sql,
     Clear,
@@ -87,7 +88,7 @@ pub enum CommandType {
 }
 
 /// Types of modules parsed by the config.
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(EnumIter, EnumString, Debug, Deserialize, PartialEq)]
 pub enum Module {
     Owner,
     Utility,
@@ -168,21 +169,6 @@ impl Config {
 
 impl TypeMapKey for Config {
     type Value = Arc<Config>;
-}
-
-impl FromStr for Module {
-    type Err = KowalskiError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Owner" => Ok(Module::Owner),
-            "Utility" => Ok(Module::Utility),
-            "Score" => Ok(Module::Score),
-            "ReactionRoles" => Ok(Module::ReactionRoles),
-            "Analyze" => Ok(Module::Analyze),
-            _ => unreachable!(),
-        }
-    }
 }
 
 impl Into<ApplicationCommandOptionType> for OptionType {

@@ -1,4 +1,3 @@
-use chrono::Utc;
 use serenity::model::Timestamp;
 use serenity::{
     client::Context,

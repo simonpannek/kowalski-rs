@@ -70,7 +70,7 @@ pub async fn execute(
         roles
     };
 
-    let mut roles = roles
+    let roles = roles
         .iter()
         .map(|(channel_id, message_id, emoji, role_id, slots)| {
             let mut content = format!(

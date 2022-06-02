@@ -101,7 +101,7 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse argument
-    let action = Action::from_str(parse_arg(options, 0)?)?;
+    let action = Action::from_str(parse_arg(options, 0)?).unwrap();
 
     match action {
         Action::Create => {

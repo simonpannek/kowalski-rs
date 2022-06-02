@@ -60,7 +60,7 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse arguments
-    let action = Action::from_str(parse_arg(options, 0)?)?;
+    let action = Action::from_str(parse_arg(options, 0)?).unwrap();
     let partial_channel = match parse_arg_resolved(options, 1)? {
         Channel(channel) => channel,
         _ => unreachable!(),

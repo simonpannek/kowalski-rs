@@ -18,28 +18,23 @@ use serenity::{
         id::GuildId,
         interactions::{
             application_command::{
-                ApplicationCommand, ApplicationCommandInteraction,
-                ApplicationCommandInteractionDataOption,
-                ApplicationCommandPermissionType::{Role, User},
+                ApplicationCommandInteraction, ApplicationCommandInteractionDataOption,
             },
             message_component::ButtonStyle,
             InteractionResponseType::ChannelMessageWithSource,
         },
         prelude::application_command::ApplicationCommandInteractionDataOptionValue,
-        Permissions,
     },
     utils::Colour,
 };
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::{
     config::{Command, CommandOption, Config, Module, Value},
     database::types::ModuleStatus,
     error::KowalskiError,
     error::KowalskiError::DiscordApiError,
-    strings::{
-        ERR_CMD_ARGS_INVALID, ERR_CMD_CREATION, ERR_CMD_SEND_FAILURE, ERR_CMD_SET_PERMISSION,
-    },
+    strings::{ERR_CMD_ARGS_INVALID, ERR_CMD_CREATION, ERR_CMD_SEND_FAILURE},
 };
 
 #[macro_export]
@@ -72,6 +67,13 @@ macro_rules! pluralize {
         } else {
             format!("{} {}s", $variable, $name)
         }
+    };
+}
+
+#[macro_export]
+macro_rules! row_id {
+    ($type:expr, $row:expr, $index:expr) => {
+        $type($row.get::<_, i64>($index) as u64)
     };
 }
 

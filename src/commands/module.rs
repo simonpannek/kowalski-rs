@@ -68,8 +68,8 @@ pub async fn execute(
     let options = &command.data.options;
 
     // Parse arguments
-    let action = Action::from_str(parse_arg(options, 0)?)?;
-    let module = Module::from_str(parse_arg(options, 1)?)?;
+    let action = Action::from_str(parse_arg(options, 0)?).unwrap();
+    let module = Module::from_str(parse_arg(options, 1)?).unwrap();
 
     let guild_id = command.guild_id.unwrap();
 

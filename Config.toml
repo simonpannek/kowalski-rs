@@ -23,6 +23,10 @@ nlp_max_message_length = 1500
 nlp_max_messages = 60
 # Size of collections messages should get grouped into before being fed into the NLP model
 nlp_group_size = 20
+# Amount of reminders per reminder list page
+reminder_list_size = 10
+# Max message length of a message in the reminder list
+reminder_list_max_message_length = 500
 
 [commands]
 # Global
@@ -30,16 +34,6 @@ nlp_group_size = 20
 [commands.about]
 command_type = "About"
 description = "Display information about the bot."
-
-[commands.info]
-command_type = "Info"
-description = "Display information about certain modules."
-
-[commands.info.options.module]
-kind = "String"
-description = "The module to query."
-required = true
-choices = ["Owner", "Utility", "Score", "ReactionRoles", "Analyze"]
 
 [commands.module]
 command_type = "Module"
@@ -80,13 +74,6 @@ kind = "String"
 description = "What to do."
 required = true
 choices = ["create", "edit"]
-
-[commands.guilds]
-command_type = "Guilds"
-description = "See which guilds are owned by this bot."
-module = "Owner"
-permission = "8"
-owner = true
 
 [commands.say]
 command_type = "Say"
@@ -174,6 +161,10 @@ max_value = 365
 command_type = "Reminders"
 description = "See which reminders are currently pending."
 module = "Utility"
+
+[commands.reminders.options.user]
+kind = "User"
+description = "The user to query."
 
 # Score
 [commands.cooldown]

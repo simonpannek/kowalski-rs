@@ -115,12 +115,10 @@ async fn execute_command(
         // TODO: Use meta programming for this?
         match command_config.command_type {
             CommandType::About => about::execute(ctx, command, command_config).await,
-            CommandType::Info => info::execute(ctx, command, command_config).await,
             CommandType::Module => module::execute(ctx, command, command_config).await,
             CommandType::Modules => modules::execute(ctx, command, command_config).await,
             CommandType::Ping => ping::execute(ctx, command, command_config).await,
             CommandType::Guild => guild::execute(ctx, command, command_config).await,
-            CommandType::Guilds => guilds::execute(ctx, command, command_config).await,
             CommandType::Say => say::execute(ctx, command, command_config).await,
             CommandType::Sql => sql::execute(ctx, command, command_config).await,
             CommandType::Clear => clear::execute(ctx, command, command_config).await,
