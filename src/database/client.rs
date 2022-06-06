@@ -88,9 +88,15 @@ impl Database {
                     CREATE TABLE IF NOT EXISTS emojis (
                         id              SERIAL PRIMARY KEY,
                         unicode         TEXT,
-                        emoji_guild     BIGINT,
+                        guild           BIGINT,
+                        guild_emoji     BIGINT,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
                         CONSTRAINT unicode_or_guild
-                            CHECK ((unicode IS NULL) != (emoji_guild IS NULL))
+                            CHECK ((guild IS NULL) = (guild_emoji IS NULL)
+                            AND (unicode IS NULL) != (guild_emoji IS NULL))
                     );
 
                     CREATE TABLE IF NOT EXISTS modules (
@@ -420,18 +426,25 @@ impl Database {
     /// Gets the id of an emoji given the reaction type.
     ///
     /// Note: If the emoji is not registered before, it will create a new row
-    pub async fn get_emoji(&self, emoji: &ReactionType) -> Result<i32, KowalskiError> {
+    pub async fn get_emoji(
+        &self,
+        guild_id: GuildId,
+        emoji: &ReactionType,
+    ) -> Result<i32, KowalskiError> {
         let row = match emoji {
             ReactionType::Custom { id: emoji_id, .. } => {
+                // Get guild id
+                let guild_db_id = self.get_guild(guild_id).await?;
+
                 self.client
                     .query_one(
                         "
                         WITH id_row AS (
                             SELECT id FROM emojis
-                            WHERE emoji_guild = $1::BIGINT
+                            WHERE guild = $1::BIGINT AND guild_emoji = $2::BIGINT
                         ), new_row AS (
-                            INSERT INTO emojis (emoji_guild)
-                            SELECT $1::BIGINT
+                            INSERT INTO emojis (guild, guild_emoji)
+                            SELECT $1::BIGINT, $2::BIGINT
                             WHERE NOT EXISTS (SELECT * FROM id_row)
                             RETURNING id
                         )
@@ -440,7 +453,7 @@ impl Database {
                         UNION ALL
                         SELECT * FROM new_row
                         ",
-                        &[&(emoji_id.0 as i64)],
+                        &[&guild_db_id, &(emoji_id.0 as i64)],
                     )
                     .await?
             }

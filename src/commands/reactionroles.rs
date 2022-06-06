@@ -32,10 +32,10 @@ pub async fn execute(
             .client
             .query(
                 "
-                SELECT channel, message, unicode, emoji_guild, role, slots
+                SELECT channel, message, unicode, guild_emoji, role, slots
                 FROM reaction_roles rr
                 INNER JOIN emojis e ON emoji = id
-                WHERE guild = $1::BIGINT
+                WHERE rr.guild = $1::BIGINT
                 ",
                 &[&guild_db_id],
             )
@@ -47,8 +47,8 @@ pub async fn execute(
             let channel_id = ChannelId(row.get::<_, i64>(0) as u64);
             let message_id = MessageId(row.get::<_, i64>(1) as u64);
             let unicode: Option<String> = row.get(2);
-            let emoji_guild: Option<i64> = row.get(3);
-            let emoji = match (unicode, emoji_guild) {
+            let guild_emoji: Option<i64> = row.get(3);
+            let emoji = match (unicode, guild_emoji) {
                 (Some(string), _) => ReactionType::Unicode(string),
                 (_, Some(id)) => {
                     let emoji = guild_id.emoji(&ctx.http, EmojiId(id as u64)).await?;

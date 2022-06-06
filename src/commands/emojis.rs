@@ -30,9 +30,9 @@ pub async fn execute(
             .client
             .query(
                 "
-                SELECT unicode, emoji_guild, upvote FROM score_emojis se
+                SELECT unicode, guild_emoji, upvote FROM score_emojis se
                 INNER JOIN emojis e ON se.emoji = e.id
-                WHERE guild = $1::BIGINT
+                WHERE se.guild = $1::BIGINT
                 ",
                 &[&guild_db_id],
             )
@@ -43,10 +43,10 @@ pub async fn execute(
 
         for row in rows {
             let unicode: Option<String> = row.get(0);
-            let emoji_guild: Option<i64> = row.get(1);
+            let guild_emoji: Option<i64> = row.get(1);
             let upvote: bool = row.get(2);
 
-            let emoji = match (unicode, emoji_guild) {
+            let emoji = match (unicode, guild_emoji) {
                 (Some(string), _) => ReactionType::Unicode(string),
                 (_, Some(id)) => {
                     let emoji = guild_id.emoji(&ctx.http, EmojiId(id as u64)).await?;

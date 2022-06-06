@@ -119,7 +119,7 @@ pub async fn execute(
                     }
 
                     // Get the id of the emoji in the emoji table
-                    let emoji = database.get_emoji(&reaction.emoji).await?;
+                    let emoji = database.get_emoji(guild_id, &reaction.emoji).await?;
 
                     // Get the guild, role, channel and message ids
                     let guild_db_id = database.get_guild(guild_id).await?;

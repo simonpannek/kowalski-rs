@@ -32,7 +32,8 @@ impl Client {
         // Build the database
         let client = serenity::Client::builder(
             token,
-            GatewayIntents::GUILD_MEMBERS
+            GatewayIntents::GUILD_EMOJIS_AND_STICKERS
+                | GatewayIntents::GUILD_MEMBERS
                 | GatewayIntents::GUILD_MESSAGES
                 | GatewayIntents::GUILD_MESSAGE_REACTIONS,
         )

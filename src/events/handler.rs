@@ -1,3 +1,19 @@
+use serenity::client::bridge::gateway::event::ShardStageUpdateEvent;
+use serenity::model::channel::{
+    Channel, ChannelCategory, GuildChannel, Message, PartialGuildChannel, StageInstance,
+};
+use serenity::model::event::{
+    ChannelPinsUpdateEvent, GuildMemberUpdateEvent, GuildMembersChunkEvent, InviteCreateEvent,
+    InviteDeleteEvent, MessageUpdateEvent, ResumedEvent, ThreadListSyncEvent,
+    ThreadMembersUpdateEvent, TypingStartEvent, VoiceServerUpdateEvent,
+};
+use serenity::model::gateway::Presence;
+use serenity::model::guild::{
+    Emoji, Guild, Integration, PartialGuild, Role, ThreadMember, UnavailableGuild,
+};
+use serenity::model::id::{ApplicationId, EmojiId, IntegrationId, RoleId, StickerId};
+use serenity::model::interactions::application_command::ApplicationCommandPermission;
+use serenity::model::prelude::{CurrentUser, Sticker, VoiceState};
 use serenity::{
     async_trait,
     client::{Context, EventHandler},
@@ -10,12 +26,18 @@ use serenity::{
         user::User,
     },
 };
+use std::collections::HashMap;
 use tracing::error;
 
 use crate::{
     events::{
+        channel_delete::channel_delete,
+        guild_delete::guild_delete,
+        guild_emojis_update::guild_emojis_update,
         guild_member_removal::guild_member_removal,
+        guild_role_delete::guild_role_delete,
         interaction_create::interaction_create,
+        message_delete::{message_delete, message_delete_bulk},
         reaction::{reaction_add, reaction_remove, reaction_remove_all},
         ready::ready,
     },
@@ -26,6 +48,25 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    async fn channel_delete(&self, ctx: Context, channel: &GuildChannel) {
+        channel_delete(&ctx, channel).await.unwrap()
+    }
+
+    async fn guild_delete(&self, ctx: Context, incomplete: UnavailableGuild, full: Option<Guild>) {
+        guild_delete(&ctx, incomplete, full).await.unwrap()
+    }
+
+    async fn guild_emojis_update(
+        &self,
+        ctx: Context,
+        guild_id: GuildId,
+        current_state: HashMap<EmojiId, Emoji>,
+    ) {
+        guild_emojis_update(&ctx, guild_id, current_state)
+            .await
+            .unwrap()
+    }
+
     async fn guild_member_removal(
         &self,
         ctx: Context,
@@ -36,6 +77,47 @@ impl EventHandler for Handler {
         if let Err(why) = guild_member_removal(&ctx, guild_id, user, member_data).await {
             error!("{}: {:?}", ERR_MEMBER_REMOVAL, why);
         }
+    }
+
+    async fn guild_role_delete(
+        &self,
+        ctx: Context,
+        guild_id: GuildId,
+        removed_role_id: RoleId,
+        removed_role_data_if_available: Option<Role>,
+    ) {
+        guild_role_delete(
+            &ctx,
+            guild_id,
+            removed_role_id,
+            removed_role_data_if_available,
+        )
+        .await
+        .unwrap()
+    }
+
+    async fn message_delete(
+        &self,
+        ctx: Context,
+        channel_id: ChannelId,
+        deleted_message_id: MessageId,
+        guild_id: Option<GuildId>,
+    ) {
+        message_delete(&ctx, channel_id, deleted_message_id, guild_id)
+            .await
+            .unwrap()
+    }
+
+    async fn message_delete_bulk(
+        &self,
+        ctx: Context,
+        channel_id: ChannelId,
+        multiple_deleted_messages_ids: Vec<MessageId>,
+        guild_id: Option<GuildId>,
+    ) {
+        message_delete_bulk(&ctx, channel_id, multiple_deleted_messages_ids, guild_id)
+            .await
+            .unwrap()
     }
 
     async fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {

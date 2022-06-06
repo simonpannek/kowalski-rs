@@ -7,6 +7,7 @@ use serenity::{
     },
 };
 
+use crate::database::types::ModuleStatus;
 use crate::{
     config::Config, cooldowns::Cooldowns, data, database::client::Database, error::KowalskiError,
 };
@@ -35,8 +36,22 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
             return Ok(());
         }
 
+        // Get guild status
+        let status = database
+            .client
+            .query_opt(
+                "
+                SELECT status
+                FROM modules
+                WHERE guild = $1::BIGINT
+                ",
+                &[&guild_db_id],
+            )
+            .await?
+            .map_or(ModuleStatus::default(), |row| row.get(0));
+
         // Get the reaction-roles to assign
-        let reaction_roles: Vec<_> = {
+        let reaction_roles: Vec<_> = if status.reaction_roles {
             let rows = database
                 .client
                 .query(
@@ -57,10 +72,13 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     )
                 })
                 .collect()
+        } else {
+            Vec::new()
         };
 
         // Whether the emoji should count as a up-/downvote
-        let levelup = reaction_roles.is_empty()
+        let levelup = status.score
+            && reaction_roles.is_empty()
             && database
                 .client
                 .query_opt(
@@ -349,7 +367,7 @@ async fn get_emoji_id(
                 .query(
                     "
                     SELECT id FROM emojis
-                    WHERE emoji_guild = $1::BIGINT
+                    WHERE guild_emoji = $1::BIGINT
                     ",
                     &[&(emoji_id.0 as i64)],
                 )

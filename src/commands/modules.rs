@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use itertools::Itertools;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
@@ -8,7 +6,7 @@ use strum::IntoEnumIterator;
 
 use crate::utils::send_response;
 use crate::{
-    config::{Command, Config, Module},
+    config::{Command, Module},
     data,
     database::{client::Database, types::ModuleStatus},
     error::KowalskiError,
@@ -28,6 +26,7 @@ pub async fn execute(
     // Get guild id
     let guild_db_id = database.get_guild(guild_id).await?;
 
+    // Get guild status
     let status = database
         .client
         .query_opt(

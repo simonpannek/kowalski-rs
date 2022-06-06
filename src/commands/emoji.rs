@@ -104,7 +104,7 @@ pub async fn execute(
     match emoji {
         Some(emoji) => {
             // Get the id of the emoji in the emoji table
-            let emoji_id = database.get_emoji(&emoji).await?;
+            let emoji_id = database.get_emoji(guild_id, &emoji).await?;
 
             match action {
                 Action::AddUpvote | Action::AddDownvote => {
@@ -167,8 +167,6 @@ pub async fn execute(
                                     &[&emoji_id],
                                 )
                                 .await?;
-
-                            // TODO: Clean emoji table
 
                             send_response(
                                 &ctx,
