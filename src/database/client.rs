@@ -195,9 +195,9 @@ impl Database {
                             FOREIGN KEY (guild, channel, message)
                             REFERENCES messages(guild, channel, message)
                             ON DELETE CASCADE,
-                        CONSTRAINT fk_emojis
+                        CONSTRAINT fk_score_emojis
                             FOREIGN KEY (emoji)
-                            REFERENCES emojis(id)
+                            REFERENCES score_emojis(emoji)
                             ON DELETE CASCADE
                     );
 

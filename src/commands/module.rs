@@ -178,10 +178,68 @@ async fn remove(
     command: &ApplicationCommandInteraction,
     command_config: &Command,
     title: String,
-    _module: Module,
+    module: Module,
     _database: Arc<Database>,
 ) -> Result<(), KowalskiError> {
-    // TODO
+    // Get database
+    let database = data!(ctx, Database);
+
+    let guild_id = command.guild_id.unwrap();
+
+    // Get guild id
+    let guild_db_id = guild_id.0 as i64;
+
+    match module {
+        Module::Utility => {
+            database
+                .client
+                .execute(
+                    "DELETE FROM reminders WHERE guild = $1::BIGINT",
+                    &[&guild_db_id],
+                )
+                .await?;
+        }
+        Module::Score => {
+            database
+                .client
+                .execute(
+                    "
+                    DELETE FROM score_auto_delete WHERE guild = $1::BIGINT;
+
+                    DELETE FROM score_auto_pin WHERE guild = $1::BIGINT;
+
+                    DELETE FROM score_cooldowns WHERE guild = $1::BIGINT;
+
+                    DELETE FROM score_drops WHERE guild = $1::BIGINT;
+
+                    DELETE FROM score_emojis WHERE guild = $1::BIGINT;
+
+                    DELETE FROM score_roles WHERE guild = $1::BIGINT;
+                    ",
+                    &[&guild_db_id],
+                )
+                .await?;
+        }
+        Module::ReactionRoles => {
+            database
+                .client
+                .execute(
+                    "DELETE FROM reminders WHERE guild = $1::BIGINT",
+                    &[&guild_db_id],
+                )
+                .await?;
+        }
+        _ => {
+            return send_response(
+                ctx,
+                command,
+                command_config,
+                &title,
+                "I have updated the module. There was no need to remove any data.",
+            )
+            .await;
+        }
+    }
 
     send_response(
         ctx,
