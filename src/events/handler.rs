@@ -1,32 +1,17 @@
-use serenity::client::bridge::gateway::event::ShardStageUpdateEvent;
-use serenity::model::channel::{
-    Channel, ChannelCategory, GuildChannel, Message, PartialGuildChannel, StageInstance,
-};
-use serenity::model::event::{
-    ChannelPinsUpdateEvent, GuildMemberUpdateEvent, GuildMembersChunkEvent, InviteCreateEvent,
-    InviteDeleteEvent, MessageUpdateEvent, ResumedEvent, ThreadListSyncEvent,
-    ThreadMembersUpdateEvent, TypingStartEvent, VoiceServerUpdateEvent,
-};
-use serenity::model::gateway::Presence;
-use serenity::model::guild::{
-    Emoji, Guild, Integration, PartialGuild, Role, ThreadMember, UnavailableGuild,
-};
-use serenity::model::id::{ApplicationId, EmojiId, IntegrationId, RoleId, StickerId};
-use serenity::model::interactions::application_command::ApplicationCommandPermission;
-use serenity::model::prelude::{CurrentUser, Sticker, VoiceState};
+use std::collections::HashMap;
+
 use serenity::{
     async_trait,
     client::{Context, EventHandler},
     model::{
-        channel::Reaction,
+        channel::{Reaction, GuildChannel},
         gateway::Ready,
-        guild::Member,
-        id::{ChannelId, GuildId, MessageId},
+        guild::{Member, Emoji, Guild, Role, UnavailableGuild},
+        id::{ChannelId, GuildId, MessageId, EmojiId, RoleId},
         interactions::Interaction,
         user::User,
     },
 };
-use std::collections::HashMap;
 use tracing::error;
 
 use crate::{

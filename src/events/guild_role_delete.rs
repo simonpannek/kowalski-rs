@@ -1,10 +1,6 @@
-use serenity::client::Context;
-use serenity::model::guild::Role;
-use serenity::model::id::{GuildId, RoleId};
+use serenity::{model::{id::{GuildId, RoleId}, guild::Role}, client::Context};
 
-use crate::data;
-use crate::database::client::Database;
-use crate::error::KowalskiError;
+use crate::{data, database::client::Database, error::KowalskiError};
 
 pub async fn guild_role_delete(
     ctx: &Context,

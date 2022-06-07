@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, str::FromStr, sync::Arc};
+use std::{collections::HashMap, error::Error, sync::Arc};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
@@ -12,10 +12,7 @@ use serenity::{
 use strum_macros::{EnumIter, EnumString};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{
-    error::KowalskiError,
-    strings::{ERR_CONFIG_PARSE, ERR_CONFIG_READ},
-};
+use crate::strings::{ERR_CONFIG_PARSE, ERR_CONFIG_READ};
 
 #[derive(Deserialize)]
 pub struct Config {

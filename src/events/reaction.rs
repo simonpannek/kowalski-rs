@@ -7,9 +7,8 @@ use serenity::{
     },
 };
 
-use crate::database::types::ModuleStatus;
 use crate::{
-    config::Config, cooldowns::Cooldowns, data, database::client::Database, error::KowalskiError,
+    config::Config, cooldowns::Cooldowns, data, database::{client::Database, types::ModuleStatus}, error::KowalskiError,
 };
 
 pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), KowalskiError> {

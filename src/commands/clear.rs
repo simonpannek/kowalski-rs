@@ -1,7 +1,9 @@
-use serenity::model::Timestamp;
 use serenity::{
     client::Context,
-    model::{channel::Message, interactions::application_command::ApplicationCommandInteraction},
+    model::{
+        channel::Message, interactions::application_command::ApplicationCommandInteraction,
+        Timestamp,
+    },
 };
 
 use crate::{

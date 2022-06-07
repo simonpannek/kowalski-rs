@@ -1,16 +1,14 @@
-use itertools::Itertools;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
 use strum::IntoEnumIterator;
 
-use crate::utils::send_response;
 use crate::{
     config::{Command, Module},
     data,
     database::{client::Database, types::ModuleStatus},
     error::KowalskiError,
-    utils::{parse_arg, send_response_complex},
+    utils::send_response_complex,
 };
 
 pub async fn execute(

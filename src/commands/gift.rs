@@ -8,14 +8,13 @@ use serenity::{
     prelude::Mentionable,
 };
 
-use crate::utils::InteractionResponse;
 use crate::{
     config::{Command, Config},
     data,
     database::client::Database,
     error::KowalskiError,
     pluralize,
-    utils::{parse_arg, parse_arg_resolved, send_confirmation, send_response},
+    utils::{parse_arg, parse_arg_resolved, send_confirmation, send_response, InteractionResponse},
 };
 
 pub async fn execute(

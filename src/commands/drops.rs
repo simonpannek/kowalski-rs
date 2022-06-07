@@ -1,8 +1,8 @@
 use itertools::Itertools;
-use serenity::model::id::ChannelId;
-use serenity::prelude::Mentionable;
 use serenity::{
-    client::Context, model::interactions::application_command::ApplicationCommandInteraction,
+    client::Context,
+    model::{id::ChannelId, interactions::application_command::ApplicationCommandInteraction},
+    prelude::Mentionable,
 };
 
 use crate::{

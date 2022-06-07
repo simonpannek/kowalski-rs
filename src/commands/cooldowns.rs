@@ -1,13 +1,13 @@
 use itertools::Itertools;
-use serenity::model::id::RoleId;
-use serenity::prelude::Mentionable;
 use serenity::{
-    client::Context, model::interactions::application_command::ApplicationCommandInteraction,
+    client::Context,
+    model::{id::RoleId, interactions::application_command::ApplicationCommandInteraction},
+    prelude::Mentionable,
 };
 
-use crate::utils::send_response;
 use crate::{
     config::Command, config::Config, data, database::client::Database, error::KowalskiError,
+    utils::send_response,
 };
 
 pub async fn execute(

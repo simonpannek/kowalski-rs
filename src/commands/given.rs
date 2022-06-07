@@ -11,10 +11,12 @@ use serenity::{
     prelude::Mentionable,
 };
 
-use crate::utils::parse_arg_resolved;
 use crate::{
-    config::Command, data, database::client::Database, error::KowalskiError,
-    utils::send_response_complex,
+    config::Command,
+    data,
+    database::client::Database,
+    error::KowalskiError,
+    utils::{parse_arg_resolved, send_response_complex},
 };
 
 pub async fn execute(

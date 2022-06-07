@@ -1,5 +1,4 @@
-use serenity::client::Context;
-use serenity::model::channel::GuildChannel;
+use serenity::{client::Context, model::channel::GuildChannel};
 
 use crate::data;
 use crate::database::client::Database;

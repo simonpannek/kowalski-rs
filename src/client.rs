@@ -1,5 +1,6 @@
-use serenity::prelude::GatewayIntents;
 use std::{env, error::Error, sync::Arc};
+
+use serenity::prelude::GatewayIntents;
 use tokio::sync::RwLock;
 
 #[cfg(feature = "nlp-model")]

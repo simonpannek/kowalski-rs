@@ -1,9 +1,6 @@
-use serenity::client::Context;
-use serenity::model::guild::{Guild, UnavailableGuild};
+use serenity::{model::guild::{Guild, UnavailableGuild}, client::Context};
 
-use crate::data;
-use crate::database::client::Database;
-use crate::error::KowalskiError;
+use crate::{error::KowalskiError, data, database::client::Database};
 
 pub async fn guild_delete(
     ctx: &Context,

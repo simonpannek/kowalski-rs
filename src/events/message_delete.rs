@@ -1,10 +1,7 @@
 use itertools::Itertools;
-use serenity::client::Context;
-use serenity::model::id::{ChannelId, GuildId, MessageId};
+use serenity::{model::id::{ChannelId, GuildId, MessageId}, client::Context};
 
-use crate::data;
-use crate::database::client::Database;
-use crate::error::KowalskiError;
+use crate::{data, database::client::Database, error::KowalskiError};
 
 pub async fn message_delete(
     ctx: &Context,

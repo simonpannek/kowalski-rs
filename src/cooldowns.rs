@@ -1,8 +1,7 @@
 use std::{cmp::min, collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Duration, Utc};
-use serenity::model::id::{GuildId, RoleId, UserId};
-use serenity::prelude::TypeMapKey;
+use serenity::{prelude::TypeMapKey, model::id::{GuildId, RoleId, UserId}};
 use tokio::sync::RwLock;
 
 use crate::{config::Config, database::client::Database, error::KowalskiError};

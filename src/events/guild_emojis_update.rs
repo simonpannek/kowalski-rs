@@ -1,12 +1,8 @@
 use std::collections::HashMap;
 
-use serenity::client::Context;
-use serenity::model::guild::Emoji;
-use serenity::model::id::{EmojiId, GuildId};
+use serenity::{model::{id::{EmojiId, GuildId}, guild::Emoji}, client::Context};
 
-use crate::data;
-use crate::database::client::Database;
-use crate::error::KowalskiError;
+use crate::{data, database::client::Database, error::KowalskiError};
 
 pub async fn guild_emojis_update(
     ctx: &Context,
