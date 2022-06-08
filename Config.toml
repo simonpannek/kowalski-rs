@@ -354,7 +354,7 @@ min_value = 0
 
 [commands.reactionroles]
 command_type = "ReactionRoles"
-description = "See into which channels reactions should get dropped into if a user leaves."
+description = "See which roles will get assigned when reacting to which message."
 module = "ReactionRoles"
 
 # Analyze

@@ -12,6 +12,7 @@ use serenity::{
     utils::parse_emoji,
 };
 use unic_emoji_char::is_emoji;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     config::{Command, Config},
@@ -87,13 +88,17 @@ pub async fn execute(
                     })
             }
             None => {
-                let chars: Vec<char> = string.chars().collect();
-                let first = chars.get(0);
+                let mut graphemes = string.graphemes(true);
 
-                if chars.len() == 1 && is_emoji(*first.unwrap()) {
-                    Some(ReactionType::Unicode(first.unwrap().to_string()))
-                } else {
-                    None
+                match graphemes.next() {
+                    Some(emoji) => {
+                        if emoji.chars().any(|char| is_emoji(char)) {
+                            Some(ReactionType::Unicode(emoji.to_string()))
+                        } else {
+                            None
+                        }
+                    }
+                    None => None,
                 }
             }
         }
