@@ -6,9 +6,9 @@ use serenity::{
 
 use crate::{
     config::Command,
+    data,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
+    error::KowalskiError,
     utils::{parse_arg, parse_arg_resolved, send_response},
 };
 
@@ -16,25 +16,21 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
-    };
+    let database = data!(ctx, Database);
 
     let options = &command.data.options;
 
     // Parse first argument
     let role = match parse_arg_resolved(options, 0)? {
-        Role(role) => Ok(role),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        Role(role) => role,
+        _ => unreachable!(),
+    };
 
     // Get guild and role ids
-    let guild_id = i64::from(role.guild_id);
-    let role_id = i64::from(role.id);
+    let guild_db_id = database.get_guild(role.guild_id).await?;
+    let role_db_id = database.get_role(role.guild_id, role.id).await?;
 
     let title = format!("Set cooldown for {}", role.name);
 
@@ -47,10 +43,12 @@ pub async fn execute(
             .client
             .execute(
                 "
-        INSERT INTO score_cooldowns VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
-        ON CONFLICT (guild, role) DO UPDATE SET cooldown = $3::BIGINT
+        INSERT INTO score_cooldowns
+        VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
+        ON CONFLICT (guild, role)
+        DO UPDATE SET cooldown = $3::BIGINT
         ",
-                &[&guild_id, &role_id, &cooldown],
+                &[&guild_db_id, &role_db_id, &cooldown],
             )
             .await?;
 
@@ -75,7 +73,7 @@ pub async fn execute(
         DELETE FROM score_cooldowns
         WHERE guild = $1::BIGINT AND role = $2::BIGINT
         ",
-                &[&guild_id, &role_id],
+                &[&guild_db_id, &role_db_id],
             )
             .await?;
 

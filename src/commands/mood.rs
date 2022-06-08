@@ -7,7 +7,8 @@ use serenity::{
 
 use crate::{
     config::{Command, Config},
-    error::ExecutionError,
+    data,
+    error::KowalskiError,
     model::Model,
     strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
     utils::{get_relevant_messages, parse_arg_resolved, send_response},
@@ -17,16 +18,9 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and model
-    let (config, model) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let model = data.get::<Model>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, model)
-    };
+    let (config, model) = data!(ctx, (Config, Model));
 
     let options = &command.data.options;
 
@@ -34,7 +28,7 @@ pub async fn execute(
     let user = if !options.is_empty() {
         match parse_arg_resolved(options, 0)? {
             User(user, ..) => Ok(Some(user)),
-            _ => Err(ExecutionError::new(ERR_API_LOAD)),
+            _ => Err(KowalskiError::new(ERR_API_LOAD)),
         }?
     } else {
         None
@@ -61,7 +55,7 @@ pub async fn execute(
     }
 
     let result = tokio::task::spawn_blocking(move || {
-        let model = model.sentiment.lock().expect(ERR_DATA_ACCESS);
+        let model = model.sentiment.lock().unwrap();
 
         model.predict(
             &messages
@@ -71,7 +65,7 @@ pub async fn execute(
         )
     })
     .await
-    .map_err(|why| ExecutionError::new(&format!("{}", why)))?;
+    .map_err(|why| KowalskiError::new(&format!("{}", why)))?;
 
     let response = match result.len() {
         1 => {

@@ -13,11 +13,12 @@ use crate::{
     commands::*,
     config::{CommandType, Config},
     credits::Credits,
-    error::ExecutionError,
+    data,
+    error::KowalskiError,
     history::History,
     strings::{
-        ERR_API_LOAD, ERR_AUTOCOMPLETE, ERR_CMD_EXECUTION, ERR_CMD_NOT_FOUND, ERR_CMD_PERMISSION,
-        ERR_DATA_ACCESS, ERR_MESSAGE_COMPONENT, ERR_USER_EXECUTION_FAILED, ERR_USER_TITLE,
+        ERR_AUTOCOMPLETE, ERR_CMD_EXECUTION, ERR_MESSAGE_COMPONENT, ERR_USER_EXECUTION_FAILED,
+        ERR_USER_TITLE,
     },
     utils::send_failure,
 };
@@ -47,7 +48,7 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction) {
 async fn execute_command(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Add thinking modal
     command
         .create_interaction_response(&ctx.http, |response| {
@@ -56,104 +57,111 @@ async fn execute_command(
         .await?;
 
     // Get config and credits
-    let (config, credits_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let credits_lock = data.get::<Credits>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, credits_lock)
-    };
+    let (config, credits_lock) = data!(ctx, (Config, Credits));
 
     // Get command name
     let name = &command.data.name;
     // Get command config
-    let command_config = config
-        .commands
-        .get(name)
-        .ok_or(ExecutionError::new(ERR_CMD_NOT_FOUND))?;
+    let command_config = config.commands.get(name).unwrap();
 
-    // Check for permissions (this should not be necessary, just an additional fallback)
-    if !command_config.default_permission {
-        let mut can_execute = false;
+    // Check for permissions
+    let mut can_execute = true;
 
-        // Check if the user is a owner if the comment requires it to be one
-        if command_config.owner.unwrap_or_default() {
-            let owners = &config.general.owners;
-            if owners.contains(&command.user.id.0) {
-                can_execute = true;
-            }
+    // Check if the user is a owner if the comment requires it to be one
+    if command_config.owner.unwrap_or_default() {
+        let owners = &config.general.owners;
+        if !owners.contains(&command.user.id.0) {
+            can_execute = false;
         }
+    }
 
-        // Check if the user has the required permissions if there are any
-        if let Some(permission) = command_config.permission {
-            if let Some(member) = &command.member {
-                // Get permissions of the user
-                let permissions = member
-                    .permissions
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    // Check if the user has the required permissions if there are any
+    if let Some(permission) = command_config.permission {
+        if let Some(member) = &command.member {
+            // Get permissions of the user
+            let permissions = member.permissions.unwrap();
 
-                // Check whether the user has sufficient permissions
-                can_execute = permissions.contains(permission);
-            }
+            // Check whether the user has sufficient permissions
+            can_execute = permissions.contains(permission);
         }
+    }
 
-        // Fail if user cannot execute the command
-        if !can_execute {
-            return Err(ExecutionError::new(ERR_CMD_PERMISSION));
-        }
+    // Fail if user cannot execute the command
+    if !can_execute {
+        // TODO: Send a message
+        unreachable!();
     }
 
     // Add command costs to user credits
     let cooldown = {
         let mut credits = credits_lock.write().await;
 
-        credits.add_credits(&config, command.user.id.0, command_config.cost.unwrap_or(1))
+        credits.add_credits(&config, command.user.id.0, command_config.cost.unwrap_or(3))
     };
 
     // Check for cooldown
-    if cooldown {
-        send_failure(
-            &ctx,
-            &command,
-            "Cooldown",
-            "Woah, easy there! Please wait for the cooldown to expire.",
-        )
-        .await;
+    match cooldown {
+        Some(cooldown) => {
+            send_failure(
+                &ctx,
+                &command,
+                "Cooldown",
+                &format!(
+                    "Woah, easy there! Please wait for the cooldown to expire **({} seconds left)**.",
+                    cooldown
+                ),
+            )
+            .await;
 
-        Ok(())
-    } else {
-        // Execute the command
-        match command_config.command_type {
-            CommandType::About => about::execute(ctx, command, command_config).await,
-            CommandType::Info => info::execute(ctx, command, command_config).await,
-            CommandType::Module => module::execute(ctx, command, command_config).await,
-            CommandType::Ping => ping::execute(ctx, command, command_config).await,
-            CommandType::Guild => guilds::execute(ctx, command, command_config).await,
-            CommandType::Say => say::execute(ctx, command, command_config).await,
-            CommandType::Sql => sql::execute(ctx, command, command_config).await,
-            CommandType::Clear => clear::execute(ctx, command, command_config).await,
-            CommandType::Reminder => reminder::execute(ctx, command, command_config).await,
-            CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
-            CommandType::Drops => drops::execute(ctx, command, command_config).await,
-            CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
-            CommandType::Gift => gift::execute(ctx, command, command_config).await,
-            CommandType::Given => given::execute(ctx, command, command_config).await,
-            CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
-            CommandType::Moderate => moderate::execute(ctx, command, command_config).await,
-            CommandType::Score => score::execute(ctx, command, command_config).await,
-            CommandType::Rank => rank::execute(ctx, command, command_config).await,
-            CommandType::Top => top::execute(ctx, command, command_config).await,
-            CommandType::ReactionRole => reactionrole::execute(ctx, command, command_config).await,
-            #[cfg(feature = "nlp-model")]
-            CommandType::Mood => mood::execute(ctx, command, command_config).await,
-            #[cfg(feature = "nlp-model")]
-            CommandType::Oracle => oracle::execute(ctx, command, command_config).await,
-            #[cfg(feature = "nlp-model")]
-            CommandType::Tldr => tldr::execute(ctx, command, command_config).await,
-            #[cfg(not(feature = "nlp-model"))]
-            CommandType::Mood | CommandType::Oracle | CommandType::Tldr => {
-                disabled::execute(ctx, command, command_config).await
+            Ok(())
+        }
+        None => {
+            // Execute the command
+            // TODO: Use meta programming for this?
+            match command_config.command_type {
+                CommandType::About => about::execute(ctx, command, command_config).await,
+                CommandType::Module => module::execute(ctx, command, command_config).await,
+                CommandType::Modules => modules::execute(ctx, command, command_config).await,
+                CommandType::Ping => ping::execute(ctx, command, command_config).await,
+                CommandType::Guild => guild::execute(ctx, command, command_config).await,
+                CommandType::Say => say::execute(ctx, command, command_config).await,
+                CommandType::Sql => sql::execute(ctx, command, command_config).await,
+                CommandType::Clear => clear::execute(ctx, command, command_config).await,
+                CommandType::Reminder => reminder::execute(ctx, command, command_config).await,
+                CommandType::Reminders => reminders::execute(ctx, command, command_config).await,
+                CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,
+                CommandType::Cooldowns => cooldowns::execute(ctx, command, command_config).await,
+                CommandType::Drop => drop::execute(ctx, command, command_config).await,
+                CommandType::Drops => drops::execute(ctx, command, command_config).await,
+                CommandType::Emoji => emoji::execute(ctx, command, command_config).await,
+                CommandType::Emojis => emojis::execute(ctx, command, command_config).await,
+                CommandType::Gift => gift::execute(ctx, command, command_config).await,
+                CommandType::Given => given::execute(ctx, command, command_config).await,
+                CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
+                CommandType::LevelUps => levelups::execute(ctx, command, command_config).await,
+                CommandType::Moderation => moderation::execute(ctx, command, command_config).await,
+                CommandType::Moderations => {
+                    moderations::execute(ctx, command, command_config).await
+                }
+                CommandType::Score => score::execute(ctx, command, command_config).await,
+                CommandType::Scores => scores::execute(ctx, command, command_config).await,
+                CommandType::Rank => rank::execute(ctx, command, command_config).await,
+                CommandType::ReactionRole => {
+                    reactionrole::execute(ctx, command, command_config).await
+                }
+                CommandType::ReactionRoles => {
+                    reactionroles::execute(ctx, command, command_config).await
+                }
+                #[cfg(feature = "nlp-model")]
+                CommandType::Mood => mood::execute(ctx, command, command_config).await,
+                #[cfg(feature = "nlp-model")]
+                CommandType::Oracle => oracle::execute(ctx, command, command_config).await,
+                #[cfg(feature = "nlp-model")]
+                CommandType::Tldr => tldr::execute(ctx, command, command_config).await,
+                #[cfg(not(feature = "nlp-model"))]
+                CommandType::Mood | CommandType::Oracle | CommandType::Tldr => {
+                    disabled::execute(ctx, command, command_config).await
+                }
             }
         }
     }
@@ -162,16 +170,9 @@ async fn execute_command(
 async fn answer_autocomplete(
     ctx: &Context,
     autocomplete: &AutocompleteInteraction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get read access to the history
-    let (config, history_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, history_lock)
-    };
+    let (config, history_lock) = data!(ctx, (Config, History));
 
     // Get user, option name and the content written by the user
     let user = autocomplete.user.id;
@@ -179,23 +180,17 @@ async fn answer_autocomplete(
         // Get the last option the user currently is typing
         let option = {
             let options = &autocomplete.data.options;
-            let mut last = options.last().ok_or(ExecutionError::new(ERR_API_LOAD))?;
+            let mut last = options.last().unwrap();
 
             while let ApplicationCommandOptionType::SubCommand = last.kind {
-                last = last
-                    .options
-                    .last()
-                    .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+                last = last.options.last().unwrap();
             }
 
             last
         };
 
         let option_name = &option.name;
-        let written = option
-            .value
-            .as_ref()
-            .ok_or(ExecutionError::new(ERR_API_LOAD))?;
+        let written = option.value.as_ref().unwrap();
 
         (option_name, written)
     };
@@ -227,18 +222,20 @@ async fn answer_autocomplete(
 
             response
         })
-        .await
-        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+        .await?;
+
+    Ok(())
 }
 
 async fn answer_message_component(
     ctx: &Context,
     message_component: MessageComponentInteraction,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     message_component
         .create_interaction_response(&ctx.http, |response| {
             response.kind(InteractionResponseType::DeferredUpdateMessage)
         })
-        .await
-        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+        .await?;
+
+    Ok(())
 }

@@ -8,43 +8,38 @@ use serenity::{
     prelude::Mentionable,
 };
 
-use crate::utils::InteractionResponse;
 use crate::{
     config::{Command, Config},
+    data,
     database::client::Database,
-    error::ExecutionError,
+    error::KowalskiError,
     pluralize,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
-    utils::{parse_arg, parse_arg_resolved, send_confirmation, send_response},
+    utils::{parse_arg, parse_arg_resolved, send_confirmation, send_response, InteractionResponse},
 };
 
 pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
-    let (config, database) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, database)
-    };
+    let (config, database) = data!(ctx, (Config, Database));
 
     let options = &command.data.options;
 
     // Parse arguments
     let user = match parse_arg_resolved(options, 0)? {
-        User(user, ..) => Ok(user),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        User(user, ..) => user,
+        _ => unreachable!(),
+    };
     let score: i64 = parse_arg(options, 1)?;
 
+    let guild_id = command.guild_id.unwrap();
+
     // Get guild and user ids
-    let guild_id = i64::from(command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
-    let user_id = i64::from(command.user.id);
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let user_from_db_id = database.get_user(guild_id, command.user.id).await?;
+    let user_to_db_id = database.get_user(guild_id, user.id).await?;
 
     // Calculate amount to gift
     let amount = {
@@ -53,11 +48,11 @@ pub async fn execute(
             .client
             .query_one(
                 "
-        SELECT COUNT(*) FROM reactions r
+        SELECT COUNT(*) FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND upvote
         ",
-                &[&guild_id, &user_id],
+                &[&guild_db_id, &user_from_db_id],
             )
             .await?;
 
@@ -67,8 +62,7 @@ pub async fn execute(
     };
 
     let title = format!(
-        "Gifting {} {} to {}",
-        amount,
+        "Gifting {} to {}",
         pluralize!("reaction", amount),
         user.name
     );
@@ -107,17 +101,21 @@ pub async fn execute(
                 .client
                 .execute(
                     "
-                UPDATE reactions
-                SET user_to = $3::BIGINT, native = false
-                WHERE (guild, user_from, user_to, message, emoji) IN (
-                    SELECT r.guild, user_from, user_to, message, r.emoji FROM reactions r
+                WITH to_update AS (
+                    SELECT r.guild, user_from, user_to, channel, message, r.emoji
+                    FROM score_reactions r
                     INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                     WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND upvote
                     ORDER BY native
                     LIMIT $4::BIGINT
                 )
+
+                UPDATE score_reactions
+                SET user_to = $3::BIGINT, native = false
+                WHERE (guild, user_from, user_to, channel, message, emoji)
+                    IN (SELECT * FROM to_update)
                 ",
-                    &[&guild_id, &user_id, &i64::from(user.id), &amount],
+                    &[&guild_db_id, &user_from_db_id, &user_to_db_id, &amount],
                 )
                 .await?;
 

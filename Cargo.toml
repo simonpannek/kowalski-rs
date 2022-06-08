@@ -7,30 +7,29 @@ description = ""
 repository = "https://github.com/simonpannek/kowalski-rs"
 
 [features]
-nlp-model = ["itertools", "rust-bert"]
+nlp-model = ["rust-bert"]
 
 default = []
 
 [dependencies]
-bit-vec = "0.6.3"
-chrono = "0.4.19"
+bit-vec = "0.6"
+chrono = "0.4"
+itertools = "0.10"
 serde_json = "1.0"
-tabled = "0.5.0"
-toml = "0.5.8"
-tracing = "0.1.30"
-tracing-subscriber = "0.3.8"
-unic-emoji-char = "0.9.0"
-
-[dependencies.itertools]
-version = "0.10.3"
-optional = true
+strum_macros = "0.24"
+tabled = "0.6"
+thiserror = "1.0"
+toml = "0.5"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+unic-emoji-char = "0.9"
 
 [dependencies.linked-hash-map]
-version = "0.5.4"
+version = "0.5"
 features = ["serde_impl"]
 
 [dependencies.rust-bert]
-version = "0.17.0"
+version = "0.17"
 optional = true
 
 [dependencies.serde]
@@ -38,14 +37,18 @@ version = "1.0"
 features = ["derive"]
 
 [dependencies.serenity]
-version = "0.10"
+version = "0.11.2"
 default-features = false
 features = ["cache", "client", "collector", "rustls_backend", "unstable_discord_api"]
 
+[dependencies.strum]
+version = "0.24"
+features = ["strum_macros"]
+
 [dependencies.tokio]
-version = "1.0"
-features = ["macros", "rt-multi-thread"]
+version = "1.18"
+features = ["macros", "parking_lot", "rt-multi-thread"]
 
 [dependencies.tokio-postgres]
-version = "0.7.5"
+version = "0.7"
 features = ["with-chrono-0_4", "with-bit-vec-0_6"]

@@ -17,9 +17,9 @@ impl History {
         }
     }
 
-    pub fn add_entry(&mut self, config: &Config, user: UserId, option_name: &str, entry: &str) {
+    pub fn add_entry(&mut self, config: &Config, user_id: UserId, option_name: &str, entry: &str) {
         let entry = entry.trim().to_string();
-        let key = (user.0, option_name.to_string());
+        let key = (user_id.0, option_name.to_string());
 
         let vector = match self.histories.get_mut(&key) {
             Some(vector) => vector,

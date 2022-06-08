@@ -1,13 +1,14 @@
-use chrono::Utc;
 use serenity::{
     client::Context,
-    model::{channel::Message, interactions::application_command::ApplicationCommandInteraction},
+    model::{
+        channel::Message, interactions::application_command::ApplicationCommandInteraction,
+        Timestamp,
+    },
 };
 
 use crate::{
     config::Command,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID},
+    error::KowalskiError,
     utils::{parse_arg, send_response},
 };
 
@@ -15,7 +16,7 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     let options = &command.data.options;
 
     // Parse first argument
@@ -26,9 +27,7 @@ pub async fn execute(
     // Get message to start deleting from
     let start = if options.len() > 1 {
         // Start deleting from the custom id given
-        let start: u64 = parse_arg::<String>(options, 1)?
-            .parse()
-            .map_err(|why| ExecutionError::new(&format!("{}: {}", ERR_CMD_ARGS_INVALID, why)))?;
+        let start: u64 = parse_arg::<String>(options, 1)?.parse().unwrap();
 
         command.channel_id.message(&ctx.http, start).await
     } else {
@@ -47,11 +46,14 @@ pub async fn execute(
             let filtered: Vec<&Message> = messages
                 .iter()
                 .filter(|message| {
-                    let age_weeks = Utc::now()
-                        .signed_duration_since(message.timestamp)
-                        .num_days();
+                    let age_days = {
+                        let age_seconds =
+                            Timestamp::now().unix_timestamp() - message.timestamp.unix_timestamp();
 
-                    age_weeks < 14
+                        age_seconds / (60 * 60 * 24)
+                    };
+
+                    age_days < 14
                 })
                 .collect();
 
@@ -68,7 +70,7 @@ pub async fn execute(
                 }
                 1 => {
                     // Get the single message
-                    let message = filtered.get(0).ok_or(ExecutionError::new(ERR_API_LOAD))?;
+                    let message = filtered.get(0).unwrap();
 
                     // Delete the message
                     command

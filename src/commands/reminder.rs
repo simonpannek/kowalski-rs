@@ -6,11 +6,11 @@ use serenity::{
 use crate::{
     config::Command,
     config::Config,
+    data,
     database::client::Database,
-    error::ExecutionError,
+    error::KowalskiError,
     history::History,
     pluralize,
-    strings::{ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
     utils::{parse_arg, parse_arg_name, send_response},
 };
 
@@ -18,17 +18,8 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
-    // Get config, database and lock to history
-    let (config, database, history_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, database, history_lock)
-    };
+) -> Result<(), KowalskiError> {
+    let (config, database, history_lock) = data!(ctx, (Config, Database, History));
 
     let options = &command.data.options;
 
@@ -41,7 +32,7 @@ pub async fn execute(
         match options.get(i).unwrap().name.as_str() {
             "hours" => hours = parse_arg(options, i)?,
             "days" => days = parse_arg(options, i)?,
-            _ => return Err(ExecutionError::new(ERR_CMD_ARGS_INVALID)),
+            _ => unreachable!(),
         }
     }
 
@@ -77,6 +68,16 @@ pub async fn execute(
     // Get response of the bot
     let response = command.get_interaction_response(&ctx.http).await?;
 
+    let guild_id = command.guild_id.unwrap();
+
+    // Get guild, channel, message and user ids
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let channel_db_id = database.get_channel(guild_id, command.channel_id).await?;
+    let message_db_id = database
+        .get_message(guild_id, command.channel_id, response.id)
+        .await?;
+    let user_db_id = database.get_user(guild_id, command.user.id).await?;
+
     // Add reminder to database
     database
         .client
@@ -86,10 +87,10 @@ pub async fn execute(
     VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::TIMESTAMPTZ, $6::TEXT)
     ",
             &[
-                &i64::from(command.guild_id.unwrap()),
-                &i64::from(command.channel_id),
-                &i64::from(response.id),
-                &i64::from(command.user.id),
+                &guild_db_id,
+                &channel_db_id,
+                &message_db_id,
+                &user_db_id,
                 &datetime,
                 &message,
             ],

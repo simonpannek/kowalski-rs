@@ -8,9 +8,9 @@ use serenity::{
 
 use crate::{
     config::Command,
+    data,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
+    error::KowalskiError,
     utils::{parse_arg_resolved, send_response},
 };
 
@@ -18,45 +18,45 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
-    };
+    let database = data!(ctx, Database);
 
     let options = &command.data.options;
 
     // Parse argument (use command user as fallback)
     let user = if !options.is_empty() {
         match parse_arg_resolved(options, 0)? {
-            User(user, ..) => Ok(user),
-            _ => Err(ExecutionError::new(ERR_API_LOAD)),
-        }?
+            User(user, ..) => user,
+            _ => unreachable!(),
+        }
     } else {
         &command.user
     };
 
-    // Get guild
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild_id = command.guild_id.unwrap();
+
+    // Get guild id
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let user_db_id = database.get_user(guild_id, user.id).await?;
 
     // Get rank of the user
     let rank = {
         let row = database.client.query_opt("
-            SELECT rank FROM (
-                SELECT
-                    user_to,
-                    RANK() OVER (
-                        ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
-                    ) rank
-                FROM reactions r
+            WITH ranks AS (
+                SELECT user_to,
+                RANK() OVER (
+                    ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
+                ) rank
+                FROM score_reactions r
                 INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                 WHERE r.guild = $1::BIGINT
                 GROUP BY user_to
-            ) AS ranks
+            )
+
+            SELECT rank FROM ranks
             WHERE user_to = $2::BIGINT
-            ", &[&i64::from(guild), &i64::from(user.id)]).await?;
+            ", &[&guild_db_id, &user_db_id]).await?;
 
         row.map(|row| row.get::<_, i64>(0))
     };

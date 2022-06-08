@@ -9,9 +9,11 @@ use serenity::{
 
 use crate::{
     config::Command,
+    data,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    error::KowalskiError::DiscordApiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, send_response},
 };
 
@@ -32,16 +34,13 @@ impl Display for Moderation {
 }
 
 impl FromStr for Moderation {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "pin" => Ok(Moderation::Pin),
             "delete" => Ok(Moderation::Delete),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -50,21 +49,19 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get database
-    let database = {
-        let data = ctx.data.read().await;
-
-        data.get::<Database>().expect(ERR_DATA_ACCESS).clone()
-    };
+    let database = data!(ctx, Database);
 
     let options = &command.data.options;
 
     // Parse first argument
-    let moderation = Moderation::from_str(parse_arg(options, 0)?)?;
+    let moderation = Moderation::from_str(parse_arg(options, 0)?).unwrap();
+
+    let guild_id = command.guild_id.unwrap();
 
     // Get guild id
-    let guild_id = i64::from(command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?);
+    let guild_db_id = database.get_guild(guild_id).await?;
 
     let title = format!("{} message", moderation);
 
@@ -79,10 +76,11 @@ pub async fn execute(
                     .client
                     .execute(
                         "
-                        INSERT INTO score_auto_pin VALUES ($1::BIGINT, $2::BIGINT)
+                        INSERT INTO score_auto_pin
+                        VALUES ($1::BIGINT, $2::BIGINT)
                         ON CONFLICT (guild) DO UPDATE SET score = $2::BIGINT
                         ",
-                        &[&guild_id, &score],
+                        &[&guild_db_id, &score],
                     )
                     .await?;
             }
@@ -91,10 +89,11 @@ pub async fn execute(
                     .client
                     .execute(
                         "
-                        INSERT INTO score_auto_delete VALUES ($1::BIGINT, $2::BIGINT)
+                        INSERT INTO score_auto_delete
+                        VALUES ($1::BIGINT, $2::BIGINT)
                         ON CONFLICT (guild) DO UPDATE SET score = $2::BIGINT
                         ",
-                        &[&guild_id, &score],
+                        &[&guild_db_id, &score],
                     )
                     .await?;
             }
@@ -122,7 +121,7 @@ pub async fn execute(
                         DELETE FROM score_auto_pin
                         WHERE guild = $1::BIGINT
                         ",
-                        &[&guild_id],
+                        &[&guild_db_id],
                     )
                     .await?;
             }
@@ -134,7 +133,7 @@ pub async fn execute(
                         DELETE FROM score_auto_delete
                         WHERE guild = $1::BIGINT
                         ",
-                        &[&guild_id],
+                        &[&guild_db_id],
                     )
                     .await?;
             }

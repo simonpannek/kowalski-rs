@@ -1,16 +1,18 @@
 use std::borrow::Cow;
 
 use serenity::{
-    client::Context, http::AttachmentType,
-    model::interactions::application_command::ApplicationCommandInteraction,
+    client::Context,
+    model::{
+        channel::AttachmentType, interactions::application_command::ApplicationCommandInteraction,
+    },
 };
 
 use crate::{
     config::{Command, Config},
+    data,
     database::{client::Database, types::TableResolved},
-    error::ExecutionError,
+    error::KowalskiError,
     history::History,
-    strings::ERR_DATA_ACCESS,
     utils::{parse_arg, parse_arg_name, send_response},
 };
 
@@ -18,17 +20,9 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config, database and lock to history
-    let (config, database, history_lock) = {
-        let data = ctx.data.read().await;
-
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-        let history_lock = data.get::<History>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, database, history_lock)
-    };
+    let (config, database, history_lock) = data!(ctx, (Config, Database, History));
 
     let options = &command.data.options;
 

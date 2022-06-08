@@ -18,29 +18,46 @@ use serenity::{
         id::GuildId,
         interactions::{
             application_command::{
-                ApplicationCommand, ApplicationCommandInteraction,
-                ApplicationCommandInteractionDataOption,
-                ApplicationCommandPermissionType::{Role, User},
+                ApplicationCommandInteraction, ApplicationCommandInteractionDataOption,
             },
             message_component::ButtonStyle,
             InteractionResponseType::ChannelMessageWithSource,
         },
         prelude::application_command::ApplicationCommandInteractionDataOptionValue,
-        Permissions,
     },
     utils::Colour,
 };
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::{
     config::{Command, CommandOption, Config, Module, Value},
     database::types::ModuleStatus,
-    error::ExecutionError,
-    strings::{
-        ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_CMD_ARGS_LENGTH, ERR_CMD_CREATION,
-        ERR_CMD_NOT_FOUND, ERR_CMD_SEND_FAILURE, ERR_CMD_SET_PERMISSION,
-    },
+    error::KowalskiError,
+    error::KowalskiError::DiscordApiError,
+    strings::{ERR_CMD_ARGS_INVALID, ERR_CMD_CREATION, ERR_CMD_SEND_FAILURE},
 };
+
+#[macro_export]
+macro_rules! data {
+    ( $ctx:expr, ( $( $type:ty ),*) ) => {
+        {
+            let data = $ctx.data.read().await;
+
+            (
+                $(
+                data.get::<$type>().unwrap().clone(),
+                )*
+            )
+        }
+    };
+    ( $ctx:expr, $type:ty ) => {
+        {
+            let data = $ctx.data.read().await;
+
+            data.get::<$type>().unwrap().clone()
+        }
+    };
+}
 
 #[macro_export]
 macro_rules! pluralize {
@@ -53,22 +70,26 @@ macro_rules! pluralize {
     };
 }
 
+#[macro_export]
+macro_rules! row_id {
+    ($type:expr, $row:expr, $index:expr) => {
+        $type($row.get::<_, i64>($index) as u64)
+    };
+}
+
 pub enum InteractionResponse {
     Continue,
     Abort,
 }
 
 impl FromStr for InteractionResponse {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "continue" => Ok(InteractionResponse::Continue),
             "abort" => Ok(InteractionResponse::Abort),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -80,7 +101,7 @@ pub async fn send_confirmation(
     command_config: &Command,
     content: &str,
     timeout: Duration,
-) -> Result<Option<InteractionResponse>, ExecutionError> {
+) -> Result<Option<InteractionResponse>, KowalskiError> {
     // Create the action row for the interaction
     let mut row = CreateActionRow::default();
     row.create_button(|button| {
@@ -113,7 +134,7 @@ pub async fn send_confirmation(
     // Get the interaction response
     let interaction = message
         .await_component_interaction(&ctx)
-        .author_id(u64::from(command.user.id.0))
+        .author_id(command.user.id.0)
         .timeout(timeout)
         .await;
 
@@ -145,7 +166,7 @@ pub async fn send_response(
     command_config: &Command,
     title: &str,
     content: &str,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     send_response_complex(
         ctx,
         command,
@@ -167,7 +188,7 @@ pub async fn send_response_complex<F>(
     content: &str,
     update: F,
     action_rows: Vec<CreateActionRow>,
-) -> Result<(), ExecutionError>
+) -> Result<(), KowalskiError>
 where
     F: Fn(&mut CreateEmbed) -> &mut CreateEmbed,
 {
@@ -218,7 +239,7 @@ async fn send_embed(
     command: &ApplicationCommandInteraction,
     embed: CreateEmbed,
     action_rows: Vec<CreateActionRow>,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     command
         .create_interaction_response(&ctx.http, |response| {
             response
@@ -228,8 +249,9 @@ async fn send_embed(
                         .components(|components| components.set_action_rows(action_rows))
                 })
         })
-        .await
-        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+        .await?;
+
+    Ok(())
 }
 
 async fn edit_embed(
@@ -237,16 +259,16 @@ async fn edit_embed(
     command: &ApplicationCommandInteraction,
     embed: CreateEmbed,
     action_rows: Vec<CreateActionRow>,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     command
         .edit_original_interaction_response(&ctx.http, |response| {
             response
                 .components(|components| components.set_action_rows(action_rows))
                 .add_embed(embed)
         })
-        .await
-        .map(|_| {})
-        .map_err(|why| ExecutionError::new(&format!("{}", why)))
+        .await?;
+
+    Ok(())
 }
 
 // TODO: Avoid rate limiting here
@@ -255,10 +277,11 @@ async fn edit_embed(
 pub fn create_command(name: &str, command_config: &Command) -> CreateApplicationCommand {
     let mut command = CreateApplicationCommand::default();
 
-    command
-        .name(name)
-        .description(&command_config.description)
-        .default_permission(command_config.default_permission);
+    command.name(name).description(&command_config.description);
+
+    if let Some(permission) = command_config.permission {
+        command.default_member_permissions(permission);
+    }
 
     // Add options if there are any
     if let Some(options) = &command_config.options {
@@ -308,7 +331,7 @@ pub async fn create_module_command(
         });
 
     // Add the commands
-    let commands = guild
+    guild
         .set_application_commands(&ctx.http, |commands| {
             for (name, options) in filtered {
                 let command = create_command(name, options);
@@ -319,8 +342,6 @@ pub async fn create_module_command(
         })
         .await
         .expect(ERR_CMD_CREATION);
-
-    add_permissions(ctx, &config, guild, &commands).await;
 }
 
 fn create_option(name: &str, option_config: &CommandOption) -> CreateApplicationCommandOption {
@@ -375,93 +396,12 @@ fn create_option(name: &str, option_config: &CommandOption) -> CreateApplication
     option
 }
 
-/// Add permissions for a command.
-pub async fn add_permissions(
-    ctx: &Context,
-    config: &Config,
-    guild: GuildId,
-    commands: &Vec<ApplicationCommand>,
-) {
-    // Get the partial guild to get the owner information later
-    let partial_guild = guild.to_partial_guild(&ctx.http).await.expect(ERR_API_LOAD);
-
-    // Get commands which do not have default permissions
-    let commands = commands
-        .iter()
-        .filter(|command| !command.default_permission);
-
-    for command in commands {
-        // Get config of the command
-        let command_config = config.commands.get(&command.name).expect(ERR_CMD_NOT_FOUND);
-
-        // Get roles which should have access to the command
-        let roles: Option<Vec<_>> = match command_config.permission {
-            Some(permission) => Some(
-                guild
-                    .roles(&ctx.http)
-                    .await
-                    .expect(ERR_API_LOAD)
-                    .iter()
-                    .filter(|(_, role)| {
-                        role.permissions.contains(Permissions::ADMINISTRATOR)
-                            || role.permissions.contains(permission)
-                    })
-                    .map(|(&id, _)| u64::from(id))
-                    .collect(),
-            ),
-            None => None,
-        };
-
-        let result = guild
-            .create_application_command_permission(&ctx.http, command.id, |command_perms| {
-                // Set owner execution only
-                if command_config.owner.unwrap_or_default() {
-                    for &owner in &config.general.owners {
-                        command_perms
-                            .create_permission(|perm| perm.kind(User).id(owner).permission(true));
-                    }
-                }
-
-                // Set custom permissions
-                if command_config.permission.is_some() {
-                    // Always give permission to the guild owner
-                    command_perms.create_permission(|perm| {
-                        perm.kind(User)
-                            .id(u64::from(partial_guild.owner_id))
-                            .permission(true)
-                    });
-
-                    // TODO: Listen for guild owner change and role edit events
-
-                    // Set custom permission for roles with the permission
-                    if let Some(roles) = roles {
-                        for id in roles {
-                            command_perms
-                                .create_permission(|perm| perm.kind(Role).id(id).permission(true));
-                        }
-                    };
-                }
-
-                command_perms
-            })
-            .await;
-
-        if let Err(why) = result {
-            warn!("{}: {:?}", ERR_CMD_SET_PERMISSION, why);
-        }
-    }
-}
-
 /// Parse the name of a command argument given an index.
 pub fn parse_arg_name(
     args: &[ApplicationCommandInteractionDataOption],
     index: usize,
-) -> Result<&str, ExecutionError> {
-    let name = args
-        .get(index)
-        .ok_or(ExecutionError::new(ERR_CMD_ARGS_LENGTH))?
-        .name
-        .as_str();
+) -> Result<&str, KowalskiError> {
+    let name = args.get(index).unwrap().name.as_str();
 
     Ok(name)
 }
@@ -470,30 +410,27 @@ pub fn parse_arg_name(
 pub fn parse_arg<'de, T>(
     args: &'de [ApplicationCommandInteractionDataOption],
     index: usize,
-) -> Result<T, ExecutionError>
+) -> Result<T, KowalskiError>
 where
     T: Deserialize<'de>,
 {
-    let value = args
-        .get(index)
-        .ok_or(ExecutionError::new(ERR_CMD_ARGS_LENGTH))?
-        .value
-        .as_ref()
-        .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))?;
+    let value = args.get(index).unwrap().value.as_ref().unwrap();
 
-    Deserialize::deserialize(value).map_err(|why| ExecutionError::new(&format!("{}", why)))
+    let result = Deserialize::deserialize(value)?;
+
+    Ok(result)
 }
 
 /// Parse a command argument given an index and resolve it.
 pub fn parse_arg_resolved(
     args: &[ApplicationCommandInteractionDataOption],
     index: usize,
-) -> Result<&ApplicationCommandInteractionDataOptionValue, ExecutionError> {
+) -> Result<&ApplicationCommandInteractionDataOptionValue, KowalskiError> {
     args.get(index)
-        .ok_or(ExecutionError::new(ERR_CMD_ARGS_LENGTH))?
+        .unwrap()
         .resolved
         .as_ref()
-        .ok_or(ExecutionError::new(ERR_CMD_ARGS_INVALID))
+        .ok_or(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string()))
 }
 
 #[cfg(feature = "nlp-model")]
@@ -503,7 +440,7 @@ pub async fn get_relevant_messages(
     config: &Config,
     channel_id: ChannelId,
     user_id: Option<UserId>,
-) -> Result<Vec<String>, ExecutionError> {
+) -> Result<Vec<String>, KowalskiError> {
     // Get messages to analyze
     let messages = channel_id
         .messages(&ctx.http, |builder| {
@@ -536,7 +473,6 @@ pub async fn get_relevant_messages(
                             .join("")
                     )
                 })
-                .collect::<Vec<_>>()
                 .join("\n")
         })
         .collect();

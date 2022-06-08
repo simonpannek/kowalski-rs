@@ -6,7 +6,7 @@ use std::{
 use serenity::{
     client::Context,
     model::interactions::application_command::{
-        ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Role,
+        ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
     },
     prelude::Mentionable,
 };
@@ -61,17 +61,23 @@ pub async fn execute(
 
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?).unwrap();
-    let role = match parse_arg_resolved(options, 1)? {
-        Role(role) => role,
+    let partial_channel = match parse_arg_resolved(options, 1)? {
+        Channel(channel) => channel,
         _ => unreachable!(),
     };
-    let score: i64 = parse_arg(options, 2)?;
+    let channel = partial_channel.id.to_channel(&ctx.http).await?;
 
-    // Get guild and role ids
-    let guild_db_id = database.get_guild(role.guild_id).await?;
-    let role_db_id = database.get_role(role.guild_id, role.id).await?;
+    let guild_id = command.guild_id.unwrap();
 
-    let title = format!("{} level-up role for {}", action, role.name);
+    // Get guild and channel ids
+    let guild_db_id = database.get_guild(guild_id).await?;
+    let channel_db_id = database.get_channel(guild_id, partial_channel.id).await?;
+
+    let title = format!(
+        "{} drops for channel {}",
+        action,
+        partial_channel.name.as_ref().unwrap()
+    );
 
     match action {
         Action::Add => {
@@ -79,10 +85,10 @@ pub async fn execute(
                 .client
                 .execute(
                     "
-            INSERT INTO score_roles
-            VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
+            INSERT INTO score_drops
+            VALUES ($1::BIGINT, $2::BIGINT)
             ",
-                    &[&guild_db_id, &role_db_id, &score],
+                    &[&guild_db_id, &channel_db_id],
                 )
                 .await?;
 
@@ -92,9 +98,8 @@ pub async fn execute(
                 command_config,
                 &title,
                 &format!(
-                    "Users reaching a score of {} will now receive the role {}.",
-                    score,
-                    role.mention()
+                    "Reactions now might drop into channel {} when a user leaves the guild.",
+                    channel.mention()
                 ),
             )
             .await
@@ -104,10 +109,10 @@ pub async fn execute(
                 .client
                 .execute(
                     "
-            DELETE FROM score_roles
-            WHERE guild = $1::BIGINT AND role = $2::BIGINT AND score = $3::BIGINT
+            DELETE FROM score_drops
+            WHERE guild = $1::BIGINT AND channel = $2::BIGINT
             ",
-                    &[&guild_db_id, &role_db_id, &score],
+                    &[&guild_db_id, &channel_db_id],
                 )
                 .await?;
 
@@ -118,10 +123,9 @@ pub async fn execute(
                     command_config,
                     &title,
                     &format!(
-                        "There is no level-up role defined for role {} score {}.
+                        "Drops where not activated for channel {}.
                         I didn't remove anything.",
-                        role.mention(),
-                        score
+                        channel.mention()
                     ),
                 )
                 .await
@@ -132,12 +136,11 @@ pub async fn execute(
                     command_config,
                     &title,
                     &format!(
-                        "I have removed the level-up role {} on score {}.",
-                        role.mention(),
-                        score
+                        "Reactions will no longer drop into channel {} when a user leaves the guild.",
+                        channel.mention()
                     ),
                 )
-                .await
+                    .await
             }
         }
     }

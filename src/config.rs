@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, str::FromStr, sync::Arc};
+use std::{collections::HashMap, error::Error, sync::Arc};
 
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
@@ -9,12 +9,10 @@ use serenity::{
     },
     prelude::TypeMapKey,
 };
+use strum_macros::{EnumIter, EnumString};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{
-    error::ExecutionError,
-    strings::{ERR_CMD_ARGS_INVALID, ERR_CONFIG_PARSE, ERR_CONFIG_READ},
-};
+use crate::strings::{ERR_CONFIG_PARSE, ERR_CONFIG_READ};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -36,6 +34,8 @@ pub struct General {
     pub nlp_max_message_length: usize,
     pub nlp_max_messages: u64,
     pub nlp_group_size: usize,
+    pub reminder_list_size: usize,
+    pub reminder_list_max_message_length: usize,
 }
 
 #[derive(Deserialize)]
@@ -43,7 +43,6 @@ pub struct Command {
     pub command_type: CommandType,
     pub description: String,
     pub module: Option<Module>,
-    pub default_permission: bool,
     pub permission: Option<Permissions>,
     pub owner: Option<bool>,
     pub options: Option<LinkedHashMap<String, CommandOption>>,
@@ -54,32 +53,39 @@ pub struct Command {
 #[derive(Deserialize)]
 pub enum CommandType {
     About,
-    Info,
     Module,
+    Modules,
     Ping,
     Guild,
     Say,
     Sql,
     Clear,
     Reminder,
+    Reminders,
     Cooldown,
+    Cooldowns,
+    Drop,
     Drops,
     Emoji,
+    Emojis,
     Gift,
     Given,
     LevelUp,
-    Moderate,
+    LevelUps,
+    Moderation,
+    Moderations,
     Rank,
     Score,
-    Top,
+    Scores,
     ReactionRole,
+    ReactionRoles,
     Mood,
     Oracle,
     Tldr,
 }
 
 /// Types of modules parsed by the config.
-#[derive(Debug, Deserialize)]
+#[derive(EnumIter, EnumString, Debug, Deserialize, PartialEq)]
 pub enum Module {
     Owner,
     Utility,
@@ -126,11 +132,12 @@ pub enum Channel {
     Voice,
     Category,
     News,
-    Store,
     NewsThread,
     PublicThread,
     PrivateThread,
     Stage,
+    Directory,
+    Forum,
     Unknown,
 }
 
@@ -161,24 +168,6 @@ impl TypeMapKey for Config {
     type Value = Arc<Config>;
 }
 
-impl FromStr for Module {
-    type Err = ExecutionError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Owner" => Ok(Module::Owner),
-            "Utility" => Ok(Module::Utility),
-            "Score" => Ok(Module::Score),
-            "ReactionRoles" => Ok(Module::ReactionRoles),
-            "Analyze" => Ok(Module::Analyze),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
-        }
-    }
-}
-
 impl Into<ApplicationCommandOptionType> for OptionType {
     fn into(self) -> ApplicationCommandOptionType {
         match self {
@@ -204,11 +193,12 @@ impl Into<ChannelType> for Channel {
             Channel::Voice => ChannelType::Voice,
             Channel::Category => ChannelType::Category,
             Channel::News => ChannelType::News,
-            Channel::Store => ChannelType::Store,
             Channel::NewsThread => ChannelType::NewsThread,
             Channel::PublicThread => ChannelType::PublicThread,
             Channel::PrivateThread => ChannelType::PrivateThread,
             Channel::Stage => ChannelType::Stage,
+            Channel::Directory => ChannelType::Directory,
+            Channel::Forum => ChannelType::Forum,
             Channel::Unknown => ChannelType::Unknown,
         }
     }

@@ -1,12 +1,17 @@
-use serenity::model::channel::ReactionType;
 use std::{env, error::Error, sync::Arc};
 
-use serenity::prelude::TypeMapKey;
+use serenity::{
+    model::{
+        channel::ReactionType,
+        id::{ChannelId, GuildId, MessageId, RoleId, UserId},
+    },
+    prelude::TypeMapKey,
+};
 use tokio_postgres::{Client, NoTls};
 use tracing::{error, info};
 
 use crate::{
-    error::ExecutionError,
+    error::KowalskiError,
     strings::{ERR_DB_CONNECTION, ERR_ENV_NOT_SET, INFO_DB_CONNECTED, INFO_DB_SETUP},
 };
 
@@ -35,40 +40,123 @@ impl Database {
         client
             .batch_execute(
                 "
-                    CREATE TABLE IF NOT EXISTS modules (
-                        guild           BIGINT PRIMARY KEY,
-                        status          BIT(8) NOT NULL
+                    CREATE TABLE IF NOT EXISTS guilds (
+                        guild           BIGINT PRIMARY KEY
+                    );
+
+                    CREATE TABLE IF NOT EXISTS users (
+                        guild           BIGINT,
+                        \"user\"        BIGINT,
+                        PRIMARY KEY (guild, \"user\"),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
+                    );
+
+                    CREATE TABLE IF NOT EXISTS channels (
+                        guild           BIGINT,
+                        channel         BIGINT,
+                        PRIMARY KEY (guild, channel),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
+                    );
+
+                    CREATE TABLE IF NOT EXISTS roles (
+                        guild           BIGINT,
+                        role            BIGINT,
+                        PRIMARY KEY (guild, role),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
+                    );
+
+                    CREATE TABLE IF NOT EXISTS messages (
+                        guild           BIGINT,
+                        channel         BIGINT,
+                        message         BIGINT,
+                        PRIMARY KEY (guild, channel, message),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_channels
+                            FOREIGN KEY (guild, channel)
+                            REFERENCES channels(guild, channel)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS emojis (
                         id              SERIAL PRIMARY KEY,
                         unicode         TEXT,
-                        emoji_guild     BIGINT,
+                        guild           BIGINT,
+                        guild_emoji     BIGINT,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
                         CONSTRAINT unicode_or_guild
-                            CHECK ((unicode IS NULL) != (emoji_guild IS NULL))
+                            CHECK ((guild IS NULL) = (guild_emoji IS NULL)
+                            AND (unicode IS NULL) != (guild_emoji IS NULL))
+                    );
+
+                    CREATE TABLE IF NOT EXISTS modules (
+                        guild           BIGINT PRIMARY KEY,
+                        status          BIT(8) NOT NULL,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS score_auto_delete (
                         guild           BIGINT PRIMARY KEY,
-                        score           BIGINT NOT NULL
+                        score           BIGINT NOT NULL,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS score_auto_pin (
                         guild           BIGINT PRIMARY KEY,
-                        score           BIGINT NOT NULL
+                        score           BIGINT NOT NULL,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS score_cooldowns (
                         guild           BIGINT,
                         role            BIGINT,
                         cooldown        BIGINT NOT NULL,
-                        PRIMARY KEY (guild, role)
+                        PRIMARY KEY (guild, role),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_roles
+                            FOREIGN KEY (guild, role)
+                            REFERENCES roles(guild, role)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS score_drops (
                         guild           BIGINT,
                         channel         BIGINT,
-                        PRIMARY KEY (guild, channel)
+                        PRIMARY KEY (guild, channel),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_channels
+                            FOREIGN KEY (guild, channel)
+                            REFERENCES channels(guild, channel)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS score_emojis (
@@ -76,38 +164,86 @@ impl Database {
                         emoji           INT,
                         upvote          BOOLEAN NOT NULL,
                         PRIMARY KEY (guild, emoji),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
                         CONSTRAINT fk_emojis
-                            FOREIGN KEY (emoji) REFERENCES emojis(id)
+                            FOREIGN KEY (emoji)
+                            REFERENCES emojis(id)
+                            ON DELETE CASCADE
+                    );
+
+                    CREATE TABLE IF NOT EXISTS score_reactions (
+                        guild           BIGINT,
+                        user_from       BIGINT,
+                        user_to         BIGINT,
+                        channel         BIGINT,
+                        message         BIGINT,
+                        emoji           INT,
+                        native          BOOLEAN NOT NULL DEFAULT true,
+                        PRIMARY KEY (guild, user_from, user_to, channel, message, emoji),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_users1
+                            FOREIGN KEY (guild, user_from)
+                            REFERENCES users(guild, \"user\")
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_users2
+                            FOREIGN KEY (guild, user_to)
+                            REFERENCES users(guild, \"user\")
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_score_emojis
+                            FOREIGN KEY (guild, emoji)
+                            REFERENCES score_emojis(guild, emoji)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS score_roles (
                         guild           BIGINT,
                         role            BIGINT,
                         score           BIGINT,
-                        PRIMARY KEY (guild, role, score)
-                    );
-
-                    CREATE TABLE IF NOT EXISTS reactions (
-                        guild           BIGINT,
-                        user_from       BIGINT,
-                        user_to         BIGINT,
-                        message         BIGINT,
-                        emoji           INT,
-                        native          BOOLEAN NOT NULL DEFAULT true,
-                        PRIMARY KEY (guild, user_from, user_to, message, emoji),
-                        CONSTRAINT fk_emojis
-                            FOREIGN KEY (emoji) REFERENCES emojis(id)
+                        PRIMARY KEY (guild, role, score),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_roles
+                            FOREIGN KEY (guild, role)
+                            REFERENCES roles(guild, role)
+                            ON DELETE CASCADE
                     );
 
                     CREATE TABLE IF NOT EXISTS reaction_roles (
                         guild           BIGINT,
+                        channel         BIGINT,
                         message         BIGINT,
                         emoji           INT,
                         role            BIGINT,
                         slots           INT,
-                        PRIMARY KEY (guild, message, emoji, role),
+                        PRIMARY KEY (guild, channel, message, emoji, role),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_channels
+                            FOREIGN KEY (guild, channel)
+                            REFERENCES channels(guild, channel)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_messages
+                            FOREIGN KEY (guild, channel, message)
+                            REFERENCES messages(guild, channel, message)
+                            ON DELETE CASCADE,
                         CONSTRAINT fk_emojis
-                            FOREIGN KEY (emoji) REFERENCES emojis(id),
+                            FOREIGN KEY (emoji)
+                            REFERENCES emojis(id)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_roles
+                            FOREIGN KEY (guild, role)
+                            REFERENCES roles(guild, role)
+                            ON DELETE CASCADE,
                         CONSTRAINT unsigned_slots
                             CHECK (slots >= 0)
                     );
@@ -119,11 +255,31 @@ impl Database {
                         \"user\"        BIGINT,
                         time            TIMESTAMP WITH TIME ZONE,
                         content         TEXT NOT NULL,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_channels
+                            FOREIGN KEY (guild, channel)
+                            REFERENCES channels(guild, channel)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_messages
+                            FOREIGN KEY (guild, channel, message)
+                            REFERENCES messages(guild, channel, message)
+                            ON DELETE CASCADE,
+                        CONSTRAINT fk_users
+                            FOREIGN KEY (guild, \"user\")\
+                            REFERENCES users(guild, \"user\")
+                            ON DELETE CASCADE,
                         PRIMARY KEY (guild, channel, \"user\", time)
                     );
 
-                    CREATE TABLE IF NOT EXISTS guilds (
-                        guild           BIGINT PRIMARY KEY
+                    CREATE TABLE IF NOT EXISTS owned_guilds (
+                        guild           BIGINT PRIMARY KEY,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
                     );
                 ",
             )
@@ -134,21 +290,161 @@ impl Database {
         Ok(Database { client })
     }
 
+    /// Gets the id of a guild given the GuildId object.
+    ///
+    /// Note: If the guild is not registered before, it will create a new row
+    pub async fn get_guild(&self, guild_id: GuildId) -> Result<i64, KowalskiError> {
+        self.client
+            .execute(
+                "
+            WITH duplicate AS (
+                SELECT * FROM guilds
+                WHERE guild = $1::BIGINT
+            )
+
+            INSERT INTO guilds
+            SELECT $1::BIGINT
+            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            ",
+                &[&(guild_id.0 as i64)],
+            )
+            .await?;
+
+        Ok(guild_id.0 as i64)
+    }
+
+    /// Gets the id of a user given the GuildId and UserId object.
+    ///
+    /// Note: If the guild or user is not registered before, it will create new rows
+    pub async fn get_user(&self, guild_id: GuildId, user_id: UserId) -> Result<i64, KowalskiError> {
+        let guild_db_id = self.get_guild(guild_id).await?;
+
+        self.client
+            .execute(
+                "
+            WITH duplicate AS (
+                SELECT * FROM users
+                WHERE guild = $1::BIGINT AND \"user\" = $2::BIGINT
+            )
+
+            INSERT INTO users
+            SELECT $1::BIGINT, $2::BIGINT
+            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            ",
+                &[&guild_db_id, &(user_id.0 as i64)],
+            )
+            .await?;
+
+        Ok(user_id.0 as i64)
+    }
+
+    /// Gets the id of a role given the GuildId and RoleId object.
+    ///
+    /// Note: If the guild or role is not registered before, it will create new rows
+    pub async fn get_role(&self, guild_id: GuildId, role_id: RoleId) -> Result<i64, KowalskiError> {
+        let guild_db_id = self.get_guild(guild_id).await?;
+
+        self.client
+            .execute(
+                "
+            WITH duplicate AS (
+                SELECT * FROM roles
+                WHERE guild = $1::BIGINT AND role = $2::BIGINT
+            )
+
+            INSERT INTO roles
+            SELECT $1::BIGINT, $2::BIGINT
+            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            ",
+                &[&guild_db_id, &(role_id.0 as i64)],
+            )
+            .await?;
+
+        Ok(role_id.0 as i64)
+    }
+
+    /// Gets the id of a channel given the GuildId and ChannelId object.
+    ///
+    /// Note: If the guild or role is not registered before, it will create new rows
+    pub async fn get_channel(
+        &self,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+    ) -> Result<i64, KowalskiError> {
+        let guild_db_id = self.get_guild(guild_id).await?;
+
+        self.client
+            .execute(
+                "
+            WITH duplicate AS (
+                SELECT * FROM channels
+                WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+            )
+
+            INSERT INTO channels
+            SELECT $1::BIGINT, $2::BIGINT
+            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            ",
+                &[&guild_db_id, &(channel_id.0 as i64)],
+            )
+            .await?;
+
+        Ok(channel_id.0 as i64)
+    }
+
+    /// Gets the id of a message given the GuildId and MessageId object.
+    ///
+    /// Note: If the guild or role is not registered before, it will create new rows
+    pub async fn get_message(
+        &self,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+        message_id: MessageId,
+    ) -> Result<i64, KowalskiError> {
+        let guild_db_id = self.get_guild(guild_id).await?;
+        let channel_db_id = self.get_channel(guild_id, channel_id).await?;
+
+        self.client
+            .execute(
+                "
+            WITH duplicate AS (
+                SELECT * FROM messages
+                WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
+            )
+
+            INSERT INTO messages
+            SELECT $1::BIGINT, $2::BIGINT, $3::BIGINT
+            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            ",
+                &[&guild_db_id, &channel_db_id, &(message_id.0 as i64)],
+            )
+            .await?;
+
+        Ok(message_id.0 as i64)
+    }
+
     /// Gets the id of an emoji given the reaction type.
     ///
     /// Note: If the emoji is not registered before, it will create a new row
-    pub async fn get_emoji(&self, emoji: &ReactionType) -> Result<i32, ExecutionError> {
+    pub async fn get_emoji(
+        &self,
+        guild_id: GuildId,
+        emoji: &ReactionType,
+    ) -> Result<i32, KowalskiError> {
         let row = match emoji {
-            ReactionType::Custom { id, .. } => {
+            ReactionType::Custom { id: emoji_id, .. } => {
+                // Get guild id
+                let guild_db_id = self.get_guild(guild_id).await?;
+
                 self.client
                     .query_one(
                         "
                         WITH id_row AS (
                             SELECT id FROM emojis
-                            WHERE emoji_guild = $1::BIGINT
+                            WHERE guild = $1::BIGINT AND guild_emoji = $2::BIGINT
                         ), new_row AS (
-                            INSERT INTO emojis (emoji_guild)
-                            SELECT $1::BIGINT
+                            INSERT INTO emojis (guild, guild_emoji)
+                            SELECT $1::BIGINT, $2::BIGINT
                             WHERE NOT EXISTS (SELECT * FROM id_row)
                             RETURNING id
                         )
@@ -157,7 +453,7 @@ impl Database {
                         UNION ALL
                         SELECT * FROM new_row
                         ",
-                        &[&i64::from(*id)],
+                        &[&guild_db_id, &(emoji_id.0 as i64)],
                     )
                     .await?
             }

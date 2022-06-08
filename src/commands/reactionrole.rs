@@ -19,9 +19,11 @@ use serenity::{
 use crate::{
     config::Command,
     config::Config,
+    data,
     database::client::Database,
-    error::ExecutionError,
-    strings::{ERR_API_LOAD, ERR_CMD_ARGS_INVALID, ERR_DATA_ACCESS},
+    error::KowalskiError,
+    error::KowalskiError::DiscordApiError,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg, parse_arg_resolved, send_response},
 };
 
@@ -42,16 +44,13 @@ impl Display for Action {
 }
 
 impl FromStr for Action {
-    type Err = ExecutionError;
+    type Err = KowalskiError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "add" => Ok(Action::Add),
             "remove" => Ok(Action::Remove),
-            _ => Err(ExecutionError::new(&format!(
-                "{}: {}",
-                ERR_CMD_ARGS_INVALID, s
-            ))),
+            _ => Err(DiscordApiError(ERR_CMD_ARGS_INVALID.to_string())),
         }
     }
 }
@@ -60,27 +59,20 @@ pub async fn execute(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
     command_config: &Command,
-) -> Result<(), ExecutionError> {
+) -> Result<(), KowalskiError> {
     // Get config and database
-    let (config, database) = {
-        let data = ctx.data.read().await;
+    let (config, database) = data!(ctx, (Config, Database));
 
-        let config = data.get::<Config>().expect(ERR_DATA_ACCESS).clone();
-        let database = data.get::<Database>().expect(ERR_DATA_ACCESS).clone();
-
-        (config, database)
-    };
-
-    let guild = command.guild_id.ok_or(ExecutionError::new(ERR_API_LOAD))?;
+    let guild_id = command.guild_id.unwrap();
 
     let options = &command.data.options;
 
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?)?;
     let role = match parse_arg_resolved(options, 1)? {
-        Role(role) => Ok(role),
-        _ => Err(ExecutionError::new(ERR_API_LOAD)),
-    }?;
+        Role(role) => role,
+        _ => unreachable!(),
+    };
     let slots = {
         if options.len() > 2 {
             Some(parse_arg::<i64>(options, 2)?)
@@ -101,9 +93,9 @@ pub async fn execute(
         .await?;
 
     // Wait for the reaction
-    let reaction = guild
+    let reaction = guild_id
         .await_reaction(&ctx)
-        .guild_id(guild)
+        .guild_id(guild_id)
         .author_id(command.user.id)
         .removed(false)
         .timeout(Duration::from_secs(config.general.interaction_timeout))
@@ -115,7 +107,7 @@ pub async fn execute(
                 ReactionAction::Added(reaction) => {
                     // Check whether the emoji is available on the guild
                     if let ReactionType::Custom { id, .. } = &reaction.emoji {
-                        if let Err(_) = guild.emoji(&ctx.http, *id).await {
+                        if let Err(_) = guild_id.emoji(&ctx.http, *id).await {
                             return send_response(
                                 ctx,
                                 command,
@@ -127,12 +119,15 @@ pub async fn execute(
                     }
 
                     // Get the id of the emoji in the emoji table
-                    let emoji = database.get_emoji(&reaction.emoji).await?;
+                    let emoji = database.get_emoji(guild_id, &reaction.emoji).await?;
 
-                    // Convert the ids to integers
-                    let guild_id = i64::from(guild);
-                    let message_id = i64::from(reaction.message_id);
-                    let role_id = i64::from(role.id);
+                    // Get the guild, role, channel and message ids
+                    let guild_db_id = database.get_guild(guild_id).await?;
+                    let role_db_id = database.get_role(guild_id, role.id).await?;
+                    let channel_db_id = database.get_channel(guild_id, command.channel_id).await?;
+                    let message_db_id = database
+                        .get_message(guild_id, command.channel_id, reaction.message_id)
+                        .await?;
 
                     match action {
                         Action::Add => {
@@ -141,49 +136,22 @@ pub async fn execute(
                                 .client
                                 .execute(
                                     "
-                            INSERT INTO reaction_roles
-                            SELECT $1::BIGINT, $2::BIGINT, $3::INT, $4::BIGINT
-                            WHERE NOT EXISTS (
-                                SELECT * FROM reaction_roles
-                                WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                    AND emoji = $3::INT AND role = $4::BIGINT
-                            )
-                            ",
-                                    &[&guild_id, &message_id, &emoji, &role_id],
+                                INSERT INTO reaction_roles
+                                VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::INT, $5::BIGINT,
+                                    $6::BIGINT)
+                                ON CONFLICT (guild, channel, message, emoji, role)
+                                DO UPDATE SET slots = $6::BIGINT
+                                ",
+                                    &[
+                                        &guild_db_id,
+                                        &channel_db_id,
+                                        &message_db_id,
+                                        &emoji,
+                                        &role_db_id,
+                                        &slots,
+                                    ],
                                 )
                                 .await?;
-
-                            // Update the slots
-                            match slots {
-                                Some(slots) => {
-                                    database
-                                        .client
-                                        .execute(
-                                            "
-                                    UPDATE reaction_roles
-                                    SET slots = $5::BIGINT
-                                    WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                    AND emoji = $3::INT AND role = $4::BIGINT
-                                    ",
-                                            &[&guild_id, &message_id, &emoji, &role_id, &slots],
-                                        )
-                                        .await?;
-                                }
-                                None => {
-                                    database
-                                        .client
-                                        .execute(
-                                            "
-                                    UPDATE reaction_roles
-                                    SET slots = NULL
-                                    WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                    AND emoji = $3::INT AND role = $4::BIGINT
-                                    ",
-                                            &[&guild_id, &message_id, &emoji, &role_id],
-                                        )
-                                        .await?;
-                                }
-                            }
 
                             // React to the message
                             let message = reaction.message(&ctx.http).await?;
@@ -208,10 +176,16 @@ pub async fn execute(
                                 .execute(
                                     "
                             DELETE FROM reaction_roles
-                            WHERE guild = $1::BIGINT AND message = $2::BIGINT
-                                AND emoji = $3::INT AND role = $4::BIGINT
+                            WHERE guild = $1::BIGINT AND channel = $2::BIGINT
+                            AND message = $3::BIGINT AND emoji = $4::INT AND role = $5::BIGINT
                             ",
-                                    &[&guild_id, &message_id, &emoji, &role_id],
+                                    &[
+                                        &guild_db_id,
+                                        &channel_db_id,
+                                        &message_db_id,
+                                        &emoji,
+                                        &role_db_id,
+                                    ],
                                 )
                                 .await?;
 
