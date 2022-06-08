@@ -140,7 +140,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     UPDATE reaction_roles
                     SET slots = slots - 1
                     WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
-                    AND emoji = $3::INT AND slots IS NOT NULL
+                    AND emoji = $4::INT AND slots IS NOT NULL
                     ",
                                 &[&guild_db_id, &channel_db_id, &message_db_id, &emoji_db_id],
                             )
@@ -454,15 +454,18 @@ async fn update_roles(
             .query(
                 "
             WITH role_score AS (
-                SELECT score FROM score_roles
-                WHERE guild = $1::BIGINT AND score <= $2::BIGINT
+                SELECT score
+                FROM score_roles
+                WHERE (score >= 0 AND score <= $2::BIGINT)
+                    OR (score < 0 AND score >= $2::BIGINT)
                 ORDER BY score DESC
                 LIMIT 1
             )
 
-            SELECT role FROM score_roles
+            SELECT role
+            FROM score_roles
             WHERE guild = $1::BIGINT
-            AND score = (SELECT score FROM role_score)
+                AND score = (SELECT score FROM role_score)
             ",
                 &[&guild_db_id, &score],
             )

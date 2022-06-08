@@ -30,17 +30,26 @@ impl Client {
             .expect(&format!("{}: {}", ERR_ENV_NOT_SET, "BOT_ID"))
             .parse()?;
 
-        // Build the database
-        let client = serenity::Client::builder(
-            token,
-            GatewayIntents::GUILD_EMOJIS_AND_STICKERS
-                | GatewayIntents::GUILD_MEMBERS
-                | GatewayIntents::GUILD_MESSAGES
-                | GatewayIntents::GUILD_MESSAGE_REACTIONS,
-        )
-        .event_handler(Handler)
-        .application_id(id)
-        .await?;
+        #[cfg(not(feature = "nlp-model"))]
+        let intents = GatewayIntents::GUILDS
+            | GatewayIntents::GUILD_MEMBERS
+            | GatewayIntents::GUILD_EMOJIS_AND_STICKERS
+            | GatewayIntents::GUILD_MESSAGES
+            | GatewayIntents::GUILD_MESSAGE_REACTIONS;
+
+        #[cfg(feature = "nlp-model")]
+        let intents = GatewayIntents::GUILDS
+            | GatewayIntents::GUILD_MEMBERS
+            | GatewayIntents::GUILD_EMOJIS_AND_STICKERS
+            | GatewayIntents::GUILD_MESSAGES
+            | GatewayIntents::GUILD_MESSAGE_REACTIONS
+            | GatewayIntents::MESSAGE_CONTENT;
+
+        // Build the client
+        let client = serenity::Client::builder(token, intents)
+            .event_handler(Handler)
+            .application_id(id)
+            .await?;
 
         {
             let mut data = client.data.write().await;

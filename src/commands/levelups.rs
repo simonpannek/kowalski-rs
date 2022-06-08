@@ -45,7 +45,7 @@ pub async fn execute(
         .iter()
         .map(|&(role_id, cooldown)| {
             format!(
-                "{}: score {} {}",
+                "{}: **score {} {}**",
                 role_id.mention(),
                 if cooldown >= 0 { ">=" } else { "<=" },
                 cooldown
@@ -53,12 +53,14 @@ pub async fn execute(
         })
         .join("\n");
 
+    let title = "Level-ups roles";
+
     if levelup_roles.is_empty() {
         send_response(
             &ctx,
             &command,
             &command_config,
-            "Level-ups",
+            &title,
             "There are currently no level-up roles defined for this server.",
         )
         .await
@@ -67,7 +69,7 @@ pub async fn execute(
             &ctx,
             &command,
             &command_config,
-            "Level-ups",
+            &title,
             &format!(
                 "The following roles will get assigned to users when they reach a certain score:
                 {}",

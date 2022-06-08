@@ -33,16 +33,16 @@ impl Credits {
             .credits
             .entry(user)
             .and_modify(|current| {
-                // Make sure the credits do not exceed the threshold too far
-                let start_value = min(*current, lower_bound + config.general.credits_margin * 2);
-                // Update current
-                *current = max(lower_bound, start_value) + credits;
+                // Calculate the new value
+                let new_value = max(lower_bound, *current) + credits;
+                // Update current, make sure the credits do not exceed the threshold too far
+                *current = min(new_value, lower_bound + config.general.credits_margin * 2);
             })
             .or_insert(lower_bound + credits);
 
-        let remaining = *user_credits - lower_bound - credits - config.general.credits_margin;
+        let remaining = *user_credits - lower_bound - config.general.credits_margin;
 
-        if remaining > 0 {
+        if remaining - credits > 0 {
             Some(remaining)
         } else {
             None

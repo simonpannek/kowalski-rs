@@ -39,8 +39,6 @@ pub async fn guild_emojis_update(
     for emoji_id in emoji_ids {
         // Check whether emoji still exists
         if !current_state.contains_key(&emoji_id) {
-            println!("Deleting {:?}", emoji_id);
-
             let emoji_db_id = emoji_id.0 as i64;
 
             // Delete the emoji

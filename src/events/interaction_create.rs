@@ -96,7 +96,7 @@ async fn execute_command(
     let cooldown = {
         let mut credits = credits_lock.write().await;
 
-        credits.add_credits(&config, command.user.id.0, command_config.cost.unwrap_or(1))
+        credits.add_credits(&config, command.user.id.0, command_config.cost.unwrap_or(3))
     };
 
     // Check for cooldown

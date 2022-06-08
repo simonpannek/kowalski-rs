@@ -48,18 +48,20 @@ pub async fn execute(
 
     match pin_score {
         Some(pin_score) => content.push_str(&format!(
-            "I will automatically pin messages when the reach a score of {}.",
+            "I will automatically pin messages when they reach a score of **{}**.",
             pin_score
         )),
         None => content.push_str("Disabled"),
     };
+
+    content.push_str("\n");
 
     // Add auto delete information
     content.push_str("**Auto Delete:** ");
 
     match delete_score {
         Some(delete_score) => content.push_str(&format!(
-            "I will automatically delete messages when the reach a score of {}.",
+            "I will automatically delete messages when they reach a score of **{}**.",
             delete_score
         )),
         None => content.push_str("Disabled"),

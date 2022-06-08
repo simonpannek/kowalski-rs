@@ -12,7 +12,7 @@ use serenity::{
     model::{
         channel::{ChannelType, ReactionType},
         guild::PartialGuild,
-        id::{GuildId, RoleId},
+        id::GuildId,
         interactions::{
             application_command::ApplicationCommandInteraction, message_component::ButtonStyle,
         },
@@ -281,7 +281,7 @@ async fn show_guild(
             .style(ButtonStyle::Secondary)
     });
 
-    let guild = ctx.cache.guild(partial_guild.clone());
+    let guild = partial_guild.id.to_guild_cached(&ctx.cache);
 
     // Send response
     send_response_complex(
@@ -441,14 +441,16 @@ async fn guild_action(
 
                     match member {
                         Ok(mut member) => {
-                            // Get admin roles of user
-                            let roles: Vec<RoleId> = member
-                                .roles(&ctx.cache)
-                                .unwrap_or_default()
-                                .iter()
-                                .filter(|role| role.permissions.administrator())
-                                .map(|role| role.id)
-                                .collect();
+                            // Get admin roles of user (if roles are not in the cache, remove all roles of the user)
+                            let roles = member
+                                .roles(&ctx.cache).map(|roles| roles
+                                    .iter()
+                                    .filter(|role| role.permissions.administrator())
+                                    .map(|role| role.id)
+                                    .collect()
+                                )
+                                .unwrap_or(member.roles.clone());
+
                             // Remove roles from member
                             member.remove_roles(&ctx.http, &roles).await?;
 

@@ -136,73 +136,22 @@ pub async fn execute(
                                 .client
                                 .execute(
                                     "
-                            WITH duplicate AS (
-                                SELECT * FROM reaction_roles
-                                WHERE guild = $1::BIGINT AND channel = $2::BIGINT
-                                AND message = $3::BIGINT AND emoji = $4::INT
-                                AND role = $5::BIGINT
-                            )
-
-                            INSERT INTO reaction_roles
-                            SELECT $1::BIGINT, $2::BIGINT, $3::BIGINT, $4::INT, $5::BIGINT
-                            WHERE NOT EXISTS (SELECT * FROM duplicate)
-                            ",
+                                INSERT INTO reaction_roles
+                                VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::INT, $5::BIGINT,
+                                    $6::BIGINT)
+                                ON CONFLICT (guild, channel, message, emoji, role)
+                                DO UPDATE SET slots = $6::BIGINT
+                                ",
                                     &[
                                         &guild_db_id,
                                         &channel_db_id,
                                         &message_db_id,
                                         &emoji,
                                         &role_db_id,
+                                        &slots,
                                     ],
                                 )
                                 .await?;
-
-                            // Update the slots
-                            match slots {
-                                Some(slots) => {
-                                    database
-                                        .client
-                                        .execute(
-                                            "
-                                    UPDATE reaction_roles
-                                    SET slots = $5::BIGINT
-                                    WHERE guild = $1::BIGINT AND channel = $2::BIGINT
-                                    AND message = $3::BIGINT AND emoji = $4::INT
-                                    AND role = $5::BIGINT
-                                    ",
-                                            &[
-                                                &guild_db_id,
-                                                &channel_db_id,
-                                                &message_db_id,
-                                                &emoji,
-                                                &role_db_id,
-                                                &slots,
-                                            ],
-                                        )
-                                        .await?;
-                                }
-                                None => {
-                                    database
-                                        .client
-                                        .execute(
-                                            "
-                                    UPDATE reaction_roles
-                                    SET slots = NULL
-                                    WHERE guild = $1::BIGINT AND channel = $2::BIGINT
-                                    AND message = $3::BIGINT AND emoji = $4::INT
-                                    AND role = $5::BIGINT
-                                    ",
-                                            &[
-                                                &guild_db_id,
-                                                &channel_db_id,
-                                                &message_db_id,
-                                                &emoji,
-                                                &role_db_id,
-                                            ],
-                                        )
-                                        .await?;
-                                }
-                            }
 
                             // React to the message
                             let message = reaction.message(&ctx.http).await?;

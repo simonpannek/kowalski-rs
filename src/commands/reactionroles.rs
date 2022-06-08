@@ -10,7 +10,8 @@ use serenity::{
 };
 
 use crate::{
-    config::Command, data, database::client::Database, error::KowalskiError, utils::send_response,
+    config::Command, data, database::client::Database, error::KowalskiError, pluralize,
+    utils::send_response,
 };
 
 pub async fn execute(
@@ -26,7 +27,7 @@ pub async fn execute(
     // Get guild id
     let guild_db_id = database.get_guild(guild_id).await?;
 
-    // Get roles
+    // Get reaction roles
     let roles = {
         let rows = database
             .client
@@ -36,6 +37,7 @@ pub async fn execute(
                 FROM reaction_roles rr
                 INNER JOIN emojis e ON emoji = id
                 WHERE rr.guild = $1::BIGINT
+                ORDER BY channel, message
                 ",
                 &[&guild_db_id],
             )
@@ -74,14 +76,18 @@ pub async fn execute(
         .iter()
         .map(|(channel_id, message_id, emoji, role_id, slots)| {
             let mut content = format!(
-                "{} when reacting with {} []({})",
+                "{} when reacting with {} [here]({}).",
                 role_id.mention(),
                 emoji.to_string(),
                 message_id.link(*channel_id, Some(guild_id))
             );
 
             if let Some(slots) = slots {
-                content.push_str(&format!(" (There are currently {} slots available)", slots));
+                content.push_str(&format!(
+                    " (There {} currently {} available)",
+                    if *slots == 1 { "is" } else { "are" },
+                    pluralize!("slot", *slots)
+                ));
             }
 
             content

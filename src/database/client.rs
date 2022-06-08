@@ -183,6 +183,10 @@ impl Database {
                         emoji           INT,
                         native          BOOLEAN NOT NULL DEFAULT true,
                         PRIMARY KEY (guild, user_from, user_to, channel, message, emoji),
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE,
                         CONSTRAINT fk_users1
                             FOREIGN KEY (guild, user_from)
                             REFERENCES users(guild, \"user\")
@@ -191,17 +195,9 @@ impl Database {
                             FOREIGN KEY (guild, user_to)
                             REFERENCES users(guild, \"user\")
                             ON DELETE CASCADE,
-                        CONSTRAINT fk_channels
-                            FOREIGN KEY (guild, channel)
-                            REFERENCES channels(guild, channel)
-                            ON DELETE CASCADE,
-                        CONSTRAINT fk_messages
-                            FOREIGN KEY (guild, channel, message)
-                            REFERENCES messages(guild, channel, message)
-                            ON DELETE CASCADE,
                         CONSTRAINT fk_score_emojis
-                            FOREIGN KEY (emoji)
-                            REFERENCES score_emojis(emoji)
+                            FOREIGN KEY (guild, emoji)
+                            REFERENCES score_emojis(guild, emoji)
                             ON DELETE CASCADE
                     );
 

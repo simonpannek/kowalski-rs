@@ -160,7 +160,10 @@ async fn clean_database(ctx: &Context) {
                         database
                             .client
                             .execute(
-                                "DELETE FROM users WHERE guild = $1 AND channel = $2 message = $3",
+                                "
+                                DELETE FROM messages
+                                WHERE guild = $1 AND channel = $2 AND message = $3
+                                ",
                                 &[
                                     &(guild_id.0 as i64),
                                     &(channel_id.0 as i64),

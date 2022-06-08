@@ -162,7 +162,7 @@ impl RowResolved {
                         Some(value) => {
                             let string =
                                 if column.name().starts_with("user") {
-                                    // Guild column
+                                    // User column
                                     UserId(value as u64)
                                         .to_user(&ctx.http)
                                         .await
