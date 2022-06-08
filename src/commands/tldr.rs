@@ -10,7 +10,6 @@ use crate::{
     data,
     error::KowalskiError,
     model::Model,
-    strings::ERR_DATA_ACCESS,
     utils::{get_relevant_messages, send_response},
 };
 
@@ -29,7 +28,7 @@ pub async fn execute(
     for message in messages {
         let result = analyze(model.clone(), message)
             .await
-            .map_err(|why| KowalskiError::new(&format!("{}", why)))?
+            .unwrap()
             .first()
             .cloned()
             .unwrap_or_default();

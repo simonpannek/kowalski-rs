@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rust_bert::pipelines::conversation::ConversationManager;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
@@ -10,7 +9,6 @@ use crate::{
     error::KowalskiError,
     history::History,
     model::Model,
-    strings::ERR_DATA_ACCESS,
     utils::{parse_arg, parse_arg_name, send_response},
 };
 
@@ -90,7 +88,7 @@ pub async fn execute(
             .to_string()
     })
     .await
-    .map_err(|why| KowalskiError::new(&format!("{}", why)))?;
+    .unwrap();
 
     if result.is_empty() {
         result = "I prefer not to answer...".to_string();

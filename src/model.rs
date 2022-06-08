@@ -10,8 +10,6 @@ use rust_bert::{
 };
 use serenity::prelude::TypeMapKey;
 
-use crate::strings::ERR_MODEL_CREATE;
-
 pub struct Model {
     pub summarization: Mutex<SummarizationModel>,
     pub sentiment: Mutex<SentimentModel>,

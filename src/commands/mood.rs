@@ -10,7 +10,6 @@ use crate::{
     data,
     error::KowalskiError,
     model::Model,
-    strings::{ERR_API_LOAD, ERR_DATA_ACCESS},
     utils::{get_relevant_messages, parse_arg_resolved, send_response},
 };
 
@@ -27,9 +26,9 @@ pub async fn execute(
     // Parse argument
     let user = if !options.is_empty() {
         match parse_arg_resolved(options, 0)? {
-            User(user, ..) => Ok(Some(user)),
-            _ => Err(KowalskiError::new(ERR_API_LOAD)),
-        }?
+            User(user, ..) => Some(user),
+            _ => unreachable!(),
+        }
     } else {
         None
     };
@@ -65,7 +64,7 @@ pub async fn execute(
         )
     })
     .await
-    .map_err(|why| KowalskiError::new(&format!("{}", why)))?;
+    .unwrap();
 
     let response = match result.len() {
         1 => {
