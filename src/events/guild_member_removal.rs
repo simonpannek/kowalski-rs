@@ -13,7 +13,11 @@ use serenity::{
 };
 
 use crate::{
-    config::Config, data, database::{client::Database, types::ModuleStatus}, error::KowalskiError, utils::create_embed,
+    config::Config,
+    data,
+    database::{client::Database, types::ModuleStatus},
+    error::KowalskiError,
+    utils::create_embed,
 };
 
 pub async fn guild_member_removal(

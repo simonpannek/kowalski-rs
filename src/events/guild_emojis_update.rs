@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 
-use serenity::{model::{id::{EmojiId, GuildId}, guild::Emoji}, client::Context};
+use serenity::{
+    client::Context,
+    model::{
+        guild::Emoji,
+        id::{EmojiId, GuildId},
+    },
+};
 
 use crate::{data, database::client::Database, error::KowalskiError};
 

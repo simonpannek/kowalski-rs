@@ -4,7 +4,7 @@ use serenity::{
     client::Context,
     model::{
         gateway::{Activity, Ready},
-        id::{GuildId, ChannelId, MessageId, RoleId, UserId},
+        id::{ChannelId, GuildId, MessageId, RoleId, UserId},
         interactions::application_command::ApplicationCommand,
     },
 };

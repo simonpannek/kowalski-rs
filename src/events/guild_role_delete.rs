@@ -1,4 +1,10 @@
-use serenity::{model::{id::{GuildId, RoleId}, guild::Role}, client::Context};
+use serenity::{
+    client::Context,
+    model::{
+        guild::Role,
+        id::{GuildId, RoleId},
+    },
+};
 
 use crate::{data, database::client::Database, error::KowalskiError};
 

@@ -14,7 +14,7 @@ pub async fn execute(
         &command,
         command_config,
         "Disabled command",
-        "This bot was built without this feature being enabled.
+        "I was built without this feature being enabled.
         Please ask the owner of this bot to rebuilt it with this feature enabled if you wish to use this command.",
     )
     .await

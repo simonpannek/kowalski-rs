@@ -8,7 +8,11 @@ use serenity::{
 };
 
 use crate::{
-    config::Config, cooldowns::Cooldowns, data, database::{client::Database, types::ModuleStatus}, error::KowalskiError,
+    config::Config,
+    cooldowns::Cooldowns,
+    data,
+    database::{client::Database, types::ModuleStatus},
+    error::KowalskiError,
 };
 
 pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), KowalskiError> {
@@ -115,7 +119,8 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                         .client
                         .execute(
                             "
-                        UPDATE reaction_roles SET slots = slots + 1
+                        UPDATE reaction_roles
+                        SET slots = slots + 1
                         WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
                         AND emoji = $4::INT AND slots IS NOT NULL
                         ",
@@ -132,7 +137,8 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                             .client
                             .execute(
                                 "
-                    UPDATE reaction_roles SET slots = slots - 1
+                    UPDATE reaction_roles
+                    SET slots = slots - 1
                     WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
                     AND emoji = $3::INT AND slots IS NOT NULL
                     ",

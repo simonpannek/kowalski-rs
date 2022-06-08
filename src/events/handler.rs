@@ -4,10 +4,10 @@ use serenity::{
     async_trait,
     client::{Context, EventHandler},
     model::{
-        channel::{Reaction, GuildChannel},
+        channel::{GuildChannel, Reaction},
         gateway::Ready,
-        guild::{Member, Emoji, Guild, Role, UnavailableGuild},
-        id::{ChannelId, GuildId, MessageId, EmojiId, RoleId},
+        guild::{Emoji, Guild, Member, Role, UnavailableGuild},
+        id::{ChannelId, EmojiId, GuildId, MessageId, RoleId},
         interactions::Interaction,
         user::User,
     },

@@ -1,5 +1,8 @@
 use itertools::Itertools;
-use serenity::{model::id::{ChannelId, GuildId, MessageId}, client::Context};
+use serenity::{
+    client::Context,
+    model::id::{ChannelId, GuildId, MessageId},
+};
 
 use crate::{data, database::client::Database, error::KowalskiError};
 

@@ -1,6 +1,12 @@
 use std::{env, error::Error, sync::Arc};
 
-use serenity::{model::{channel::ReactionType, id::{ChannelId, GuildId, MessageId, RoleId, UserId}}, prelude::TypeMapKey};
+use serenity::{
+    model::{
+        channel::ReactionType,
+        id::{ChannelId, GuildId, MessageId, RoleId, UserId},
+    },
+    prelude::TypeMapKey,
+};
 use tokio_postgres::{Client, NoTls};
 use tracing::{error, info};
 

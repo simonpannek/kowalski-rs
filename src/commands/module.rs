@@ -1,14 +1,13 @@
 use std::{
     fmt::{Display, Formatter},
     str::FromStr,
-    sync::Arc,
     time::Duration,
 };
 
 use serenity::{
-    client::Context,
-    model::{id::GuildId, interactions::application_command::ApplicationCommandInteraction},
+    client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
+use tokio::sync::Mutex;
 
 use crate::{
     config::{Command, Config, Module},
@@ -21,6 +20,9 @@ use crate::{
         create_module_command, parse_arg, send_confirmation, send_response, InteractionResponse,
     },
 };
+
+/// Lock to avoid race conditions when modifying the status object
+static LOCK: Mutex<i32> = Mutex::const_new(1);
 
 enum Action {
     Enable,
@@ -76,46 +78,76 @@ pub async fn execute(
     // Get guild id
     let guild_db_id = database.get_guild(guild_id).await?;
 
-    // Get guild status
-    let status: ModuleStatus = {
-        let row = database
-            .client
-            .query_opt(
-                "SELECT status FROM modules WHERE guild = $1::BIGINT",
-                &[&guild_db_id],
-            )
-            .await?;
+    // Get the status, modify it and update it in the database if necessary
+    let status: Option<ModuleStatus> = {
+        let _mutex = LOCK.lock().await;
 
-        match row {
-            Some(row) => row.get(0),
-            None => {
-                database
-                    .client
-                    .execute(
-                        "
+        // Get current guild status
+        let status: ModuleStatus = {
+            let row = database
+                .client
+                .query_opt(
+                    "SELECT status FROM modules WHERE guild = $1::BIGINT",
+                    &[&guild_db_id],
+                )
+                .await?;
+
+            match row {
+                Some(row) => row.get(0),
+                None => {
+                    database
+                        .client
+                        .execute(
+                            "
                         INSERT INTO modules
                         VALUES ($1::BIGINT, B'00000000')
                         ",
-                        &[&guild_db_id],
-                    )
-                    .await?;
+                            &[&guild_db_id],
+                        )
+                        .await?;
 
-                ModuleStatus::default()
+                    ModuleStatus::default()
+                }
             }
+        };
+
+        // Copy status to compare it to the old status later
+        let mut status_new = status.clone();
+
+        // Update the status object
+        let enable = matches!(action, Action::Enable);
+        match module {
+            Module::Owner => status_new.owner = enable,
+            Module::Utility => status_new.utility = enable,
+            Module::Score => status_new.score = enable,
+            Module::ReactionRoles => status_new.reaction_roles = enable,
+            Module::Analyze => status_new.analyze = enable,
+        };
+
+        // Check whether the status has changed
+        if status != status_new {
+            // Update the object in the database so we can drop the lock
+
+            // Get guild id
+            let guild_db_id = database.get_guild(guild_id).await?;
+
+            // Update the database entry
+            database
+                .client
+                .execute(
+                    "
+            UPDATE modules
+            SET status = $1::BIT(8)
+            WHERE guild = $2::BIGINT
+            ",
+                    &[&status_new, &guild_db_id],
+                )
+                .await?;
+
+            Some(status_new)
+        } else {
+            None
         }
-    };
-
-    // Copy status to compare it to the old status later
-    let mut status_new = status.clone();
-
-    // Update status
-    let enable = matches!(action, Action::Enable);
-    match module {
-        Module::Owner => status_new.owner = enable,
-        Module::Utility => status_new.utility = enable,
-        Module::Score => status_new.score = enable,
-        Module::ReactionRoles => status_new.reaction_roles = enable,
-        Module::Analyze => status_new.analyze = enable,
     };
 
     // Get title of the embed
@@ -136,7 +168,7 @@ pub async fn execute(
 
             match response {
                 Some(InteractionResponse::Continue) => {
-                    remove(ctx, command, command_config, title, module, database).await
+                    remove(ctx, command, command_config, title, module).await
                 }
                 Some(InteractionResponse::Abort) => {
                     send_response(ctx, command, command_config, &title, "Aborted the action.").await
@@ -146,28 +178,40 @@ pub async fn execute(
         }
         _ => {
             // Enable/disable the module
-            if status == status_new {
-                // No real update
-                send_response(
-                    ctx,
-                    command,
-                    command_config,
-                    &title,
-                    "The state of the module did not change. No need to update anything.",
-                )
-                .await
-            } else {
-                update(
-                    ctx,
-                    command,
-                    command_config,
-                    title,
-                    &config,
-                    guild_id,
-                    status_new,
-                    database,
-                )
-                .await
+            match status {
+                Some(status) => {
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        &title,
+                        "I'm updating the module... This can take some time.",
+                    )
+                    .await?;
+
+                    // Update the guild commands
+                    create_module_command(ctx, &config, guild_id, &status).await;
+
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        &title,
+                        "I have updated the module.",
+                    )
+                    .await
+                }
+                None => {
+                    // No real update
+                    send_response(
+                        ctx,
+                        command,
+                        command_config,
+                        &title,
+                        "The state of the module did not change. No need to update anything.",
+                    )
+                    .await
+                }
             }
         }
     }
@@ -179,7 +223,6 @@ async fn remove(
     command_config: &Command,
     title: String,
     module: Module,
-    _database: Arc<Database>,
 ) -> Result<(), KowalskiError> {
     // Get database
     let database = data!(ctx, Database);
@@ -247,45 +290,6 @@ async fn remove(
         command_config,
         &title,
         "I have removed all of the module data.",
-    )
-    .await
-}
-
-async fn update(
-    ctx: &Context,
-    command: &ApplicationCommandInteraction,
-    command_config: &Command,
-    title: String,
-    config: &Config,
-    guild_id: GuildId,
-    status: ModuleStatus,
-    database: Arc<Database>,
-) -> Result<(), KowalskiError> {
-    // Update the guild commands
-    create_module_command(ctx, config, guild_id, &status).await;
-
-    // Get guild id
-    let guild_db_id = database.get_guild(guild_id).await?;
-
-    // Update the database entry
-    database
-        .client
-        .execute(
-            "
-            UPDATE modules
-            SET status = $1::BIT(8)
-            WHERE guild = $2::BIGINT
-            ",
-            &[&status, &guild_db_id],
-        )
-        .await?;
-
-    send_response(
-        ctx,
-        command,
-        command_config,
-        &title,
-        "I have updated the module.",
     )
     .await
 }

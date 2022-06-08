@@ -14,7 +14,7 @@ leaderboard_size = 10
 # Titles for the leaderboard ranks
 leaderboard_titles = ["👑", "⚔️", "🗡️"]
 # The maximum amount of credits a user can have (each command has a certain cost, one credit expires every second)
-credits_margin = 50
+credits_margin = 60
 # Time to wait for a user to pick up dropped reactions
 pickup_timeout = 300
 # Maximum number of characters per message the NLP model should look at
@@ -39,7 +39,7 @@ description = "Display information about the bot."
 command_type = "Module"
 description = "Update the activated modules."
 permission = "8"
-cost = 10
+cost = 30
 
 [commands.module.options.action]
 kind = "String"
@@ -99,7 +99,7 @@ description = "Execute a SQL query."
 module = "Owner"
 permission = "8"
 owner = true
-cost = 5
+cost = 10
 
 [commands.sql.options.query]
 kind = "String"
@@ -113,7 +113,7 @@ command_type = "Clear"
 description = "Clear a certain amount of recent messages."
 module = "Utility"
 permission = "8192"
-cost = 10
+cost = 15
 
 [commands.clear.options.count]
 kind = "Integer"
@@ -130,7 +130,7 @@ description = "The message id from which to start deleting messages."
 command_type = "Reminder"
 description = "Scheduler a reminder in a certain amount of time."
 module = "Utility"
-cost = 10
+cost = 15
 
 [commands.reminder.options.message]
 kind = "String"
@@ -186,6 +186,7 @@ min_value = 0
 [commands.cooldowns]
 command_type = "Cooldowns"
 description = "See the reaction cooldown of all roles."
+module = "Score"
 
 [commands.drop]
 command_type = "Drop"
@@ -208,6 +209,7 @@ channel_types = ["Text"]
 [commands.drops]
 command_type = "Drops"
 description = "See which channels reactions should get dropped into if a user leaves."
+module = "Score"
 
 [commands.emoji]
 command_type = "Emoji"
@@ -281,6 +283,7 @@ required = true
 [commands.levelups]
 command_type = "LevelUps"
 description = "See which role gets awarded on which score."
+module = "Score"
 
 [commands.moderation]
 command_type = "Moderation"
@@ -359,7 +362,7 @@ module = "ReactionRoles"
 command_type = "Mood"
 description = "Analyze the general mood in the chat or the mood of a certain user."
 module = "Analyze"
-cost = 5
+cost = 10
 
 [commands.mood.options.user]
 kind = "User"
@@ -369,7 +372,7 @@ description = "The user to query."
 command_type = "Oracle"
 description = "Answer a question."
 module = "Analyze"
-cost = 10
+cost = 15
 
 [commands.oracle.options.question]
 kind = "String"

@@ -20,13 +20,15 @@ use serenity::{
     prelude::Mentionable,
 };
 
-use crate::{strings::ERR_CMD_ARGS_INVALID,error::KowalskiError::DiscordApiError,
+use crate::{
     config::Command,
     config::Config,
     data,
     database::client::Database,
     error::KowalskiError,
+    error::KowalskiError::DiscordApiError,
     row_id,
+    strings::ERR_CMD_ARGS_INVALID,
     utils::{parse_arg_resolved, send_response, send_response_complex},
 };
 

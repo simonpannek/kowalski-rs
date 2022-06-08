@@ -24,8 +24,8 @@ impl Credits {
 
     /// Add credits to a user
     ///
-    /// Returns whether the user surpassed the threshold
-    pub fn add_credits(&mut self, config: &Config, user: u64, credits: i64) -> bool {
+    /// Returns a values if the user surpassed the threshold (the optional value is the seconds left)
+    pub fn add_credits(&mut self, config: &Config, user: u64, credits: i64) -> Option<i64> {
         // Get lower credits bound
         let lower_bound = Utc::now().timestamp();
         // Update user credits
@@ -34,13 +34,19 @@ impl Credits {
             .entry(user)
             .and_modify(|current| {
                 // Make sure the credits do not exceed the threshold too far
-                let start_value = min(*current, lower_bound + config.general.credits_margin);
+                let start_value = min(*current, lower_bound + config.general.credits_margin * 2);
                 // Update current
                 *current = max(lower_bound, start_value) + credits;
             })
             .or_insert(lower_bound + credits);
 
-        *user_credits >= lower_bound + config.general.credits_margin
+        let remaining = *user_credits - lower_bound - credits - config.general.credits_margin;
+
+        if remaining > 0 {
+            Some(remaining)
+        } else {
+            None
+        }
     }
 }
 

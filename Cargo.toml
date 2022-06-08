@@ -47,7 +47,7 @@ features = ["strum_macros"]
 
 [dependencies.tokio]
 version = "1.18"
-features = ["macros", "rt-multi-thread"]
+features = ["macros", "parking_lot", "rt-multi-thread"]
 
 [dependencies.tokio-postgres]
 version = "0.7"
