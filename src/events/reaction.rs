@@ -34,11 +34,6 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
             .get_message(guild_id, channel_id, message_id)
             .await?;
 
-        // Self reactions do not count
-        if user_from_id == user_to_id {
-            return Ok(());
-        }
-
         // Get guild status
         let status = database
             .client
@@ -81,6 +76,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
 
         // Whether the emoji should count as a up-/downvote
         let levelup = status.score
+            && user_from_id != user_to_id
             && reaction_roles.is_empty()
             && database
                 .client
