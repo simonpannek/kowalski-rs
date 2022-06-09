@@ -149,7 +149,7 @@ max_value = 59
 kind = "Integer"
 description = "The amount of hours to wait before sending the reminder."
 min_value = 0
-max_value = 59
+max_value = 23
 
 [commands.reminder.options.days]
 kind = "Integer"
