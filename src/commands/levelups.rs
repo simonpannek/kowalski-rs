@@ -53,7 +53,7 @@ pub async fn execute(
         })
         .join("\n");
 
-    let title = "Level-ups roles";
+    let title = "Level-up roles";
 
     if levelup_roles.is_empty() {
         send_response(

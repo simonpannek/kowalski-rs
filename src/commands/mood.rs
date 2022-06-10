@@ -82,7 +82,7 @@ pub async fn execute(
         }
         _ => {
             let mut response = format!(
-                "The messages started out **{:?}**. The mood the changed to ",
+                "The messages started out **{:?}**. The mood then changed to ",
                 result.first().unwrap().polarity
             );
 

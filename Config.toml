@@ -16,7 +16,7 @@ leaderboard_titles = ["👑", "⚔️", "🗡️"]
 # The maximum amount of credits a user can have (each command has a certain cost, one credit expires every second)
 credits_margin = 60
 # Time to wait for a user to pick up dropped reactions
-pickup_timeout = 300
+pickup_timeout = 3600
 # Maximum number of characters per message the NLP model should look at
 nlp_max_message_length = 1500
 # Maximum amount of messages to feed into the NLP model
