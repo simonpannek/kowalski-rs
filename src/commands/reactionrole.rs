@@ -124,9 +124,9 @@ pub async fn execute(
                     // Get the guild, role, channel and message ids
                     let guild_db_id = database.get_guild(guild_id).await?;
                     let role_db_id = database.get_role(guild_id, role.id).await?;
-                    let channel_db_id = database.get_channel(guild_id, command.channel_id).await?;
+                    let channel_db_id = database.get_channel(guild_id, reaction.channel_id).await?;
                     let message_db_id = database
-                        .get_message(guild_id, command.channel_id, reaction.message_id)
+                        .get_message(guild_id, reaction.channel_id, reaction.message_id)
                         .await?;
 
                     match action {
