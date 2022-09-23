@@ -1,4 +1,5 @@
 pub mod about;
+pub mod clean;
 pub mod clear;
 pub mod cooldown;
 pub mod cooldowns;

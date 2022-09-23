@@ -56,6 +56,7 @@ pub enum CommandType {
     Module,
     Modules,
     Ping,
+    Clean,
     Guild,
     Say,
     Sql,

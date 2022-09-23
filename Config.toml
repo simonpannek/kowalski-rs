@@ -62,6 +62,13 @@ command_type = "Ping"
 description = "Ping the bot."
 
 # Bot management
+[commands.clean]
+command_type = "Clean"
+description = "Remove unused rows from the database."
+module = "Owner"
+permission = "8"
+owner = true
+
 [commands.guild]
 command_type = "Guild"
 description = "Manage guilds created by the bot."
