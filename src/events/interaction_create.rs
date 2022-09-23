@@ -123,6 +123,7 @@ async fn execute_command(
                 CommandType::Module => module::execute(ctx, command, command_config).await,
                 CommandType::Modules => modules::execute(ctx, command, command_config).await,
                 CommandType::Ping => ping::execute(ctx, command, command_config).await,
+                CommandType::Clean => clean::execute(ctx, command, command_config).await,
                 CommandType::Guild => guild::execute(ctx, command, command_config).await,
                 CommandType::Say => say::execute(ctx, command, command_config).await,
                 CommandType::Sql => sql::execute(ctx, command, command_config).await,
