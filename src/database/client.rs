@@ -187,11 +187,7 @@ impl Database {
                             FOREIGN KEY (guild)
                             REFERENCES guilds(guild)
                             ON DELETE CASCADE,
-                        CONSTRAINT fk_users1
-                            FOREIGN KEY (guild, user_from)
-                            REFERENCES users(guild, \"user\")
-                            ON DELETE CASCADE,
-                        CONSTRAINT fk_users2
+                        CONSTRAINT fk_users
                             FOREIGN KEY (guild, user_to)
                             REFERENCES users(guild, \"user\")
                             ON DELETE CASCADE,
