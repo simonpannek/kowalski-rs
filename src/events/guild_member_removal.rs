@@ -155,8 +155,6 @@ pub async fn guild_member_removal(
                                 .set_embeds(vec![embed])
                         })
                         .await?;
-
-                    return Ok(());
                 }
                 None => {
                     let embed =
