@@ -21,14 +21,7 @@ impl History {
         let entry = entry.trim().to_string();
         let key = (user_id.0, option_name.to_string());
 
-        let vector = match self.histories.get_mut(&key) {
-            Some(vector) => vector,
-            None => {
-                // Insert a new vector
-                self.histories.insert(key.clone(), Vec::new());
-                self.histories.get_mut(&key).unwrap()
-            }
-        };
+        let vector = self.histories.entry(key).or_insert(Vec::new());
 
         // Find possible duplicate elements
         let position = vector

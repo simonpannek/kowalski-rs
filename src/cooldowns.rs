@@ -14,7 +14,7 @@ pub struct Cooldowns {
     guilds: HashMap<GuildId, GuildCooldowns>,
 }
 
-/// GuildCooldowns struct containing a map, mapping user ids to the cooldowns of the command.
+/// GuildCooldowns struct containing a map, mapping user ids to the cooldowns of the reaction.
 struct GuildCooldowns {
     cooldowns: HashMap<UserId, DateTime<Utc>>,
 }
@@ -38,18 +38,10 @@ impl Cooldowns {
         roles: &[RoleId],
     ) -> Result<bool, KowalskiError> {
         // Get or create guild cooldowns
-        let guild_cooldowns = match self.guilds.get_mut(&guild_id) {
-            Some(cooldowns) => cooldowns,
-            None => {
-                self.guilds.insert(
-                    guild_id,
-                    GuildCooldowns {
-                        cooldowns: HashMap::new(),
-                    },
-                );
-                self.guilds.get_mut(&guild_id).unwrap()
-            }
-        };
+        let guild_cooldowns = self.guilds.entry(guild_id)
+            .or_insert(GuildCooldowns {
+            cooldowns: HashMap::new(),
+        });
 
         let active = match guild_cooldowns.cooldowns.get(&user_id) {
             Some(&date) => date > Utc::now(),
