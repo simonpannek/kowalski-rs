@@ -38,8 +38,7 @@ impl Cooldowns {
         roles: &[RoleId],
     ) -> Result<bool, KowalskiError> {
         // Get or create guild cooldowns
-        let guild_cooldowns = self.guilds.entry(guild_id)
-            .or_insert(GuildCooldowns {
+        let guild_cooldowns = self.guilds.entry(guild_id).or_insert(GuildCooldowns {
             cooldowns: HashMap::new(),
         });
 
