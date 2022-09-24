@@ -86,7 +86,9 @@ pub async fn execute(
                 .execute(
                     "
             INSERT INTO score_drops
-            VALUES ($1::BIGINT, $2::BIGINT)
+            VALUES($1::BIGINT, $2::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                     &[&guild_db_id, &channel_db_id],
                 )
