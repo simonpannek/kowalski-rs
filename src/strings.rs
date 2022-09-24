@@ -29,6 +29,7 @@ pub const ERR_MEMBER_REMOVAL: &str = "Failed to handle the member removal event"
 pub const ERR_MESSAGE_COMPONENT: &str = "Failed to answer the message component request";
 pub const ERR_MODEL_CREATE: &str = "Failed to create the model";
 pub const ERR_REACTION: &str = "Failed to handle the reaction event";
+pub const ERR_REMINDER: &str = "Failed to send the reminder";
 // User error messages
 pub const ERR_USER_TITLE: &str = "Looks like something really went wrong here :/";
 pub const ERR_USER_EXECUTION_FAILED: &str =
