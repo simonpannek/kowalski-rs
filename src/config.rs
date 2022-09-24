@@ -71,6 +71,7 @@ pub enum CommandType {
     Emojis,
     Gift,
     Given,
+    Givens,
     LevelUp,
     LevelUps,
     Moderation,

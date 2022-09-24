@@ -146,6 +146,7 @@ async fn execute_command(
                 CommandType::Emojis => emojis::execute(ctx, command, command_config).await,
                 CommandType::Gift => gift::execute(ctx, command, command_config).await,
                 CommandType::Given => given::execute(ctx, command, command_config).await,
+                CommandType::Givens => givens::execute(ctx, command, command_config).await,
                 CommandType::LevelUp => levelup::execute(ctx, command, command_config).await,
                 CommandType::LevelUps => levelups::execute(ctx, command, command_config).await,
                 CommandType::Moderation => moderation::execute(ctx, command, command_config).await,

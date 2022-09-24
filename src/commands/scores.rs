@@ -76,7 +76,11 @@ pub async fn execute(
                 let upvotes: Option<i64> = row.get(1);
                 let downvotes: Option<i64> = row.get(2);
 
-                (UserId(user as u64), upvotes.unwrap_or_default(), downvotes.unwrap_or_default())
+                (
+                    UserId(user as u64),
+                    upvotes.unwrap_or_default(),
+                    downvotes.unwrap_or_default(),
+                )
             })
             .collect()
     };
