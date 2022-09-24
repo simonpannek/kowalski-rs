@@ -126,7 +126,6 @@ async fn execute_command(
         }
         None => {
             // Execute the command
-            // TODO: Use meta programming for this?
             match command_config.command_type {
                 CommandType::About => about::execute(ctx, command, command_config).await,
                 CommandType::Module => module::execute(ctx, command, command_config).await,

@@ -271,8 +271,6 @@ async fn edit_embed(
     Ok(())
 }
 
-// TODO: Avoid rate limiting here
-
 /// Create a general command
 pub fn create_command(name: &str, command_config: &Command) -> CreateApplicationCommand {
     let mut command = CreateApplicationCommand::default();

@@ -67,7 +67,6 @@ pub async fn execute(
         (upvotes.unwrap_or_default(), downvotes.unwrap_or_default())
     };
     let score = upvotes - downvotes;
-    // TODO: Create a utility function for this
     let emojis = {
         let rows = database
             .client
