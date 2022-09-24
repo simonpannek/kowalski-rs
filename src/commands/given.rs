@@ -67,7 +67,6 @@ pub async fn execute(
         (upvotes.unwrap_or_default(), downvotes.unwrap_or_default())
     };
     let score = upvotes - downvotes;
-    // TODO: Create a utility function for this
     let emojis = {
         let rows = database
             .client
@@ -116,10 +115,11 @@ pub async fn execute(
             .query(
                 "
         SELECT user_to, COUNT(*) FILTER (WHERE upvote) upvotes,
-        COUNT(*) FILTER (WHERE NOT upvote) downvotes
+        COUNT(*) FILTER (WHERE NOT upvote) downvotes,
+        SUM(CASE WHEN upvote THEN 1 ELSE -1 END) FILTER (WHERE NOT native) gifted
         FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
-        WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT AND native = true
+        WHERE r.guild = $1::BIGINT AND user_from = $2::BIGINT
         GROUP BY user_to
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
         LIMIT 5
@@ -131,10 +131,11 @@ pub async fn execute(
         rows.iter()
             .map(|row| {
                 let user: i64 = row.get(0);
-                let upvotes: i64 = row.get(1);
-                let downvotes: i64 = row.get(2);
+                let upvotes: i64 = row.get::<_, Option<_>>(1).unwrap_or_default();
+                let downvotes: i64 = row.get::<_, Option<_>>(2).unwrap_or_default();
+                let gifted: i64 = row.get::<_, Option<_>>(3).unwrap_or_default();
 
-                (UserId(user as u64), upvotes, downvotes)
+                (UserId(user as u64), upvotes, downvotes, gifted)
             })
             .collect()
     };
@@ -171,13 +172,14 @@ pub async fn execute(
 
             let mut users = users
                 .iter()
-                .map(|(user, upvotes, downvotes)| {
+                .map(|(user, upvotes, downvotes, gifted)| {
                     format!(
-                        "{}: **{}** [+{}, -{}]",
+                        "{}: **{}** [+{}, -{}] ({} gifted)",
                         user.mention(),
                         upvotes - downvotes,
                         upvotes,
-                        downvotes
+                        downvotes,
+                        gifted
                     )
                 })
                 .join("\n");

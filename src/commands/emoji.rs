@@ -122,6 +122,8 @@ pub async fn execute(
                             "
                     INSERT INTO score_emojis
                     VALUES ($1::BIGINT, $2::INT, $3::BOOLEAN)
+                    ON CONFLICT (guild, emoji)
+                    DO UPDATE SET upvote = $3::BOOL
                     ",
                             &[&guild_db_id, &emoji_id, &upvote],
                         )

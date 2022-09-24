@@ -177,8 +177,10 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     .execute(
                         "
                 INSERT INTO score_reactions
-                VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::BIGINT, $6::INT,
+                VALUES($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::BIGINT, $5::BIGINT, $6::INT,
                 $7::BOOLEAN)
+                ON CONFLICT
+                DO NOTHING
                 ",
                         &[
                             &guild_db_id,

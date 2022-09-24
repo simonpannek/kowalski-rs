@@ -111,7 +111,7 @@ pub async fn execute(
                 )
 
                 UPDATE score_reactions
-                SET user_to = $3::BIGINT, native = false
+                SET user_from = $2::BIGINT, user_to = $3::BIGINT, native = false
                 WHERE (guild, user_from, user_to, channel, message, emoji)
                     IN (SELECT * FROM to_update)
                 ",

@@ -570,7 +570,6 @@ async fn get_invite(ctx: &Context, guild: &PartialGuild) -> Result<RichInvite, K
     }
 }
 
-// TODO: Replace with the library function as soon as it updated
 async fn create_guild(
     http: impl AsRef<Http>,
     name: &str,

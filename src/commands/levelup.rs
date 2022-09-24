@@ -80,7 +80,9 @@ pub async fn execute(
                 .execute(
                     "
             INSERT INTO score_roles
-            VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT)
+            VALUES($1::BIGINT, $2::BIGINT, $3::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                     &[&guild_db_id, &role_db_id, &score],
                 )

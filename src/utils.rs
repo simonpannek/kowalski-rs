@@ -159,7 +159,7 @@ pub async fn send_confirmation(
     Ok(response)
 }
 
-/// Edit a simple embed response, only giving the title and content.
+/// Edit a simple embed response, only given the title and content.
 pub async fn send_response(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
@@ -179,7 +179,7 @@ pub async fn send_response(
     .await
 }
 
-/// Edit a embed response, giving the title, content and a function further editing the embed.
+/// Edit a embed response, given the title, content and a function further editing the embed.
 pub async fn send_response_complex<F>(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
@@ -206,7 +206,7 @@ where
     edit_embed(ctx, command, embed, action_rows).await
 }
 
-/// Send a failure embed response, giving the title and content.
+/// Send a failure embed response, given the title and content.
 pub async fn send_failure(
     ctx: &Context,
     command: &ApplicationCommandInteraction,
@@ -270,8 +270,6 @@ async fn edit_embed(
 
     Ok(())
 }
-
-// TODO: Avoid rate limiting here
 
 /// Create a general command
 pub fn create_command(name: &str, command_config: &Command) -> CreateApplicationCommand {

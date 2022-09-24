@@ -187,11 +187,7 @@ impl Database {
                             FOREIGN KEY (guild)
                             REFERENCES guilds(guild)
                             ON DELETE CASCADE,
-                        CONSTRAINT fk_users1
-                            FOREIGN KEY (guild, user_from)
-                            REFERENCES users(guild, \"user\")
-                            ON DELETE CASCADE,
-                        CONSTRAINT fk_users2
+                        CONSTRAINT fk_users
                             FOREIGN KEY (guild, user_to)
                             REFERENCES users(guild, \"user\")
                             ON DELETE CASCADE,
@@ -297,14 +293,10 @@ impl Database {
         self.client
             .execute(
                 "
-            WITH duplicate AS (
-                SELECT * FROM guilds
-                WHERE guild = $1::BIGINT
-            )
-
             INSERT INTO guilds
-            SELECT $1::BIGINT
-            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            VALUES($1::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                 &[&(guild_id.0 as i64)],
             )
@@ -322,14 +314,10 @@ impl Database {
         self.client
             .execute(
                 "
-            WITH duplicate AS (
-                SELECT * FROM users
-                WHERE guild = $1::BIGINT AND \"user\" = $2::BIGINT
-            )
-
             INSERT INTO users
-            SELECT $1::BIGINT, $2::BIGINT
-            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            VALUES($1::BIGINT, $2::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                 &[&guild_db_id, &(user_id.0 as i64)],
             )
@@ -347,14 +335,10 @@ impl Database {
         self.client
             .execute(
                 "
-            WITH duplicate AS (
-                SELECT * FROM roles
-                WHERE guild = $1::BIGINT AND role = $2::BIGINT
-            )
-
             INSERT INTO roles
-            SELECT $1::BIGINT, $2::BIGINT
-            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            VALUES($1::BIGINT, $2::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                 &[&guild_db_id, &(role_id.0 as i64)],
             )
@@ -376,14 +360,10 @@ impl Database {
         self.client
             .execute(
                 "
-            WITH duplicate AS (
-                SELECT * FROM channels
-                WHERE guild = $1::BIGINT AND channel = $2::BIGINT
-            )
-
             INSERT INTO channels
-            SELECT $1::BIGINT, $2::BIGINT
-            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            VALUES($1::BIGINT, $2::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                 &[&guild_db_id, &(channel_id.0 as i64)],
             )
@@ -407,14 +387,10 @@ impl Database {
         self.client
             .execute(
                 "
-            WITH duplicate AS (
-                SELECT * FROM messages
-                WHERE guild = $1::BIGINT AND channel = $2::BIGINT AND message = $3::BIGINT
-            )
-
             INSERT INTO messages
-            SELECT $1::BIGINT, $2::BIGINT, $3::BIGINT
-            WHERE NOT EXISTS (SELECT * FROM duplicate)
+            VALUES($1::BIGINT, $2::BIGINT, $3::BIGINT)
+            ON CONFLICT
+            DO NOTHING
             ",
                 &[&guild_db_id, &channel_db_id, &(message_id.0 as i64)],
             )

@@ -112,7 +112,7 @@ pub async fn execute(
             command_config,
             title,
             &format!(
-                "The following reaction roles are not registered on this guild:\n\n{}",
+                "The following reaction roles are registered on this guild:\n\n{}",
                 roles
             ),
         )

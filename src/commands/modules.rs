@@ -8,7 +8,7 @@ use crate::{
     data,
     database::{client::Database, types::ModuleStatus},
     error::KowalskiError,
-    utils::send_response_complex,
+    utils::{send_failure, send_response_complex},
 };
 
 pub async fn execute(
@@ -18,6 +18,18 @@ pub async fn execute(
 ) -> Result<(), KowalskiError> {
     // Get database
     let database = data!(ctx, Database);
+
+    if matches!(command.guild_id, None) {
+        send_failure(
+            &ctx,
+            command,
+            "Command not available",
+            "Module commands are only available on guilds.",
+        )
+        .await;
+
+        return Ok(());
+    }
 
     let guild_id = command.guild_id.unwrap();
 
