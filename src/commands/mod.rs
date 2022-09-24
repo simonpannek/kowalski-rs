@@ -10,6 +10,7 @@ pub mod emoji;
 pub mod emojis;
 pub mod gift;
 pub mod given;
+pub mod givens;
 pub mod guild;
 pub mod levelup;
 pub mod levelups;

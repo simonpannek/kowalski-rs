@@ -56,9 +56,9 @@ pub async fn execute(
             )
             .await?;
 
-        let upvotes = row.get::<_, Option<_>>(0).unwrap_or_default();
+        let upvotes: Option<i64> = row.get(0);
 
-        min(score, upvotes)
+        min(score, upvotes.unwrap_or_default())
     };
 
     let title = format!(

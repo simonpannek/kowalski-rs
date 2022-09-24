@@ -131,11 +131,11 @@ pub async fn execute(
         rows.iter()
             .map(|row| {
                 let user: i64 = row.get(0);
-                let upvotes: i64 = row.get::<_, Option<_>>(1).unwrap_or_default();
-                let downvotes: i64 = row.get::<_, Option<_>>(2).unwrap_or_default();
-                let gifted: i64 = row.get::<_, Option<_>>(3).unwrap_or_default();
+                let upvotes: Option<i64> = row.get(1);
+                let downvotes: Option<i64> = row.get(2);
+                let gifted: Option<i64> = row.get(3);
 
-                (UserId(user as u64), upvotes, downvotes, gifted)
+                (UserId(user as u64), upvotes.unwrap_or_default(), downvotes.unwrap_or_default(), gifted.unwrap_or_default())
             })
             .collect()
     };

@@ -131,10 +131,10 @@ pub async fn execute(
         rows.iter()
             .map(|row| {
                 let user: i64 = row.get(0);
-                let upvotes: i64 = row.get(1);
-                let downvotes: i64 = row.get(2);
+                let upvotes: Option<i64> = row.get(1);
+                let downvotes: Option<i64> = row.get(2);
 
-                (UserId(user as u64), upvotes, downvotes)
+                (UserId(user as u64), upvotes.unwrap_or_default(), downvotes.unwrap_or_default())
             })
             .collect()
     };
