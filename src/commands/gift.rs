@@ -56,9 +56,9 @@ pub async fn execute(
             )
             .await?;
 
-        let upvotes = row.get::<_, Option<_>>(0).unwrap_or_default();
+        let upvotes: Option<i64> = row.get(0);
 
-        min(score, upvotes)
+        min(score, upvotes.unwrap_or_default())
     };
 
     let title = format!(
@@ -111,7 +111,7 @@ pub async fn execute(
                 )
 
                 UPDATE score_reactions
-                SET user_from = $2::BIGINT, user_to = $3::BIGINT, native = false
+                SET user_to = $3::BIGINT, native = false
                 WHERE (guild, user_from, user_to, channel, message, emoji)
                     IN (SELECT * FROM to_update)
                 ",
