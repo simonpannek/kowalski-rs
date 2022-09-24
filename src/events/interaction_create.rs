@@ -76,20 +76,29 @@ async fn execute_command(
     }
 
     // Check if the user has the required permissions if there are any
-    if let Some(permission) = command_config.permission {
-        if let Some(member) = &command.member {
-            // Get permissions of the user
-            let permissions = member.permissions.unwrap();
+    if can_execute {
+        if let Some(permission) = command_config.permission {
+            if let Some(member) = &command.member {
+                // Get permissions of the user
+                let permissions = member.permissions.unwrap();
 
-            // Check whether the user has sufficient permissions
-            can_execute = permissions.contains(permission);
+                // Check whether the user has sufficient permissions
+                can_execute = permissions.contains(permission);
+            }
         }
     }
 
     // Fail if user cannot execute the command
     if !can_execute {
-        // TODO: Send a message
-        unreachable!();
+        send_failure(
+            &ctx,
+            &command,
+            "Insufficient permissions",
+            "I'm sorry, but you're not allowed to use this command...",
+        )
+        .await;
+
+        return Ok(());
     }
 
     // Add command costs to user credits

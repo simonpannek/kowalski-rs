@@ -57,7 +57,7 @@ pub async fn guild_member_removal(
                     "
                     SELECT channel FROM score_drops
                     WHERE guild = $1::BIGINT
-                    OFFSET floor(random() * (SELECT COUNT(*) FROM score_drops WHERE guild = $1::BIGINT))
+                    OFFSET FLOOR(RANDOM() * (SELECT COUNT(*) FROM score_drops WHERE guild = $1::BIGINT))
                     LIMIT 1
                     ",
                     &[&guild_db_id],
