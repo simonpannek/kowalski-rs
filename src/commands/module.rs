@@ -17,7 +17,8 @@ use crate::{
     error::KowalskiError::DiscordApiError,
     strings::ERR_CMD_ARGS_INVALID,
     utils::{
-        create_module_command, parse_arg, send_confirmation, send_response, InteractionResponse,
+        create_module_command, parse_arg, send_confirmation, send_failure, send_response,
+        InteractionResponse,
     },
 };
 
@@ -72,6 +73,18 @@ pub async fn execute(
     // Parse arguments
     let action = Action::from_str(parse_arg(options, 0)?).unwrap();
     let module = Module::from_str(parse_arg(options, 1)?).unwrap();
+
+    if matches!(command.guild_id, None) {
+        send_failure(
+            &ctx,
+            command,
+            "Command not available",
+            "Module commands are only available on guilds.",
+        )
+        .await;
+
+        return Ok(());
+    }
 
     let guild_id = command.guild_id.unwrap();
 
