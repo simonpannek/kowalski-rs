@@ -109,6 +109,29 @@ pub async fn execute(
 
         emojis
     };
+    let rank = {
+        let row = database.client.query_opt("
+            WITH ranks AS (
+                SELECT user_to,
+                RANK() OVER (
+                    ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_to
+                ) rank
+                FROM score_reactions r
+                INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
+                WHERE r.guild = $1::BIGINT
+                GROUP BY user_to
+            )
+
+            SELECT rank FROM ranks
+            WHERE user_to = $2::BIGINT
+            ", &[&guild_db_id, &user_db_id]).await?;
+
+        row.map(|row| row.get::<_, i64>(0))
+    };
+    let rank = match rank {
+        Some(rank) => rank.to_string(),
+        None => String::from("not available"),
+    };
 
     let users: Vec<_> = {
         let rows = database
@@ -149,11 +172,12 @@ pub async fn execute(
         command_config,
         &format!("Score of {}", user.name),
         &format!(
-            "The user {} currently has a score of **{}** [+{}, -{}].",
+            "The user {} currently has a score of **{}** [+{}, -{}] (rank **{}**).",
             user.mention(),
             score,
             upvotes,
-            downvotes
+            downvotes,
+            rank
         ),
         |embed| {
             let mut emojis = emojis
