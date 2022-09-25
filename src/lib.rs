@@ -1,4 +1,3 @@
-#![feature(decl_macro)]
 #[cfg(feature = "event-calendar")]
 pub mod calendar;
 pub mod client;

@@ -5,11 +5,7 @@ use std::{
 
 use rand::Rng;
 use serenity::{
-    client::Context,
-    model::interactions::application_command::{
-        ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::Channel,
-    },
-    prelude::Mentionable,
+    client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
 
 use crate::{

@@ -30,12 +30,12 @@ impl Client {
             .expect(&format!("{}: {}", ERR_ENV_NOT_SET, "BOT_ID"))
             .parse()?;
 
-        #[cfg(not(feature = "nlp-model"))]
         let intents = GatewayIntents::GUILDS
             | GatewayIntents::GUILD_MEMBERS
             | GatewayIntents::GUILD_EMOJIS_AND_STICKERS
             | GatewayIntents::GUILD_MESSAGES
-            | GatewayIntents::GUILD_MESSAGE_REACTIONS;
+            | GatewayIntents::GUILD_MESSAGE_REACTIONS
+            | GatewayIntents::GUILD_SCHEDULED_EVENTS;
 
         #[cfg(feature = "nlp-model")]
         let intents = GatewayIntents::GUILDS
@@ -43,6 +43,7 @@ impl Client {
             | GatewayIntents::GUILD_EMOJIS_AND_STICKERS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::GUILD_MESSAGE_REACTIONS
+            | GatewayIntents::GUILD_SCHEDULED_EVENTS
             | GatewayIntents::MESSAGE_CONTENT;
 
         // Build the client

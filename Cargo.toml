@@ -14,8 +14,9 @@ default = []
 
 [dependencies]
 bit-vec = "0.6"
-chrono = "0.4"
 unicode-segmentation = "1.9"
+chrono = "0.4"
+ics = "0.5"
 itertools = "0.10"
 rand = "0.8"
 serde_json = "1.0"
@@ -26,7 +27,6 @@ toml = "0.5"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 unic-emoji-char = "0.9"
-
 [dependencies.linked-hash-map]
 version = "0.5"
 features = ["serde_impl"]
@@ -47,7 +47,7 @@ features = ["derive"]
 [dependencies.serenity]
 version = "0.11.2"
 default-features = false
-features = ["cache", "client", "collector", "rustls_backend", "unstable_discord_api"]
+features = ["cache", "chrono", "client", "collector", "rustls_backend", "unstable_discord_api"]
 
 [dependencies.strum]
 version = "0.24"
