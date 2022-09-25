@@ -27,6 +27,10 @@ nlp_group_size = 20
 reminder_list_size = 10
 # Max message length of a message in the reminder list
 reminder_list_max_message_length = 500
+# The link base of the publishing function (should point to the main bot server)
+publishing_link = "https://kowalski.simon.rest"
+# Length of a calendar id
+publishing_length = 10
 
 [commands]
 # Global
@@ -132,6 +136,18 @@ max_value = 100
 [commands.clear.options.before]
 kind = "String"
 description = "The message id from which to start deleting messages."
+
+[commands.publish]
+command_type = "Publish"
+description = "Publish all scheduled events of the guild to a subscribable ics link."
+module = "Utility"
+permission = "8"
+
+[commands.publish.options.action]
+kind = "String"
+description = "What to do."
+required = true
+choices = ["enable", "disable"]
 
 [commands.reminder]
 command_type = "Reminder"

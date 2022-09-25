@@ -135,6 +135,10 @@ async fn execute_command(
                 CommandType::Say => say::execute(ctx, command, command_config).await,
                 CommandType::Sql => sql::execute(ctx, command, command_config).await,
                 CommandType::Clear => clear::execute(ctx, command, command_config).await,
+                #[cfg(feature = "event-calendar")]
+                CommandType::Publish => publish::execute(ctx, command, command_config).await,
+                #[cfg(not(feature = "event-calendar"))]
+                CommandType::Publish => disabled::execute(ctx, command, command_config).await,
                 CommandType::Reminder => reminder::execute(ctx, command, command_config).await,
                 CommandType::Reminders => reminders::execute(ctx, command, command_config).await,
                 CommandType::Cooldown => cooldown::execute(ctx, command, command_config).await,

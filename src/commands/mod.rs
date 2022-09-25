@@ -24,6 +24,8 @@ pub mod mood;
 #[cfg(feature = "nlp-model")]
 pub mod oracle;
 pub mod ping;
+#[cfg(feature = "event-calendar")]
+pub mod publish;
 pub mod rank;
 pub mod reactionrole;
 pub mod reactionroles;
