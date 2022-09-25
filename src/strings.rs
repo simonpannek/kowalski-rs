@@ -7,6 +7,7 @@ pub const INFO_DB_SETUP: &str = "Database setup complete.";
 // Error messages
 pub const ERR_API_LOAD: &str = "Failed to request information from the REST API";
 pub const ERR_AUTOCOMPLETE: &str = "Failed to answer the autocomplete request";
+pub const ERR_CALENDAR: &str = "Failed to host the calendar";
 pub const ERR_CLIENT: &str = "Client error";
 pub const ERR_CMD_ARGS_INVALID: &str = "The argument provided is invalid";
 pub const ERR_CMD_ARGS_LENGTH: &str = "Could not find required argument";
