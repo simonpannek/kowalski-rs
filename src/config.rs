@@ -72,6 +72,7 @@ pub enum CommandType {
     Gift,
     Given,
     Givens,
+    Global,
     LevelUp,
     LevelUps,
     Moderation,
