@@ -19,6 +19,7 @@ pub async fn execute(
     // Get database
     let database = data!(ctx, Database);
 
+    // Disable the module in private channels
     if matches!(command.guild_id, None) {
         send_failure(
             &ctx,

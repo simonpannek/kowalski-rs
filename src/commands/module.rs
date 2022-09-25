@@ -74,6 +74,7 @@ pub async fn execute(
     let action = Action::from_str(parse_arg(options, 0)?).unwrap();
     let module = Module::from_str(parse_arg(options, 1)?).unwrap();
 
+    // Disable the module in private channels
     if matches!(command.guild_id, None) {
         send_failure(
             &ctx,
@@ -84,6 +85,21 @@ pub async fn execute(
         .await;
 
         return Ok(());
+    }
+
+    // Only allow the owner to enable/disable the owner module
+    if matches!(module, Module::Owner) {
+        if !config.general.owners.contains(&command.user.id.0) {
+            send_failure(
+                &ctx,
+                command,
+                "Insufficient permissions",
+                "I'm sorry, but this module is restricted.",
+            )
+            .await;
+
+            return Ok(());
+        }
     }
 
     let guild_id = command.guild_id.unwrap();

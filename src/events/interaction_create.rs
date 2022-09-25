@@ -69,8 +69,7 @@ async fn execute_command(
 
     // Check if the user is a owner if the comment requires it to be one
     if command_config.owner.unwrap_or_default() {
-        let owners = &config.general.owners;
-        if !owners.contains(&command.user.id.0) {
+        if !config.general.owners.contains(&command.user.id.0) {
             can_execute = false;
         }
     }
