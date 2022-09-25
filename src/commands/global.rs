@@ -3,7 +3,7 @@ use serenity::{
     client::Context,
     model::{
         channel::ReactionType,
-        id::{EmojiId, UserId},
+        id::EmojiId,
         interactions::application_command::{
             ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue::User,
         },
@@ -16,6 +16,7 @@ use crate::{
     data,
     database::client::Database,
     error::KowalskiError,
+    pluralize,
     utils::{parse_arg_resolved, send_response_complex},
 };
 
@@ -39,12 +40,27 @@ pub async fn execute(
         &command.user
     };
 
-    // Get guild
     let guild_id = command.guild_id.unwrap();
 
-    // Get guild and user ids
-    let guild_db_id = database.get_guild(guild_id).await?;
+    // Get user id
     let user_db_id = database.get_user(guild_id, user.id).await?;
+
+    // Count active guilds of the user
+    let guilds = {
+        let row = database
+            .client
+            .query_one(
+                "
+        SELECT COUNT(*) guilds
+        FROM users
+        WHERE \"user\" = $1::BIGINT
+        ",
+                &[&user_db_id],
+            )
+            .await?;
+
+        row.get::<_, Option<i64>>(0).unwrap_or_default()
+    };
 
     // Analyze reactions of the user
     let (upvotes, downvotes) = {
@@ -56,9 +72,9 @@ pub async fn execute(
         SUM(CASE WHEN NOT upvote THEN 1 END) downvotes
         FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
-        WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
+        WHERE user_to = $1::BIGINT
         ",
-                &[&guild_db_id, &user_db_id],
+                &[&user_db_id],
             )
             .await?;
 
@@ -75,11 +91,11 @@ pub async fn execute(
                 "
         SELECT unicode, guild_emoji, COUNT(*) FROM score_reactions r
         INNER JOIN emojis e ON r.emoji = e.id
-        WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
+        WHERE user_to = $1::BIGINT
         GROUP BY emoji, unicode, guild_emoji
         ORDER BY count DESC
         ",
-                &[&guild_db_id, &user_db_id],
+                &[&user_db_id],
             )
             .await?;
 
@@ -109,6 +125,7 @@ pub async fn execute(
 
         emojis
     };
+    // Get rank of the user
     let rank = {
         let row = database.client.query_opt("
             WITH ranks AS (
@@ -118,13 +135,12 @@ pub async fn execute(
                 ) rank
                 FROM score_reactions r
                 INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
-                WHERE r.guild = $1::BIGINT
                 GROUP BY user_to
             )
 
             SELECT rank FROM ranks
-            WHERE user_to = $2::BIGINT
-            ", &[&guild_db_id, &user_db_id]).await?;
+            WHERE user_to = $1::BIGINT
+            ", &[&user_db_id]).await?;
 
         row.map(|row| row.get::<_, i64>(0))
     };
@@ -133,51 +149,100 @@ pub async fn execute(
         None => String::from("not available"),
     };
 
-    let users: Vec<_> = {
+    let (given_upvotes, given_downvotes) = {
+        let row = database
+            .client
+            .query_one(
+                "
+        SELECT SUM(CASE WHEN upvote THEN 1 END) upvotes,
+        SUM(CASE WHEN NOT upvote THEN 1 END) downvotes
+        FROM score_reactions r
+        INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
+        WHERE user_from = $1::BIGINT
+        ",
+                &[&user_db_id],
+            )
+            .await?;
+
+        let upvotes: Option<i64> = row.get(0);
+        let downvotes: Option<i64> = row.get(1);
+
+        (upvotes.unwrap_or_default(), downvotes.unwrap_or_default())
+    };
+    let given = given_upvotes - given_downvotes;
+    let given_emojis = {
         let rows = database
             .client
             .query(
                 "
-        SELECT user_from, COUNT(*) FILTER (WHERE upvote) upvotes,
-        COUNT(*) FILTER (WHERE NOT upvote) downvotes
-        FROM score_reactions r
-        INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
-        WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND native = true
-        GROUP BY user_from
-        ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
-        LIMIT 5
+        SELECT unicode, guild_emoji, COUNT(*) FROM score_reactions r
+        INNER JOIN emojis e ON r.emoji = e.id
+        WHERE user_from = $1::BIGINT
+        GROUP BY emoji, unicode, guild_emoji
+        ORDER BY count DESC
         ",
-                &[&guild_db_id, &user_db_id],
+                &[&user_db_id],
             )
             .await?;
 
-        rows.iter()
-            .map(|row| {
-                let user: i64 = row.get(0);
-                let upvotes: Option<i64> = row.get(1);
-                let downvotes: Option<i64> = row.get(2);
+        let mut emojis = Vec::new();
 
-                (
-                    UserId(user as u64),
-                    upvotes.unwrap_or_default(),
-                    downvotes.unwrap_or_default(),
-                )
-            })
-            .collect()
+        for row in rows {
+            let unicode: Option<String> = row.get(0);
+            let guild_emoji: Option<i64> = row.get(1);
+            let count: i64 = row.get(2);
+
+            let emoji = match (unicode, guild_emoji) {
+                (Some(string), _) => ReactionType::Unicode(string),
+                (_, Some(id)) => {
+                    let emoji = guild_id.emoji(&ctx.http, EmojiId(id as u64)).await?;
+
+                    ReactionType::Custom {
+                        animated: emoji.animated,
+                        id: emoji.id,
+                        name: Some(emoji.name),
+                    }
+                }
+                _ => unreachable!(),
+            };
+
+            emojis.push((emoji, count));
+        }
+
+        emojis
+    };
+    let given_rank = {
+        let row = database.client.query_opt("
+            WITH ranks AS (
+                SELECT user_from,
+                RANK() OVER (
+                    ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC, user_from
+                ) rank
+                FROM score_reactions r
+                INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
+                GROUP BY user_from
+            )
+
+            SELECT rank FROM ranks
+            WHERE user_from = $1::BIGINT
+            ", &[&user_db_id]).await?;
+
+        row.map(|row| row.get::<_, i64>(0))
+    };
+    let given_rank = match given_rank {
+        Some(given_rank) => given_rank.to_string(),
+        None => String::from("not available"),
     };
 
     send_response_complex(
         &ctx,
         &command,
         command_config,
-        &format!("Score of {}", user.name),
+        &format!("Global stats of {}", user.name),
         &format!(
-            "The user {} currently has a score of **{}** [+{}, -{}] (rank **{}**).",
+            "The user {} is currently active on {} shared with the bot.",
             user.mention(),
-            score,
-            upvotes,
-            downvotes,
-            rank
+            pluralize!("guild", guilds)
         ),
         |embed| {
             let mut emojis = emojis
@@ -197,25 +262,42 @@ pub async fn execute(
                 emojis = "Not available".to_string();
             }
 
-            let mut users = users
+            let mut given_emojis = given_emojis
                 .iter()
-                .map(|(user, upvotes, downvotes)| {
+                .map(|(reaction, count)| {
+                    let f_count = *count as f64;
+                    let f_total = (given_upvotes + given_downvotes) as f64;
                     format!(
-                        "{}: **{}** [+{}, -{}]",
-                        user.mention(),
-                        upvotes - downvotes,
-                        upvotes,
-                        downvotes
+                        "**{}x{}** ({:.1}%)",
+                        count,
+                        reaction.to_string(),
+                        f_count / f_total * 100f64
                     )
                 })
-                .join("\n");
-            if users.is_empty() {
-                users = "Not available".to_string();
+                .join(", ");
+            if given_emojis.is_empty() {
+                given_emojis = "Not available".to_string();
             }
 
             embed.fields(vec![
-                ("Emojis", emojis, false),
-                ("Top 5 benefactors", users, false),
+                (
+                    "Score",
+                    &format!(
+                        "The user has a global score of **{}** [+{}, -{}] (rank **{}**).",
+                        score, upvotes, downvotes, rank
+                    ),
+                    false,
+                ),
+                ("The following emojis were used", &emojis, false),
+                (
+                    "Given",
+                    &format!(
+                        "The user has given out a global score of **{}** [+{}, -{}] (rank **{}**).",
+                        given, given_upvotes, given_downvotes, given_rank
+                    ),
+                    false,
+                ),
+                ("The following emojis were used", &given_emojis, false),
             ])
         },
         Vec::new(),

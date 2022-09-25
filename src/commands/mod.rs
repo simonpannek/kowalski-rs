@@ -11,6 +11,7 @@ pub mod emojis;
 pub mod gift;
 pub mod given;
 pub mod givens;
+pub mod global;
 pub mod guild;
 pub mod levelup;
 pub mod levelups;

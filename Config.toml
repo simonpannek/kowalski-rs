@@ -261,12 +261,21 @@ command_type = "Given"
 description = "Display stats about the votes given to other users."
 module = "Score"
 
+[commands.given.options.user]
+kind = "User"
+description = "The user to query."
+
 [commands.givens]
 command_type = "Givens"
 description = "Display the users with the highest votes given to other users."
 module = "Score"
 
-[commands.given.options.user]
+[commands.global]
+command_type = "Global"
+description = "Display stats about the user, taking in account all guilds of the bot."
+module = "Score"
+
+[commands.global.options.user]
 kind = "User"
 description = "The user to query."
 
