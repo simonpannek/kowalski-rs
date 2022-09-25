@@ -10,6 +10,8 @@ use serenity::{
 };
 use tracing::info;
 
+#[cfg(feature = "event-calendar")]
+use crate::calendar::host_calendar;
 use crate::{
     config::Config,
     data,
@@ -28,6 +30,10 @@ pub async fn ready(ctx: &Context, rdy: Ready) {
 
     // Repeatedly check for reminders
     check_reminders(ctx.clone(), Duration::from_secs(60));
+
+    // Activate the event calendar
+    #[cfg(feature = "event-calendar")]
+    host_calendar(ctx.clone());
 
     setup_commands(ctx, rdy).await;
 }

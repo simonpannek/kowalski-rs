@@ -112,6 +112,15 @@ impl Database {
                             ON DELETE CASCADE
                     );
 
+                    CREATE TABLE IF NOT EXISTS publishing (
+                        id              TEXT PRIMARY KEY,
+                        guild           BIGINT UNIQUE,
+                        CONSTRAINT fk_guilds
+                            FOREIGN KEY (guild)
+                            REFERENCES guilds(guild)
+                            ON DELETE CASCADE
+                    );
+
                     CREATE TABLE IF NOT EXISTS score_auto_delete (
                         guild           BIGINT PRIMARY KEY,
                         score           BIGINT NOT NULL,

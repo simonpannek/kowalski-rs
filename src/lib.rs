@@ -1,3 +1,5 @@
+#[cfg(feature = "event-calendar")]
+pub mod calendar;
 pub mod client;
 pub mod commands;
 pub mod config;

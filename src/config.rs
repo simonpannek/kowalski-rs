@@ -36,6 +36,8 @@ pub struct General {
     pub nlp_group_size: usize,
     pub reminder_list_size: usize,
     pub reminder_list_max_message_length: usize,
+    pub publishing_link: String,
+    pub publishing_length: usize,
 }
 
 #[derive(Deserialize)]
@@ -61,6 +63,7 @@ pub enum CommandType {
     Say,
     Sql,
     Clear,
+    Publish,
     Reminder,
     Reminders,
     Cooldown,
