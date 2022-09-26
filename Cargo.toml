@@ -8,7 +8,7 @@ repository = "https://github.com/simonpannek/kowalski-rs"
 
 [features]
 nlp-model = ["rust-bert"]
-event-calendar = ["rocket"]
+event-calendar = ["ics", "rocket"]
 
 default = []
 
@@ -16,7 +16,6 @@ default = []
 bit-vec = "0.6"
 unicode-segmentation = "1.9"
 chrono = "0.4"
-ics = "0.5"
 itertools = "0.10"
 rand = "0.8"
 serde_json = "1.0"
@@ -30,6 +29,10 @@ unic-emoji-char = "0.9"
 [dependencies.linked-hash-map]
 version = "0.5"
 features = ["serde_impl"]
+
+[dependencies.ics]
+version = "0.5"
+optional = true
 
 [dependencies.rocket]
 version = "0.5.0-rc.2"
