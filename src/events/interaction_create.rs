@@ -159,7 +159,6 @@ async fn execute_command(
                 }
                 CommandType::Score => score::execute(ctx, command, command_config).await,
                 CommandType::Scores => scores::execute(ctx, command, command_config).await,
-                CommandType::Rank => rank::execute(ctx, command, command_config).await,
                 CommandType::ReactionRole => {
                     reactionrole::execute(ctx, command, command_config).await
                 }

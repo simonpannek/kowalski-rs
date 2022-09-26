@@ -343,15 +343,6 @@ command_type = "Moderations"
 description = "See what auto-moderation features are enabled."
 module = "Score"
 
-[commands.rank]
-command_type = "Rank"
-description = "Display the rank of a user."
-module = "Score"
-
-[commands.rank.options.user]
-kind = "User"
-description = "The user to query."
-
 [commands.score]
 command_type = "Score"
 description = "Display the score of a user."

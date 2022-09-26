@@ -80,7 +80,6 @@ pub enum CommandType {
     LevelUps,
     Moderation,
     Moderations,
-    Rank,
     Score,
     Scores,
     ReactionRole,
