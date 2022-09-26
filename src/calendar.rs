@@ -22,7 +22,7 @@ pub fn host_calendar(ctx: Context) {
     });
 }
 
-#[get("/<id>")]
+#[get("/<id>/events.ics")]
 async fn events(ctx: &State<Context>, id: String) -> Option<String> {
     // Get database
     let database = data!(ctx, Database);

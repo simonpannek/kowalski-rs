@@ -93,7 +93,7 @@ pub async fn execute(
                         &format!(
                             "
                         The calendar is already public. You can find it here:
-                        {}/{}
+                        {}/{}/events.ics
                         ",
                             config.general.publishing_link, id
                         ),
@@ -133,7 +133,7 @@ pub async fn execute(
                         &format!(
                             "
                         The calendar is now public and available here:
-                        {}/{}
+                        {}/{}/events.ics
                         ",
                             config.general.publishing_link, id
                         ),
