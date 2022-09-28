@@ -266,7 +266,11 @@ async fn remove(
             database
                 .client
                 .execute(
-                    "DELETE FROM reminders WHERE guild = $1::BIGINT",
+                    "
+                    DELETE FROM publishing WHERE guild = $1::BIGINT;
+
+                    DELETE FROM reminders WHERE guild = $1::BIGINT;
+                    ",
                     &[&guild_db_id],
                 )
                 .await?;
