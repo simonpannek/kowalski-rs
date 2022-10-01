@@ -456,7 +456,7 @@ async fn update_roles(
                 FROM score_roles
                 WHERE (score >= 0 AND score <= $2::BIGINT)
                     OR (score < 0 AND score >= $2::BIGINT)
-                ORDER BY score DESC
+                ORDER BY ABS(score) DESC
                 LIMIT 1
             )
 
