@@ -133,7 +133,7 @@ pub async fn execute(
         None => String::from("not available"),
     };
 
-    let users: Vec<_> = {
+    let top_users: Vec<_> = {
         let rows = database
             .client
             .query(
@@ -144,7 +144,42 @@ pub async fn execute(
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND native = true
         GROUP BY user_from
+        HAVING COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) >= 0
         ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) DESC
+        LIMIT 5
+        ",
+                &[&guild_db_id, &user_db_id],
+            )
+            .await?;
+
+        rows.iter()
+            .map(|row| {
+                let user: i64 = row.get(0);
+                let upvotes: Option<i64> = row.get(1);
+                let downvotes: Option<i64> = row.get(2);
+
+                (
+                    UserId(user as u64),
+                    upvotes.unwrap_or_default(),
+                    downvotes.unwrap_or_default(),
+                )
+            })
+            .collect()
+    };
+
+    let bottom_users: Vec<_> = {
+        let rows = database
+            .client
+            .query(
+                "
+        SELECT user_from, COUNT(*) FILTER (WHERE upvote) upvotes,
+        COUNT(*) FILTER (WHERE NOT upvote) downvotes
+        FROM score_reactions r
+        INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
+        WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT AND native = true
+        GROUP BY user_from
+        HAVING COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) < 0
+        ORDER BY COUNT(*) FILTER (WHERE upvote) - COUNT(*) FILTER (WHERE NOT upvote) ASC
         LIMIT 5
         ",
                 &[&guild_db_id, &user_db_id],
@@ -197,7 +232,7 @@ pub async fn execute(
                 emojis = "Not available".to_string();
             }
 
-            let mut users = users
+            let mut top_users = top_users
                 .iter()
                 .map(|(user, upvotes, downvotes)| {
                     format!(
@@ -209,13 +244,30 @@ pub async fn execute(
                     )
                 })
                 .join("\n");
-            if users.is_empty() {
-                users = "Not available".to_string();
+            if top_users.is_empty() {
+                top_users = "Not available".to_string();
+            }
+
+            let mut bottom_users = bottom_users
+                .iter()
+                .map(|(user, upvotes, downvotes)| {
+                    format!(
+                        "{}: **{}** [+{}, -{}]",
+                        user.mention(),
+                        upvotes - downvotes,
+                        upvotes,
+                        downvotes
+                    )
+                })
+                .join("\n");
+            if bottom_users.is_empty() {
+                bottom_users = "Not available".to_string();
             }
 
             embed.fields(vec![
                 ("Emojis", emojis, false),
-                ("Top 5 benefactors", users, false),
+                ("Top 5 benefactors", top_users, false),
+                ("Top 5 haters", bottom_users, false),
             ])
         },
         Vec::new(),
