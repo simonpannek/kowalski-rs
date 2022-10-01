@@ -48,7 +48,7 @@ version = "1.0"
 features = ["derive"]
 
 [dependencies.serenity]
-version = "0.11.2"
+version = "=0.11.2"
 default-features = false
 features = ["cache", "chrono", "client", "collector", "rustls_backend", "unstable_discord_api"]
 
