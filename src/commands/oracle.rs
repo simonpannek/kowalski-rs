@@ -2,6 +2,7 @@ use rust_bert::pipelines::conversation::ConversationManager;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
+use itertools::Itertools;
 
 use crate::{
     config::{Command, Config},
@@ -48,11 +49,11 @@ pub async fn execute(
         .rev()
         .filter(|message| !message.content.is_empty())
         .map(|message| {
-            if message.content.len() > 100 {
-                message.content[..100].to_string()
-            } else {
-                message.content.to_string()
-            }
+            message
+                .content
+                .chars()
+                .take(config.general.nlp_max_message_length)
+                .join("")
         })
         .collect::<Vec<_>>();
 

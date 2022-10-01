@@ -2,7 +2,6 @@
 use std::ops::Div;
 use std::{str::FromStr, time::Duration};
 
-#[cfg(feature = "nlp-model")]
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use serde::Deserialize;
@@ -230,7 +229,9 @@ pub async fn send_failure(
 
 pub fn create_embed(title: &str, content: &str) -> CreateEmbed {
     let mut embed = CreateEmbed::default();
-    embed.title(title).description(content);
+    embed
+        .title(title.chars().take(256).join(""))
+        .description(content);
     embed
 }
 
