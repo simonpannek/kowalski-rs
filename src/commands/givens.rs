@@ -176,33 +176,31 @@ async fn show_page(
                 &top[start..end]
             };
 
-            embed.fields(
-                page.iter()
-                    .enumerate()
-                    .map(|(i, (user, upvotes, downvotes, transferred))| {
-                        let title = {
-                            let index = start + i;
+            embed.fields(page.iter().enumerate().map(
+                |(i, (user, upvotes, downvotes, transferred))| {
+                    let title = {
+                        let index = start + i;
 
-                            match rank_titles.get(index) {
-                                Some(title) => title.clone(),
-                                None => format!("#{}", index + 1),
-                            }
-                        };
+                        match rank_titles.get(index) {
+                            Some(title) => title.clone(),
+                            None => format!("#{}", index + 1),
+                        }
+                    };
 
-                        (
-                            title,
-                            format!(
-                                "{}: **{}** [+{}, -{}] ({} transferred)",
-                                user.mention(),
-                                upvotes - downvotes,
-                                upvotes,
-                                downvotes,
-                                transferred
-                            ),
-                            false,
-                        )
-                    }),
-            )
+                    (
+                        title,
+                        format!(
+                            "{}: **{}** [+{}, -{}] ({} transferred)",
+                            user.mention(),
+                            upvotes - downvotes,
+                            upvotes,
+                            downvotes,
+                            transferred
+                        ),
+                        false,
+                    )
+                },
+            ))
         },
         vec![row],
     )

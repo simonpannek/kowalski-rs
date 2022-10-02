@@ -1,8 +1,8 @@
+use itertools::Itertools;
 use rust_bert::pipelines::conversation::ConversationManager;
 use serenity::{
     client::Context, model::interactions::application_command::ApplicationCommandInteraction,
 };
-use itertools::Itertools;
 
 use crate::{
     config::{Command, Config},
@@ -52,6 +52,7 @@ pub async fn execute(
             message
                 .content
                 .chars()
+                .filter(|c| c.is_alphanumeric())
                 .take(config.general.nlp_max_message_length)
                 .join("")
         })
