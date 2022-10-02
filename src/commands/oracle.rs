@@ -52,7 +52,7 @@ pub async fn execute(
             message
                 .content
                 .chars()
-                .filter(|c| c.is_alphanumeric())
+                .filter(|c| c.is_alphanumeric() || c.is_ascii_whitespace())
                 .take(config.general.nlp_max_message_length)
                 .join("")
         })
@@ -62,7 +62,7 @@ pub async fn execute(
         question
             .clone()
             .chars()
-            .filter(|c| c.is_alphanumeric())
+            .filter(|c| c.is_alphanumeric() || c.is_ascii_whitespace())
             .take(config.general.nlp_max_message_length)
             .join(""),
     );
@@ -93,8 +93,8 @@ pub async fn execute(
         model
             .generate_responses(&mut manager)
             .get(&conversation_id)
-            .unwrap()
-            .to_string()
+            .map(|response| response.to_string())
+            .unwrap_or_default()
     })
     .await
     .unwrap();
