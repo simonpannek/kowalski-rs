@@ -60,7 +60,7 @@ pub async fn execute(
                 "
         SELECT user_from, COUNT(*) FILTER (WHERE upvote) upvotes,
         COUNT(*) FILTER (WHERE NOT upvote) downvotes,
-        SUM(CASE WHEN upvote THEN 1 ELSE -1 END) FILTER (WHERE NOT native) gifted
+        SUM(CASE WHEN upvote THEN 1 ELSE -1 END) FILTER (WHERE NOT native) transferred
         FROM score_reactions r
         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
         WHERE r.guild = $1::BIGINT
@@ -76,13 +76,13 @@ pub async fn execute(
                 let user: i64 = row.get(0);
                 let upvotes: Option<i64> = row.get(1);
                 let downvotes: Option<i64> = row.get(2);
-                let gifted: Option<i64> = row.get(3);
+                let transferred: Option<i64> = row.get(3);
 
                 (
                     UserId(user as u64),
                     upvotes.unwrap_or_default(),
                     downvotes.unwrap_or_default(),
-                    gifted.unwrap_or_default(),
+                    transferred.unwrap_or_default(),
                 )
             })
             .collect()
@@ -179,7 +179,7 @@ async fn show_page(
             embed.fields(
                 page.iter()
                     .enumerate()
-                    .map(|(i, (user, upvotes, downvotes, gifted))| {
+                    .map(|(i, (user, upvotes, downvotes, transferred))| {
                         let title = {
                             let index = start + i;
 
@@ -192,12 +192,12 @@ async fn show_page(
                         (
                             title,
                             format!(
-                                "{}: **{}** [+{}, -{}] ({} gifted)",
+                                "{}: **{}** [+{}, -{}] ({} transferred)",
                                 user.mention(),
                                 upvotes - downvotes,
                                 upvotes,
                                 downvotes,
-                                gifted
+                                transferred
                             ),
                             false,
                         )
