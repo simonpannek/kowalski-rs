@@ -58,7 +58,14 @@ pub async fn execute(
         })
         .collect::<Vec<_>>();
 
-    messages.push(question.clone());
+    messages.push(
+        question
+            .clone()
+            .chars()
+            .filter(|c| c.is_alphanumeric())
+            .take(config.general.nlp_max_message_length)
+            .join(""),
+    );
 
     let mut result = tokio::task::spawn_blocking(move || {
         // Create conversation
