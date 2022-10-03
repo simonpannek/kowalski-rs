@@ -53,7 +53,7 @@ impl Cooldowns {
         // Add new cooldown if none is active
         if !active {
             let cooldown_end = {
-                let mut cooldown = config.general.default_cooldown;
+                let mut cooldown = None;
 
                 for &role_id in roles {
                     let role_db_id = database.get_role(guild_id, role_id).await?;
@@ -72,11 +72,17 @@ impl Cooldowns {
 
                     if let Some(row) = row {
                         let role_cooldown = row.get(0);
-                        cooldown = min(cooldown, role_cooldown);
+
+                        match cooldown {
+                            Some(cooldown_value) => {
+                                cooldown = Some(min(cooldown_value, role_cooldown));
+                            }
+                            None => cooldown = Some(role_cooldown),
+                        }
                     }
                 }
 
-                Utc::now() + Duration::seconds(cooldown)
+                Utc::now() + Duration::seconds(cooldown.unwrap_or(config.general.default_cooldown))
             };
 
             guild_cooldowns.cooldowns.insert(user_id, cooldown_end);

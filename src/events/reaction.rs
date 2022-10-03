@@ -153,7 +153,7 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                 let mut cooldowns = cooldowns_lock.write().await;
 
                 // Get role ids of user
-                let roles: Vec<_> = add_reaction
+                let mut roles: Vec<_> = add_reaction
                     .member
                     .as_ref()
                     .unwrap()
@@ -161,6 +161,9 @@ pub async fn reaction_add(ctx: &Context, add_reaction: Reaction) -> Result<(), K
                     .iter()
                     .map(|role_id| role_id.clone())
                     .collect();
+
+                // Add @everyone as a base role
+                roles.push(RoleId(guild_id.0));
 
                 cooldowns
                     .check_cooldown(&config, &database, guild_id, user_from_id, &roles)
