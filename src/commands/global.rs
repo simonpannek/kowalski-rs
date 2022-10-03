@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use serenity::model::id::GuildId;
 use serenity::{
     client::Context,
     model::{
@@ -89,10 +90,10 @@ pub async fn execute(
             .client
             .query(
                 "
-        SELECT unicode, guild_emoji, COUNT(*) FROM score_reactions r
+        SELECT unicode, e.guild, guild_emoji, COUNT(*) FROM score_reactions r
         INNER JOIN emojis e ON r.emoji = e.id
         WHERE user_to = $1::BIGINT
-        GROUP BY emoji, unicode, guild_emoji
+        GROUP BY emoji, unicode, e.guild, guild_emoji
         ORDER BY count DESC
         ",
                 &[&user_db_id],
@@ -103,12 +104,14 @@ pub async fn execute(
 
         for row in rows {
             let unicode: Option<String> = row.get(0);
-            let guild_emoji: Option<i64> = row.get(1);
-            let count: i64 = row.get(2);
+            let guild: Option<i64> = row.get(1);
+            let guild_emoji: Option<i64> = row.get(2);
+            let count: i64 = row.get(3);
 
-            let emoji = match (unicode, guild_emoji) {
-                (Some(string), _) => ReactionType::Unicode(string),
-                (_, Some(id)) => {
+            let emoji = match (unicode, guild, guild_emoji) {
+                (Some(string), _, _) => ReactionType::Unicode(string),
+                (_, Some(guild_db_id), Some(id)) => {
+                    let guild_id = GuildId(guild_db_id as u64);
                     let emoji = guild_id.emoji(&ctx.http, EmojiId(id as u64)).await?;
 
                     ReactionType::Custom {
@@ -175,10 +178,10 @@ pub async fn execute(
             .client
             .query(
                 "
-        SELECT unicode, guild_emoji, COUNT(*) FROM score_reactions r
+        SELECT unicode, e.guild, guild_emoji, COUNT(*) FROM score_reactions r
         INNER JOIN emojis e ON r.emoji = e.id
         WHERE user_from = $1::BIGINT
-        GROUP BY emoji, unicode, guild_emoji
+        GROUP BY emoji, unicode, e.guild, guild_emoji
         ORDER BY count DESC
         ",
                 &[&user_db_id],
@@ -189,12 +192,14 @@ pub async fn execute(
 
         for row in rows {
             let unicode: Option<String> = row.get(0);
-            let guild_emoji: Option<i64> = row.get(1);
-            let count: i64 = row.get(2);
+            let guild: Option<i64> = row.get(1);
+            let guild_emoji: Option<i64> = row.get(2);
+            let count: i64 = row.get(3);
 
-            let emoji = match (unicode, guild_emoji) {
-                (Some(string), _) => ReactionType::Unicode(string),
-                (_, Some(id)) => {
+            let emoji = match (unicode, guild, guild_emoji) {
+                (Some(string), _, _) => ReactionType::Unicode(string),
+                (_, Some(guild_db_id), Some(id)) => {
+                    let guild_id = GuildId(guild_db_id as u64);
                     let emoji = guild_id.emoji(&ctx.http, EmojiId(id as u64)).await?;
 
                     ReactionType::Custom {
