@@ -242,7 +242,7 @@ async fn show_page(
                 )];
 
                 (
-                    datetime.format("%d.%m.%y (%R) [%Z]"),
+                    format!("<t:{}:f>", datetime.timestamp()),
                     if let Some(user_id) = user_id {
                         format!(
                             "Reminder of {} in {}: {}",
