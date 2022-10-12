@@ -69,12 +69,13 @@ pub async fn guild_member_removal(
 
         if let Some(channel) = channel {
             // Get the score of the user
-            let score = {
+            let (upvotes, downvotes) = {
                 let row = database
                     .client
                     .query_one(
                         "
-                        SELECT SUM(CASE WHEN upvote THEN 1 ELSE -1 END) score
+                        SELECT COUNT(*) FILTER (WHERE upvote) upvotes,
+                        COUNT(*) FILTER (WHERE NOT upvote) downvotes
                         FROM score_reactions r
                         INNER JOIN score_emojis se ON r.guild = se.guild AND r.emoji = se.emoji
                         WHERE r.guild = $1::BIGINT AND user_to = $2::BIGINT
@@ -83,10 +84,26 @@ pub async fn guild_member_removal(
                     )
                     .await?;
 
-                row.get::<_, Option<i64>>(0).unwrap_or_default()
+                let upvotes: Option<i64> = row.get(1);
+                let downvotes: Option<i64> = row.get(2);
+
+                (upvotes, downvotes)
             };
 
-            let title = format!("User {} has dropped a score of {}", user.name, score);
+            // Don't send a message if no upvotes and downvotes exist
+            if matches!((upvotes, downvotes), (None, None)) {
+                return Ok(());
+            }
+
+            let (upvotes, downvotes) = (upvotes.unwrap_or_default(), downvotes.unwrap_or_default());
+
+            let title = format!(
+                "User {} has dropped a score of **{}** [+{}, -{}]",
+                user.name,
+                upvotes - downvotes,
+                upvotes,
+                downvotes
+            );
 
             // Create action row
             let mut row = CreateActionRow::default();
