@@ -87,15 +87,13 @@ pub async fn guild_member_removal(
                 let upvotes: Option<i64> = row.get(0);
                 let downvotes: Option<i64> = row.get(1);
 
-                (upvotes, downvotes)
+                (upvotes.unwrap_or_default(), downvotes.unwrap_or_default())
             };
 
             // Don't send a message if no upvotes and downvotes exist
-            if matches!((upvotes, downvotes), (None, None)) {
+            if matches!((upvotes, downvotes), (0, 0)) {
                 return Ok(());
             }
-
-            let (upvotes, downvotes) = (upvotes.unwrap_or_default(), downvotes.unwrap_or_default());
 
             let title = format!(
                 "User {} has dropped a score of **{}** [+{}, -{}]",
