@@ -84,8 +84,8 @@ pub async fn guild_member_removal(
                     )
                     .await?;
 
-                let upvotes: Option<i64> = row.get(1);
-                let downvotes: Option<i64> = row.get(2);
+                let upvotes: Option<i64> = row.get(0);
+                let downvotes: Option<i64> = row.get(1);
 
                 (upvotes, downvotes)
             };
